@@ -10,32 +10,62 @@ import {
   defaultFakeEditorVerdict,
 } from './fakeAgents.js';
 import { MAX_RESEARCH_ROUNDS, MAX_WRITE_CYCLES } from './routes.js';
+import { runResearcherAgent } from '../agents/researcher/researcherAgent.js';
 import { runWriterAgent } from '../agents/writer/writerAgent.js';
 import { runEditorAgent } from '../agents/editor/editorAgent.js';
+import { SearchProvider } from '../tools/search/types.js';
+import { FetchPageOptions } from '../tools/fetch/fetchPage.js';
 import { BudgetExceededError } from '../llm/budget.js';
 
 export interface NodeOptions {
   fakeAgentOptions?: FakeAgentOptions;
+  useRealResearcher?: boolean;
   useRealWriter?: boolean;
   useRealEditor?: boolean;
   llmClient?: OpenAI;
+  researcherModel?: string;
   writerModel?: string;
   editorModel?: string;
+  searchProvider?: SearchProvider;
+  fetchOptions?: FetchPageOptions;
 }
 
 export function createGraphNodes(options: NodeOptions = {}) {
   const {
     fakeAgentOptions = {},
+    useRealResearcher = false,
     useRealWriter = false,
     useRealEditor = false,
     llmClient,
+    researcherModel,
     writerModel,
     editorModel,
+    searchProvider,
+    fetchOptions,
   } = options;
 
   const researcherNode = async (state: GraphState): Promise<Partial<GraphState>> => {
     if (state.status === 'budget_exceeded') {
       return {};
+    }
+
+    if (useRealResearcher) {
+      try {
+        return await runResearcherAgent(state, {
+          client: llmClient,
+          model: researcherModel,
+          searchProvider,
+          fetchOptions,
+        });
+      } catch (err: unknown) {
+        if (err instanceof BudgetExceededError) {
+          return {
+            status: 'budget_exceeded',
+            openIssues: [...state.openIssues, `Budget guard breach in Researcher: ${err.message}`],
+          };
+        }
+        throw err;
+      }
     }
 
     const nextRound = state.researchRounds + 1;

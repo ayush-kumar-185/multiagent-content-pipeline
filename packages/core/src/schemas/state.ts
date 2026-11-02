@@ -28,7 +28,11 @@ export const GraphStateSchema = z.object({
   runId: z.string().min(1),
   topic: z.string().min(1),
   sourceUrl: z.string().url().optional(),
-  config: RunConfigSchema,
+  config: RunConfigSchema.default(() => ({
+    audience: 'software engineers',
+    tone: 'technical and precise',
+    targetWords: 800,
+  })),
   notes: z.array(NoteSchema).default([]),
   researchRounds: z.number().int().nonnegative().default(0),
   draft: z.string().default(''),

@@ -15,4 +15,5 @@ export function getCoreStatus(): CoreSanityCheck {
 export * from './schemas/index.js';
 export * from './graph/index.js';
 export * from './llm/index.js';
+export * from './tools/index.js';
 export * from './agents/index.js';

@@ -44,14 +44,16 @@ async function runCLI() {
   const actionArg = (args[1] ?? 'approve').toLowerCase() as 'approve' | 'edit' | 'reject';
 
   const hasApiKey = Boolean(process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY);
+  const hasSearchKey = Boolean(process.env.TAVILY_API_KEY || process.env.BRAVE_SEARCH_API_KEY);
   const providerName = process.env.OPENROUTER_API_KEY ? 'OpenRouter' : 'OpenAI';
+  const useRealResearcher = hasApiKey && hasSearchKey;
 
   console.log('='.repeat(70));
   console.log('  CiteWriter Multi-Agent Pipeline CLI');
   console.log('='.repeat(70));
   console.log(`Topic: "${topicArg}"`);
   console.log(
-    `Mode: ${hasApiKey ? `Real LLM (${providerName})` : 'Offline Deterministic Stub Mode'}`,
+    `Mode: ${hasApiKey ? `Real LLM (${providerName})` : 'Offline Deterministic Stub Mode'}${useRealResearcher ? ' + Live Web Search' : ' + Curated Primary Notes'}`,
   );
   console.log(`Simulated Human Action on Review: "${actionArg}"`);
   console.log('-'.repeat(70));
@@ -60,6 +62,7 @@ async function runCLI() {
   const threadConfig = { configurable: { thread_id: runId } };
 
   const graph = createCiteWriterGraph({
+    useRealResearcher,
     useRealWriter: hasApiKey,
     useRealEditor: hasApiKey,
     fakeAgentOptions: {
@@ -69,7 +72,7 @@ async function runCLI() {
           claim: c.claim,
           noteIds: c.noteIds,
           status: 'supported' as const,
-          reason: 'Verified against primary hand-written notes.',
+          reason: 'Verified against primary notes.',
         })),
     },
   });

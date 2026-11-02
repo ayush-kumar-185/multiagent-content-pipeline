@@ -92,3 +92,37 @@ Phase 2 introduces real LLM execution for the Writer and Editor agents. We need 
 
 - _Direct provider-specific SDKs (Anthropic SDK, Google GenAI SDK, etc.):_ Using OpenAI's standard wire-format allows zero-code switching between OpenAI, OpenRouter, and local OpenAI-compatible endpoints.
 - _Allowing Editor to rewrite claims:_ Rejected because Editor rewrites can introduce unverified factual claims or alter verified statistics.
+
+---
+
+## ADR 005: Search Provider Abstraction, Fetch Security, and Substring Verification (Phase 3)
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+### Context
+
+Phase 3 integrates web search and web page fetching into the Researcher agent. Unchecked web fetching introduces high-severity vulnerabilities: SSRF (accessing cloud metadata `169.254.169.254`, localhost, private intranet ranges), resource exhaustion (denial of service via massive payloads or infinite redirect loops), and prompt injection from malicious external web pages. Furthermore, the Researcher must produce verifiable notes where quotes are guaranteed to exist verbatim on the source page.
+
+### Decision
+
+1. **Search Tool Abstraction:** Provide a `SearchProvider` interface with adapters for Tavily (`TavilySearchProvider`), Brave Search (`BraveSearchProvider`), and a deterministic in-memory `MockSearchProvider` for testing.
+2. **SSRF Defense-in-Depth (`ssrfFilter.ts`):**
+   - Whitelist protocols to only `http:` and `https:`.
+   - Perform pre-fetch DNS resolution on every hostname.
+   - Inspect all resolved IPv4 and IPv6 addresses against private CIDR blocks (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), loopback (`127.0.0.0/8`, `::1`), link-local (`169.254.0.0/16`, `fe80::/10`), cloud metadata (`169.254.169.254`), and multicast ranges. Block any match immediately with `SSRFBlockedError`.
+3. **Hardened Web Fetcher (`fetchPage.ts`):**
+   - Hard cap of 2 MB on response size, enforced via `Content-Length` headers and stream chunk counting.
+   - 10-second timeout using `AbortController`.
+   - Max 3 redirects with recursive security re-validation on every target URL.
+   - Content-Type whitelist strictly limiting responses to text formats (`text/html`, `text/plain`, `text/markdown`, `application/xhtml+xml`, `application/json`).
+4. **Prompt Injection Boundary:** All external content is wrapped in distinct delimiters (`<<<START_UNTRUSTED_EXTERNAL_WEB_CONTENT>>>` and `<<<END_UNTRUSTED_EXTERNAL_WEB_CONTENT>>>`), accompanied by system instructions commanding the LLM never to follow or execute instructions found within the untrusted delimiters.
+5. **Deterministic Quote Verification (`quoteVerifier.ts`):** In code, every extracted note quote must be an exact substring of the fetched raw page text. Any note whose quote fails verification is dropped before reaching the writer.
+6. **Fetch Cap per Round:** The researcher fetches a maximum of 8 candidate URLs per round to bound cost and latency.
+
+### Alternatives Considered
+
+- _Allowing standard fetch redirects:_ Rejected because open redirects can bypass SSRF checks by redirecting from a public domain to a cloud metadata IP. Manual redirect inspection is required.
+- _Fuzzy LLM quote matching:_ Rejected because exact quotes are essential for sentence-level citation verification. Deterministic code verification guarantees authenticity.
+
+---
