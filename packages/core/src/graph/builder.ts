@@ -1,17 +1,15 @@
 import { StateGraph, START, END, MemorySaver, BaseCheckpointSaver } from '@langchain/langgraph';
 import { StateAnnotation, GraphState } from '../schemas/state.js';
-import { createGraphNodes } from './nodes.js';
+import { createGraphNodes, NodeOptions } from './nodes.js';
 import { routeAfterFactChecker, routeAfterEditor, ROUTE_TARGETS } from './routes.js';
-import { FakeAgentOptions } from './fakeAgents.js';
 
-export interface GraphBuilderOptions {
+export interface GraphBuilderOptions extends NodeOptions {
   checkpointer?: BaseCheckpointSaver;
-  fakeAgentOptions?: FakeAgentOptions;
 }
 
 export function createCiteWriterGraph(options: GraphBuilderOptions = {}) {
   const checkpointer = options.checkpointer ?? new MemorySaver();
-  const nodes = createGraphNodes(options.fakeAgentOptions);
+  const nodes = createGraphNodes(options);
 
   const workflow = new StateGraph(StateAnnotation)
     .addNode(ROUTE_TARGETS.RESEARCHER, nodes.researcherNode)

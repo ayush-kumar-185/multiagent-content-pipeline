@@ -1,3 +1,4 @@
+import OpenAI from 'openai';
 import { interrupt } from '@langchain/langgraph';
 import { GraphState, HumanActionSchema, type HumanAction } from '../schemas/state.js';
 import {
@@ -9,12 +10,37 @@ import {
   defaultFakeEditorVerdict,
 } from './fakeAgents.js';
 import { MAX_RESEARCH_ROUNDS, MAX_WRITE_CYCLES } from './routes.js';
+import { runWriterAgent } from '../agents/writer/writerAgent.js';
+import { runEditorAgent } from '../agents/editor/editorAgent.js';
+import { BudgetExceededError } from '../llm/budget.js';
 
-export function createGraphNodes(options: FakeAgentOptions = {}) {
+export interface NodeOptions {
+  fakeAgentOptions?: FakeAgentOptions;
+  useRealWriter?: boolean;
+  useRealEditor?: boolean;
+  llmClient?: OpenAI;
+  writerModel?: string;
+  editorModel?: string;
+}
+
+export function createGraphNodes(options: NodeOptions = {}) {
+  const {
+    fakeAgentOptions = {},
+    useRealWriter = false,
+    useRealEditor = false,
+    llmClient,
+    writerModel,
+    editorModel,
+  } = options;
+
   const researcherNode = async (state: GraphState): Promise<Partial<GraphState>> => {
+    if (state.status === 'budget_exceeded') {
+      return {};
+    }
+
     const nextRound = state.researchRounds + 1;
-    const newNotes = options.researcherBehavior
-      ? options.researcherBehavior(nextRound)
+    const newNotes = fakeAgentOptions.researcherBehavior
+      ? fakeAgentOptions.researcherBehavior(nextRound)
       : defaultFakeNotes;
 
     // Deduplicate notes by ID
@@ -30,9 +56,31 @@ export function createGraphNodes(options: FakeAgentOptions = {}) {
   };
 
   const writerNode = async (state: GraphState): Promise<Partial<GraphState>> => {
+    if (state.status === 'budget_exceeded') {
+      return {};
+    }
+
+    if (useRealWriter) {
+      try {
+        return await runWriterAgent(state, {
+          client: llmClient,
+          model: writerModel,
+        });
+      } catch (err: unknown) {
+        if (err instanceof BudgetExceededError) {
+          return {
+            status: 'budget_exceeded',
+            openIssues: [...state.openIssues, `Budget guard breach in Writer: ${err.message}`],
+          };
+        }
+        throw err;
+      }
+    }
+
+    // Default / Stub writer
     const nextCycle = state.writeCycles + 1;
-    const { draft, claims } = options.writerBehavior
-      ? options.writerBehavior(nextCycle, state.notes)
+    const { draft, claims } = fakeAgentOptions.writerBehavior
+      ? fakeAgentOptions.writerBehavior(nextCycle, state.notes)
       : { draft: defaultFakeDraft, claims: defaultFakeClaims };
 
     return {
@@ -45,8 +93,12 @@ export function createGraphNodes(options: FakeAgentOptions = {}) {
   };
 
   const factCheckerNode = async (state: GraphState): Promise<Partial<GraphState>> => {
-    const claimChecks = options.factCheckerBehavior
-      ? options.factCheckerBehavior(state.claims, state.notes)
+    if (state.status === 'budget_exceeded') {
+      return {};
+    }
+
+    const claimChecks = fakeAgentOptions.factCheckerBehavior
+      ? fakeAgentOptions.factCheckerBehavior(state.claims, state.notes)
       : defaultFakeClaimChecks;
 
     return {
@@ -57,8 +109,30 @@ export function createGraphNodes(options: FakeAgentOptions = {}) {
   };
 
   const editorNode = async (state: GraphState): Promise<Partial<GraphState>> => {
-    const editorVerdict = options.editorBehavior
-      ? options.editorBehavior(state.draft, state.claims, state.writeCycles)
+    if (state.status === 'budget_exceeded') {
+      return {};
+    }
+
+    if (useRealEditor) {
+      try {
+        return await runEditorAgent(state, {
+          client: llmClient,
+          model: editorModel,
+        });
+      } catch (err: unknown) {
+        if (err instanceof BudgetExceededError) {
+          return {
+            status: 'budget_exceeded',
+            openIssues: [...state.openIssues, `Budget guard breach in Editor: ${err.message}`],
+          };
+        }
+        throw err;
+      }
+    }
+
+    // Default / Stub editor
+    const editorVerdict = fakeAgentOptions.editorBehavior
+      ? fakeAgentOptions.editorBehavior(state.draft, state.claims, state.writeCycles)
       : defaultFakeEditorVerdict;
 
     return {
@@ -98,15 +172,21 @@ export function createGraphNodes(options: FakeAgentOptions = {}) {
       );
     }
 
+    // If budget was exceeded, keep status as budget_exceeded; otherwise awaiting_review
+    const finalStatus = state.status === 'budget_exceeded' ? 'budget_exceeded' : 'awaiting_review';
+
     return {
-      status: 'awaiting_review',
+      status: finalStatus,
       openIssues: Array.from(new Set(issues)),
     };
   };
 
   const humanReviewNode = async (state: GraphState): Promise<Partial<GraphState>> => {
     const rawResume = interrupt({
-      message: 'Article draft requires human review',
+      message:
+        state.status === 'budget_exceeded'
+          ? 'Article draft routed to review due to budget limit breach'
+          : 'Article draft requires human review',
       runId: state.runId,
       topic: state.topic,
       draft: state.draft,
@@ -114,6 +194,7 @@ export function createGraphNodes(options: FakeAgentOptions = {}) {
       claimChecks: state.claimChecks,
       editorVerdict: state.editorVerdict,
       openIssues: state.openIssues,
+      status: state.status,
     });
 
     const parsedAction: HumanAction = HumanActionSchema.parse(rawResume);

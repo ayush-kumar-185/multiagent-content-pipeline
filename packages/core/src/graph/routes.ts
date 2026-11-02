@@ -29,6 +29,10 @@ export type RouteBDestination = typeof ROUTE_TARGETS.WRITER | typeof ROUTE_TARGE
  * - all supported -> editor
  */
 export function routeAfterFactChecker(state: GraphState): RouteADestination {
+  if (state.status === 'budget_exceeded') {
+    return ROUTE_TARGETS.PREPARE_REVIEW;
+  }
+
   const { claimChecks, researchRounds, writeCycles } = state;
 
   const hasNeedsMoreResearch = claimChecks.some((c) => c.status === 'needs_more_research');
@@ -61,6 +65,10 @@ export function routeAfterFactChecker(state: GraphState): RouteADestination {
  * - revise AND cap hit (writeCycles >= 3) -> prepareReview (feedback in openIssues)
  */
 export function routeAfterEditor(state: GraphState): RouteBDestination {
+  if (state.status === 'budget_exceeded') {
+    return ROUTE_TARGETS.PREPARE_REVIEW;
+  }
+
   const { editorVerdict, writeCycles } = state;
 
   if (editorVerdict?.decision === 'accept') {

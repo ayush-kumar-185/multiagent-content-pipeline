@@ -4,50 +4,6 @@ This document records architectural, engineering, and design decisions made thro
 
 ---
 
-## ADR 002: Zod Schemas and LangGraph State Channels (Phase 1)
-
-- **Date:** 2026-11-03
-- **Status:** Accepted
-
-### Context
-
-CiteWriter's shared state must pass between four distinct agent roles, persist durably via checkpointers, and expose consistent typed contracts. We needed to choose how state contracts and runtime schemas are unified between Zod and LangGraph.js v1.6.
-
-### Decision
-
-1. Define primary domain entities (`Note`, `Claim`, `ClaimCheck`, `EditorVerdict`, `RunConfig`, `HumanAction`) with Zod schemas to ensure parse-time validation on all agent inputs and outputs.
-2. Mirror these schemas in LangGraph's `Annotation.Root` channels with explicit reducer functions.
-3. Keep `packages/core` completely independent of runtime web/API dependencies.
-
-### Alternatives Considered
-
-- _TypeScript interfaces without Zod runtime validation:_ Rejected because LLM outputs are inherently probabilistic and untrusted; strict Zod runtime parsing is required by the project specification.
-
----
-
-## ADR 003: Deterministic Routing, Caps, and Review Interrupt (Phase 1)
-
-- **Date:** 2026-11-03
-- **Status:** Accepted
-
-### Context
-
-The system specifies two conditional routing junctions (Route A after Fact-checker, Route B after Editor) with bounded loops (max 2 research rounds, max 3 write cycles), open flag tracking, and human review interrupts.
-
-### Decision
-
-1. Implement pure deterministic routing functions (`routeAfterFactChecker`, `routeAfterEditor`) without an LLM supervisor.
-2. Introduce a dedicated `prepareReview` node preceding `humanReview`. When caps are hit with unresolved flags (or when the editor accepts), `prepareReview` sets `status: 'awaiting_review'` and populates `openIssues` before the checkpoint is committed.
-3. Use LangGraph's native `interrupt()` inside `humanReviewNode`. When resumed via `Command({ resume: HumanAction })`, the node resumes cleanly, records the human action, applies manual edits if provided, and transitions to `END`.
-4. Enforce mathematical termination: because `researchRounds` and `writeCycles` strictly increment on each loop and routing checks enforce `< 2` and `< 3`, infinite loops are provably impossible.
-
-### Alternatives Considered
-
-- _LLM Supervisor for routing:_ Rejected per project brief specification; with 4 agents, a supervisor adds latency, monetary cost, and unnecessary failure modes.
-- _Handling state mutation inside conditional edge:_ Rejected because LangGraph conditional edges are pure routing resolvers; node execution ensures state updates are properly saved to checkpoints.
-
----
-
 ## ADR 001: Monorepo Structure and Tooling (Phase 0)
 
 - **Date:** 2026-11-02
@@ -115,3 +71,24 @@ The system specifies two conditional routing junctions (Route A after Fact-check
 - _Handling state mutation inside conditional edge:_ Rejected because LangGraph conditional edges are pure routing resolvers; node execution ensures state updates are properly saved to checkpoints.
 
 ---
+
+## ADR 004: Provider-Agnostic LLM Layer, Structured Output, and Budget Guard (Phase 2)
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+### Context
+
+Phase 2 introduces real LLM execution for the Writer and Editor agents. We need to support OpenRouter and OpenAI dynamically via environment variables without hardcoded models, ensure all responses conform strictly to Zod contracts with bounded retries, compute token and financial costs, and protect against runaway costs via a pre-call budget guard.
+
+### Decision
+
+1. **Provider-Agnostic Client:** Use the OpenAI client with dynamic base URL and header configuration. When `OPENROUTER_API_KEY` is present, route to `https://openrouter.ai/api/v1` with required headers (`HTTP-Referer`, `X-Title`). Model identifiers are read strictly from environment variables per agent (`WRITER_MODEL`, `EDITOR_MODEL`, etc.).
+2. **Bounded Retry Structured Output:** Implement `generateStructuredOutput` with `maxRetries: 2` (3 total attempts). If a model output fails `JSON.parse` or Zod schema validation, the detailed validation errors are appended to conversation history for corrective re-prompting. If all attempts fail, fail the node with a clear error.
+3. **Deterministic Editorial Auditing:** The Editor combines code-level deterministic checks (word count vs tolerance, Flesch Reading Ease score, citation density ratio) with qualitative LLM reasoning. The LLM receives the audit summary to inform its `score` and `accept`/`revise` decision without rewriting factual statements.
+4. **Pre-Call Budget Guard:** Before every LLM call, `tokensUsed` and `costUsd` are checked against `MAX_RUN_TOKENS` and `MAX_RUN_COST_USD`. On breach, execution throws `BudgetExceededError`, the node updates state to `status: 'budget_exceeded'`, appends the breach details to `openIssues`, and routes immediately to human review with the partial result.
+
+### Alternatives Considered
+
+- _Direct provider-specific SDKs (Anthropic SDK, Google GenAI SDK, etc.):_ Using OpenAI's standard wire-format allows zero-code switching between OpenAI, OpenRouter, and local OpenAI-compatible endpoints.
+- _Allowing Editor to rewrite claims:_ Rejected because Editor rewrites can introduce unverified factual claims or alter verified statistics.
