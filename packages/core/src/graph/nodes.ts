@@ -12,6 +12,7 @@ import {
 import { MAX_RESEARCH_ROUNDS, MAX_WRITE_CYCLES } from './routes.js';
 import { runResearcherAgent } from '../agents/researcher/researcherAgent.js';
 import { runWriterAgent } from '../agents/writer/writerAgent.js';
+import { runFactCheckerAgent } from '../agents/factChecker/factCheckerAgent.js';
 import { runEditorAgent } from '../agents/editor/editorAgent.js';
 import { SearchProvider } from '../tools/search/types.js';
 import { FetchPageOptions } from '../tools/fetch/fetchPage.js';
@@ -21,10 +22,12 @@ export interface NodeOptions {
   fakeAgentOptions?: FakeAgentOptions;
   useRealResearcher?: boolean;
   useRealWriter?: boolean;
+  useRealFactChecker?: boolean;
   useRealEditor?: boolean;
   llmClient?: OpenAI;
   researcherModel?: string;
   writerModel?: string;
+  factCheckerModel?: string;
   editorModel?: string;
   searchProvider?: SearchProvider;
   fetchOptions?: FetchPageOptions;
@@ -35,10 +38,12 @@ export function createGraphNodes(options: NodeOptions = {}) {
     fakeAgentOptions = {},
     useRealResearcher = false,
     useRealWriter = false,
+    useRealFactChecker = false,
     useRealEditor = false,
     llmClient,
     researcherModel,
     writerModel,
+    factCheckerModel,
     editorModel,
     searchProvider,
     fetchOptions,
@@ -125,6 +130,27 @@ export function createGraphNodes(options: NodeOptions = {}) {
   const factCheckerNode = async (state: GraphState): Promise<Partial<GraphState>> => {
     if (state.status === 'budget_exceeded') {
       return {};
+    }
+
+    if (useRealFactChecker) {
+      try {
+        return await runFactCheckerAgent(state, {
+          client: llmClient,
+          model: factCheckerModel,
+          fetchOptions,
+        });
+      } catch (err: unknown) {
+        if (err instanceof BudgetExceededError) {
+          return {
+            status: 'budget_exceeded',
+            openIssues: [
+              ...state.openIssues,
+              `Budget guard breach in Fact-Checker: ${err.message}`,
+            ],
+          };
+        }
+        throw err;
+      }
     }
 
     const claimChecks = fakeAgentOptions.factCheckerBehavior

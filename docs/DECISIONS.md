@@ -126,3 +126,32 @@ Phase 3 integrates web search and web page fetching into the Researcher agent. U
 - _Fuzzy LLM quote matching:_ Rejected because exact quotes are essential for sentence-level citation verification. Deterministic code verification guarantees authenticity.
 
 ---
+
+## ADR 006: Deterministic Fact Pre-Checking and Strict Verification Model (Phase 4)
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+### Context
+
+Fact-checking is a mission-critical step in CiteWriter. Sending all claims blindly to an LLM is slow, expensive, and susceptible to LLM hallucination (overlooking fake note IDs or subtly inaccurate metrics). We need deterministic code-level pre-checks that catch blatant hallucinations and citation errors prior to any model invocation, combined with an LLM evaluator strictly instructed on qualification boundaries.
+
+### Decision
+
+1. **Deterministic Pre-Checks (`deterministicPreChecks.ts`):**
+   - Check 1 (Note Existence): Every cited note ID must exist in `state.notes`. Any missing or hallucinated citation ID (e.g. `[n99]`) immediately marks the claim `status: 'unsupported'` without an LLM call.
+   - Check 2 (Numeric Literal Containment): All numeric literals (percentages, numbers, dates, currency) in the claim must exist within the cited note quotes. Any hallucinated statistic immediately marks the claim `status: 'unsupported'`.
+   - If all claims fail pre-checks, LLM calls are completely bypassed ($0 cost, 0 tokens).
+2. **LLM Fact-Checker Agent (`factCheckerAgent.ts`):**
+   - For claims that pass pre-checks, the LLM evaluates semantic alignment.
+   - Strict standard: "Supported" means the source text states it, not that it is true in the world.
+   - Strict qualifier checking: if the quote states "often reduces up to 20%" but the claim says "always eliminates all", the claim is flagged as `unsupported`.
+   - Ambiguous claims or unconfirmed assertions are categorized as `needs_more_research` to prompt targeted re-research loops.
+3. **End-to-End Integration:**
+   - All 4 agents (Researcher, Writer, Fact-checker, Editor) are fully wired into the StateGraph and can run cooperatively end to end.
+
+### Alternatives Considered
+
+- _Relying entirely on LLM for numeric and note existence checks:_ Rejected because LLMs regularly hallucinate plausibility and overlook missing IDs. Code checks provide deterministic guarantees and save token costs.
+
+---

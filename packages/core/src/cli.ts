@@ -4,6 +4,7 @@ import { createCiteWriterGraph } from './graph/builder.js';
 import { GraphState } from './schemas/state.js';
 import { Note } from './schemas/note.js';
 import { runDeterministicEditorChecks } from './agents/editor/deterministicChecks.js';
+import { runDeterministicFactPreChecks } from './agents/factChecker/deterministicPreChecks.js';
 
 // Load environment variables (.env)
 dotenv.config();
@@ -64,16 +65,23 @@ async function runCLI() {
   const graph = createCiteWriterGraph({
     useRealResearcher,
     useRealWriter: hasApiKey,
+    useRealFactChecker: hasApiKey,
     useRealEditor: hasApiKey,
     fakeAgentOptions: {
       researcherBehavior: () => handWrittenNotes,
-      factCheckerBehavior: (claims) =>
-        claims.map((c) => ({
-          claim: c.claim,
-          noteIds: c.noteIds,
-          status: 'supported' as const,
-          reason: 'Verified against primary notes.',
-        })),
+      factCheckerBehavior: (claims, notes) =>
+        claims.map((c) => {
+          const preCheck = runDeterministicFactPreChecks(c, notes);
+          if (!preCheck.passed && preCheck.claimCheck) {
+            return preCheck.claimCheck;
+          }
+          return {
+            claim: c.claim,
+            noteIds: c.noteIds,
+            status: 'supported' as const,
+            reason: 'Verified against primary notes (deterministic pre-check passed).',
+          };
+        }),
     },
   });
 
