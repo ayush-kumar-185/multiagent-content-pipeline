@@ -155,3 +155,46 @@ Fact-checking is a mission-critical step in CiteWriter. Sending all claims blind
 - _Relying entirely on LLM for numeric and note existence checks:_ Rejected because LLMs regularly hallucinate plausibility and overlook missing IDs. Code checks provide deterministic guarantees and save token costs.
 
 ---
+
+## ADR 007: Durable Persistence, Asynchronous Queue Execution, and Resilient SSE Streaming (Phase 5)
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+### Context
+
+CiteWriter runs are long-lived workflows executing multiple LLM agents, web searches, and human review interruptions. In production:
+
+1. Workflows must survive worker crashes or server restarts without restarting from scratch or losing intermediate progress.
+2. The API must execute runs asynchronously rather than holding long-lived HTTP POST requests open.
+3. Web clients must observe live agent progress in real time via Server-Sent Events (SSE), and must be able to disconnect and reconnect mid-run without missing events.
+4. Per-user run concurrency must be capped to prevent resource exhaustion.
+
+### Decision
+
+1. **Drizzle ORM & PostgreSQL Schema:**
+   - Designed 4 tables: `users`, `runs`, `run_events`, and `draft_versions`.
+   - Used `drizzle-orm` and `drizzle-kit` for typed schemas and versioned SQL migrations.
+   - `run_events` maintains an atomic, strictly monotonic integer `sequence` per run ID for ordered replay.
+2. **PostgreSQL Checkpointer for LangGraph (`PostgresSaver`):**
+   - Integrated `@langchain/langgraph-checkpoint-postgres` (`PostgresSaver`) using `runId` as the `thread_id`.
+   - State checkpoints (blobs, writes, checkpoints) are saved after every node execution.
+   - Server restart/worker kill test proves that a crashed worker can be killed and a second worker resumes from the exact checkpoint without re-running completed nodes.
+3. **BullMQ Asynchronous Job Queue:**
+   - Created `citewriter-runs` queue with Redis connection (`ioredis`).
+   - `POST /runs` enqueues background execution jobs and immediately returns `201 Created` with the pending run object.
+   - `POST /runs/:id/resume` enqueues a resume job that loads the graph state from the checkpointer and resumes execution via `Command({ resume })`.
+4. **Resilient SSE Streaming with `Last-Event-ID` Replay:**
+   - Endpoint `GET /runs/:id/events` inspects `Last-Event-ID` header (or `?lastEventId=N`).
+   - Automatically replays any missed events where `sequence > N` from `run_events` table before attaching to live event streams.
+   - Stream test verifies that a client disconnecting at event 2 and reconnecting with `Last-Event-ID: 2` receives sequence 3, 4, 5 with zero event loss and zero duplicate events.
+5. **Auth & Concurrency Control:**
+   - Implemented Fastify authentication middleware supporting Bearer tokens and `x-user-id` headers for test/development environments.
+   - Enforced maximum active concurrent runs per user (default 3); rejects attempts to start more runs with `429 Too Many Requests`.
+
+### Alternatives Considered
+
+- _Synchronous HTTP execution:_ Rejected because multi-round agent workflows take minutes, exceeding reverse proxy and browser timeouts.
+- _Stateless in-memory WebSocket streaming:_ Rejected because dropped client connections would lose intermediate agent events; SSE with `Last-Event-ID` and PostgreSQL persistence allows seamless, stateless reconnection.
+
+---

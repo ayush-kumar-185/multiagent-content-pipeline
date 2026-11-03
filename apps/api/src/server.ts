@@ -1,0 +1,69 @@
+import Fastify, { FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
+import { CITEWRITER_CORE_VERSION } from '@citewriter/core';
+import { createDatabase, DatabaseContext } from './db/index.js';
+import { RunEventBus } from './events/eventBus.js';
+import { createRunQueue, RunJobData } from './queue/index.js';
+import { createAuthMiddleware } from './auth/index.js';
+import { registerRunRoutes } from './routes/runs.js';
+import { Queue } from 'bullmq';
+import { Redis } from 'ioredis';
+
+export interface ServerOptions {
+  dbCtx?: DatabaseContext;
+  eventBus?: RunEventBus;
+  queue?: Queue<RunJobData>;
+  redis?: Redis;
+  maxConcurrentRunsPerUser?: number;
+}
+
+export function buildServer(options: ServerOptions = {}): FastifyInstance {
+  const app = Fastify({
+    logger: false,
+  });
+
+  // Database, checkpointer, events & queue
+  const dbCtx = options.dbCtx ?? createDatabase();
+  const eventBus = options.eventBus ?? new RunEventBus(dbCtx);
+  const queue = options.queue ?? createRunQueue(options.redis);
+
+  // Plugins
+  app.register(cors, {
+    origin: true,
+    credentials: true,
+  });
+
+  app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  });
+
+  // Health check
+  app.get('/health', async () => {
+    return {
+      status: 'ok',
+      service: 'citewriter-api',
+      coreVersion: CITEWRITER_CORE_VERSION,
+      timestamp: new Date().toISOString(),
+    };
+  });
+
+  // Auth middleware hook for /runs routes
+  const requireAuth = createAuthMiddleware(dbCtx);
+  app.addHook('preHandler', async (req, reply) => {
+    if (req.url.startsWith('/runs')) {
+      await requireAuth(req, reply);
+    }
+  });
+
+  // Register /runs routes
+  registerRunRoutes(app, {
+    dbCtx,
+    eventBus,
+    queue,
+    maxConcurrentRunsPerUser: options.maxConcurrentRunsPerUser ?? 3,
+  });
+
+  return app;
+}

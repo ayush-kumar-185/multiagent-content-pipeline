@@ -34,3 +34,10 @@ This document records real bugs, edge-case failures, and architectural issues di
 - **Fix:** Added `.replace(/\s+([.,!?;:])/g, '$1')` in `citationParser.ts` to collapse spaces preceding punctuation.
 
 ---
+
+### [2026-11-03] PostgreSQL Host Port Collision With Native Service
+
+- **Phase:** Phase 5 (Persistence & API)
+- **Symptom:** `error: password authentication failed for user "citewriter"` when connecting to `localhost:5432`.
+- **Cause:** A native Windows PostgreSQL service (PID 7960) was already listening on `0.0.0.0:5432`, intercepting connection attempts before they reached the Docker container.
+- **Fix:** Configured Docker Compose port mapping to `${POSTGRES_PORT:-5433}:5432` and updated `DATABASE_URL` in `.env` and `.env.example` to point to port `5433`.
