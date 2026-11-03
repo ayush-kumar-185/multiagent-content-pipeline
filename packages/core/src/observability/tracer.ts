@@ -1,4 +1,6 @@
-import { Langfuse } from 'langfuse';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
+import { startObservation } from '@langfuse/tracing';
 import {
   Tracer,
   TracerOptions,
@@ -9,7 +11,8 @@ import {
 } from './types.js';
 
 export class CiteWriterTracer implements Tracer {
-  private langfuse?: Langfuse;
+  private sdk?: NodeSDK;
+  private processor?: LangfuseSpanProcessor;
   private readonly enabled: boolean;
   private readonly summaries = new Map<string, RunTraceSummary>();
   // Store active Langfuse traces and spans
@@ -37,25 +40,24 @@ export class CiteWriterTracer implements Tracer {
 
     if (this.enabled && publicKey && secretKey) {
       try {
-        this.langfuse = new Langfuse({
-          publicKey,
-          secretKey,
-          baseUrl,
+        process.env.LANGFUSE_PUBLIC_KEY = publicKey;
+        process.env.LANGFUSE_SECRET_KEY = secretKey;
+        process.env.LANGFUSE_BASE_URL = baseUrl;
+        process.env.LANGFUSE_BASEURL = baseUrl;
+
+        this.processor = new LangfuseSpanProcessor();
+        this.sdk = new NodeSDK({
+          spanProcessors: [this.processor],
         });
-        this.langfuse.on('error', (err) => {
-          // Gracefully catch background ingestion errors (e.g., v3 vs v4 Otel cloud notices)
-          if (process.env.DEBUG_TRACER === 'true') {
-            console.warn('[Tracer] Langfuse background event notice:', err?.message || err);
-          }
-        });
+        this.sdk.start();
       } catch (err) {
-        console.warn('Failed to initialize Langfuse client:', err);
+        console.warn('Failed to initialize Langfuse OpenTelemetry client:', err);
       }
     }
   }
 
   public isEnabled(): boolean {
-    return this.enabled && Boolean(this.langfuse);
+    return this.enabled && Boolean(this.processor);
   }
 
   public startRunTrace(
@@ -76,20 +78,21 @@ export class CiteWriterTracer implements Tracer {
       });
     }
 
-    if (this.langfuse) {
+    if (this.processor) {
       try {
-        const trace = this.langfuse.trace({
-          id: runId,
-          name: 'citewriter-run',
-          userId: metadata?.userId,
-          metadata: {
-            topic: metadata?.topic,
-            config: metadata?.config,
+        const trace = startObservation(
+          'citewriter-run',
+          {
+            input: { topic: metadata?.topic },
+            metadata: {
+              runId,
+              topic: metadata?.topic,
+              config: metadata?.config,
+              userId: metadata?.userId,
+            },
           },
-          input: {
-            topic: metadata?.topic,
-          },
-        });
+          { asType: 'span' },
+        );
         this.activeTraces.set(runId, trace);
       } catch (err) {
         console.warn(`[Tracer] Failed to create Langfuse trace for ${runId}:`, err);
@@ -99,15 +102,16 @@ export class CiteWriterTracer implements Tracer {
 
   public startAgentSpan(runId: string, agentRole: string, input?: unknown): void {
     const spanKey = `${runId}:${agentRole}`;
-    const trace = this.activeTraces.get(runId);
-
-    if (trace) {
+    if (this.processor) {
       try {
-        const span = trace.span({
-          name: `agent:${agentRole}`,
-          input,
-          startTime: new Date(),
-        });
+        const span = startObservation(
+          `agent:${agentRole}`,
+          {
+            input,
+            metadata: { runId, agentRole },
+          },
+          { asType: 'agent' },
+        );
         this.activeSpans.set(spanKey, span);
       } catch (err) {
         console.warn(`[Tracer] Failed to start span for ${spanKey}:`, err);
@@ -121,10 +125,8 @@ export class CiteWriterTracer implements Tracer {
 
     if (span) {
       try {
-        span.end({
-          output,
-          endTime: new Date(),
-        });
+        span.update({ output });
+        span.end();
         this.activeSpans.delete(spanKey);
       } catch (err) {
         console.warn(`[Tracer] Failed to end span for ${spanKey}:`, err);
@@ -166,32 +168,40 @@ export class CiteWriterTracer implements Tracer {
       calls: prevMetrics.calls + 1,
     };
 
-    // 2. Langfuse generation update
-    const spanKey = `${runId}:${trace.agentRole}`;
-    const parentSpan = this.activeSpans.get(spanKey);
-    const parentTrace = this.activeTraces.get(runId);
-    const context = parentSpan ?? parentTrace;
-
-    if (context) {
+    // 2. Langfuse OpenTelemetry generation span
+    if (this.processor) {
       try {
-        context.generation({
-          name: `${trace.agentRole}:llm`,
-          model: trace.model,
-          input: trace.messages,
+        const gen = startObservation(
+          `${trace.agentRole}:llm`,
+          {
+            model: trace.model,
+            input: trace.messages,
+            metadata: {
+              runId,
+              agentRole: trace.agentRole,
+              latencyMs: trace.latencyMs,
+              attempt: trace.attempt,
+              success: trace.success,
+              error: trace.error,
+            },
+          },
+          { asType: 'generation' },
+        );
+
+        gen.update({
           output: trace.output,
-          usage: {
+          usageDetails: {
             promptTokens: trace.promptTokens,
             completionTokens: trace.completionTokens,
             totalTokens: trace.totalTokens,
           },
-          metadata: {
-            costUsd: trace.costUsd,
-            latencyMs: trace.latencyMs,
-            attempt: trace.attempt,
-            success: trace.success,
-            error: trace.error,
+          costDetails: {
+            total: trace.costUsd,
           },
+          level: trace.success ? 'DEFAULT' : 'ERROR',
+          statusMessage: trace.error,
         });
+        gen.end();
       } catch (err) {
         console.warn(`[Tracer] Failed to record generation for ${runId}:`, err);
       }
@@ -218,23 +228,26 @@ export class CiteWriterTracer implements Tracer {
     summary.totalToolCalls += 1;
     summary.toolCalls.push(trace);
 
-    // 2. Langfuse tool span
-    const spanKey = `${runId}:${trace.agentRole}`;
-    const parentSpan = this.activeSpans.get(spanKey);
-    const parentTrace = this.activeTraces.get(runId);
-    const context = parentSpan ?? parentTrace;
-
-    if (context) {
+    // 2. Langfuse OpenTelemetry tool span
+    if (this.processor) {
       try {
-        const toolSpan = context.span({
-          name: `tool:${trace.toolName}`,
-          input: trace.input,
+        const toolSpan = startObservation(
+          `tool:${trace.toolName}`,
+          {
+            input: trace.input,
+            metadata: {
+              runId,
+              agentRole: trace.agentRole,
+              latencyMs: trace.latencyMs,
+            },
+          },
+          { asType: 'tool' },
+        );
+
+        toolSpan.update({
           output: trace.output,
           level: trace.success ? 'DEFAULT' : 'ERROR',
           statusMessage: trace.error,
-          metadata: {
-            latencyMs: trace.latencyMs,
-          },
         });
         toolSpan.end();
       } catch (err) {
@@ -252,21 +265,39 @@ export class CiteWriterTracer implements Tracer {
   }
 
   public async flush(): Promise<void> {
-    if (this.langfuse) {
+    for (const [runId, trace] of this.activeTraces.entries()) {
       try {
-        await this.langfuse.flushAsync();
+        trace.end();
+      } catch {
+        // ignore
+      }
+      this.activeTraces.delete(runId);
+    }
+
+    if (this.processor) {
+      try {
+        await this.processor.forceFlush();
       } catch (err) {
-        console.warn('[Tracer] Error flushing Langfuse events:', err);
+        console.warn('[Tracer] Error flushing Langfuse OpenTelemetry events:', err);
       }
     }
   }
 
   public async shutdown(): Promise<void> {
-    if (this.langfuse) {
+    for (const [runId, trace] of this.activeTraces.entries()) {
       try {
-        await this.langfuse.shutdownAsync();
+        trace.end();
+      } catch {
+        // ignore
+      }
+      this.activeTraces.delete(runId);
+    }
+
+    if (this.sdk) {
+      try {
+        await this.sdk.shutdown();
       } catch (err) {
-        console.warn('[Tracer] Error shutting down Langfuse:', err);
+        console.warn('[Tracer] Error shutting down Langfuse OpenTelemetry SDK:', err);
       }
     }
   }
