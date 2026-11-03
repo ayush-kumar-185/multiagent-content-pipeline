@@ -27,6 +27,7 @@ COPY apps/web/ ./apps/web/
 RUN pnpm --filter @citewriter/core run build
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_STANDALONE=1
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 

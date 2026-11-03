@@ -28,11 +28,18 @@ export interface CreateRunInput {
 }
 
 export async function createRun(input: CreateRunInput, userId?: string): Promise<RunRecord> {
-  const res = await fetch(`${API_BASE_URL}/runs`, {
-    method: 'POST',
-    headers: getAuthHeaders(userId),
-    body: JSON.stringify(input),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}/runs`, {
+      method: 'POST',
+      headers: getAuthHeaders(userId),
+      body: JSON.stringify(input),
+    });
+  } catch (netErr) {
+    throw new Error(
+      `Cannot connect to CiteWriter API at ${API_BASE_URL}. Please ensure the backend server is running (pnpm --filter @citewriter/api run dev). Error: ${(netErr as Error).message}`,
+    );
+  }
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));

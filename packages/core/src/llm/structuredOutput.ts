@@ -20,6 +20,7 @@ export interface StructuredOutputOptions<T> {
   tracer?: Tracer;
   maxRetries?: number;
   temperature?: number;
+  maxTokens?: number;
 }
 
 export interface StructuredOutputResult<T> {
@@ -85,6 +86,7 @@ export async function generateStructuredOutput<T>(
       model,
       messages,
       temperature,
+      max_tokens: options.maxTokens ?? 2000,
       response_format: { type: 'json_object' },
     });
     const latencyMs = Date.now() - callStart;
