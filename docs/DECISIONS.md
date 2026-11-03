@@ -198,3 +198,56 @@ CiteWriter runs are long-lived workflows executing multiple LLM agents, web sear
 - _Stateless in-memory WebSocket streaming:_ Rejected because dropped client connections would lose intermediate agent events; SSE with `Last-Event-ID` and PostgreSQL persistence allows seamless, stateless reconnection.
 
 ---
+
+## ADR 008: Next.js Interactive Review UI and Real-Time SSE Stream Architecture (Phase 6)
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+### Context
+
+The CiteWriter user experience requires:
+
+1. Configuring and launching new runs with topics or seed URLs, audience levels, tone, and target word counts.
+2. Observing multi-agent pipeline progress live via Server-Sent Events (SSE) with stage indicators, sequence tracking, and reconnection.
+3. An interactive human review interface when the pipeline pauses at `awaiting_review`. The reviewer must be able to inspect each claim in the generated draft, view its verification status (`supported`, `unsupported`, `needs_more_research`), inspect the cited note, exact source quote, verified URL, and the Fact-checker's audit reason.
+4. Human review actions: **Approve**, **Edit & Approve** (in-place markdown draft editing), and **Reject**.
+5. Historical view of all runs with status badges, token usage, cost USD, and duration.
+
+### Decision
+
+1. **Next.js 15 App Router & Tailwind CSS:**
+   - Structured `apps/web` with App Router pages:
+     - `/` (Dashboard / New Run)
+     - `/runs/[id]` (Live Execution Stream & Interactive Review Interface)
+     - `/history` (Run History and Aggregate Metrics)
+     - `/auth/login` (Identity and Session Switcher)
+   - Styled with Tailwind CSS, Lucide icons, and custom utility `cn` (`clsx` + `tailwind-merge`).
+2. **Claim Highlighting and Inspection Architecture:**
+   - In `ClaimHighlightArticle.tsx`, parsed draft paragraphs map each claim to its verification status from `claimChecks`.
+   - Distinct color-coded badge highlights:
+     - **Emerald:** Supported
+     - **Amber:** Needs more research
+     - **Rose:** Unsupported
+   - Clicking any highlighted claim opens a sidebar inspector displaying:
+     - The exact verbatim quote extracted from the source
+     - The original source URL with an external link
+     - The Fact-checker's exact audit explanation
+     - The cited note IDs
+3. **Resilient SSE Reconnection with `Last-Event-ID`:**
+   - In `AgentProgressStream.tsx`, an `EventSource` connection tracks `lastEventId`.
+   - On connection failure or page refresh, the browser automatically passes `Last-Event-ID: <id>`, enabling the backend to replay missed events sequentially before switching to live events.
+4. **Human Review Actions & In-Place Editing:**
+   - In `HumanReviewActions.tsx`, when in `awaiting_review` status:
+     - Reviewer can directly edit the draft markdown in an integrated editor before approving.
+     - Reviewer can approve without edits or reject the run.
+     - Submitting sends `POST /runs/:id/resume` with `{ action: 'approve' | 'edit' | 'reject', editedDraft?: string }`.
+5. **Deterministic Worker Update Atomicity:**
+   - Fixed cancellation race conditions in `createRunWorker` using atomic SQL `WHERE id = runId AND status NOT IN ('approved', 'rejected', 'failed')` to prevent worker state overwrites during concurrent human cancellation.
+
+### Alternatives Considered
+
+- _Pure Read-Only Draft Display:_ Rejected because human-in-the-loop requires review controls and the ability to edit drafts before publication.
+- _Polling instead of SSE:_ Rejected because polling introduces unnecessary latency and database query load compared to persistent HTTP streaming with reconnection.
+
+---

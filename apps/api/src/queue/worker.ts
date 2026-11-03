@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
-import { eq } from 'drizzle-orm';
+import { eq, and, notInArray } from 'drizzle-orm';
 import {
   createCiteWriterGraph,
   GraphState,
@@ -41,11 +41,16 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
         return { status: runRecord.status, runId };
       }
 
-      // 2. Mark running in database
-      await dbCtx.db
+      // 2. Mark running in database (atomic check to avoid race with concurrent cancellation)
+      const [updated] = await dbCtx.db
         .update(runs)
         .set({ status: 'running', updatedAt: new Date() })
-        .where(eq(runs.id, runId));
+        .where(and(eq(runs.id, runId), notInArray(runs.status, ['approved', 'rejected', 'failed'])))
+        .returning();
+
+      if (!updated) {
+        return { status: runRecord.status, runId };
+      }
 
       await eventBus.recordEvent({
         runId,
@@ -118,6 +123,16 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
         // 6. Inspect snapshot state from checkpointer
         const finalSnapshot = await app.getState({ configurable: { thread_id: runId } });
         const finalState = finalSnapshot.values as GraphState;
+
+        // Check if run was canceled/rejected in the meantime
+        const [currentRun] = await dbCtx.db
+          .select({ status: runs.status })
+          .from(runs)
+          .where(eq(runs.id, runId));
+
+        if (currentRun && ['rejected', 'failed'].includes(currentRun.status)) {
+          return { status: currentRun.status, runId };
+        }
 
         // Persist final state
         await dbCtx.db

@@ -295,6 +295,17 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
         .set({ status: 'rejected', updatedAt: new Date() })
         .where(eq(runs.id, id));
 
+      try {
+        const jobs = await queue.getJobs(['waiting', 'delayed', 'prioritized']);
+        for (const j of jobs) {
+          if (j.data?.runId === id) {
+            await j.remove().catch(() => {});
+          }
+        }
+      } catch {
+        // best effort queue removal
+      }
+
       await eventBus.recordEvent({
         runId: id,
         type: 'status_change',

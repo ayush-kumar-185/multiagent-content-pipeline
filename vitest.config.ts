@@ -6,5 +6,7 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.test.ts', '**/*.spec.ts', '**/*.test.tsx'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.next/**'],
+    fileParallelism: false,
+    pool: 'forks',
   },
 });

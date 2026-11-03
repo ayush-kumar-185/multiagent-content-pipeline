@@ -41,3 +41,12 @@ This document records real bugs, edge-case failures, and architectural issues di
 - **Symptom:** `error: password authentication failed for user "citewriter"` when connecting to `localhost:5432`.
 - **Cause:** A native Windows PostgreSQL service (PID 7960) was already listening on `0.0.0.0:5432`, intercepting connection attempts before they reached the Docker container.
 - **Fix:** Configured Docker Compose port mapping to `${POSTGRES_PORT:-5433}:5432` and updated `DATABASE_URL` in `.env` and `.env.example` to point to port `5433`.
+
+---
+
+### [2026-11-03] Run Cancellation Race Condition in BullMQ Worker State Transitions
+
+- **Phase:** Phase 5 / Phase 6 (API & Worker Integration)
+- **Symptom:** In `runs.test.ts`, `cancels a run via POST /runs/:id/cancel` failed intermittently with `expected 'running' to be 'rejected'`.
+- **Cause:** When a run was canceled immediately after creation, `POST /runs/:id/cancel` wrote `status: 'rejected'` to the database. However, the background BullMQ worker that had just picked up the initial `execute-run` job read the run record while it was still `pending`, and subsequently executed `update(runs).set({ status: 'running' })` without checking if the run had transitioned to a terminal status in the interim, overwriting `'rejected'`.
+- **Fix:** Converted the worker status transition to an atomic conditional update: `WHERE id = runId AND status NOT IN ('approved', 'rejected', 'failed')`. If zero rows are affected, the worker aborts execution immediately. Additionally, pending BullMQ jobs are cleaned up upon cancellation and the worker verifies cancellation before writing the final state.
