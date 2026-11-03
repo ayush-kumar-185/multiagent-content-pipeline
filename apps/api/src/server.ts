@@ -4,7 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import { CITEWRITER_CORE_VERSION } from '@citewriter/core';
 import { createDatabase, DatabaseContext } from './db/index.js';
 import { RunEventBus } from './events/eventBus.js';
-import { createRunQueue, RunJobData } from './queue/index.js';
+import { createRunQueue, createRedisConnection, RunJobData } from './queue/index.js';
 import { createAuthMiddleware } from './auth/index.js';
 import { registerRunRoutes } from './routes/runs.js';
 import { Queue } from 'bullmq';
@@ -58,7 +58,21 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   // Database, checkpointer, events & queue
   const dbCtx = options.dbCtx ?? createDatabase();
   const eventBus = options.eventBus ?? new RunEventBus(dbCtx);
-  const queue = options.queue ?? createRunQueue(options.redis);
+  const redis = options.redis ?? createRedisConnection();
+  const queue = options.queue ?? createRunQueue(redis);
+
+  // Gracefully close resources created by buildServer when app closes
+  app.addHook('onClose', async () => {
+    if (!options.queue) {
+      await queue.close();
+    }
+    if (!options.redis) {
+      await redis.quit();
+    }
+    if (!options.dbCtx) {
+      await dbCtx.close();
+    }
+  });
 
   // Plugins
   app.register(cors, {
@@ -71,7 +85,7 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
     timeWindow: '1 minute',
   });
 
-  // Health check
+  // Health check (liveness probe)
   app.get('/health', async () => {
     return {
       status: 'ok',
@@ -79,6 +93,38 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
       coreVersion: CITEWRITER_CORE_VERSION,
       timestamp: new Date().toISOString(),
     };
+  });
+
+  // Deep readiness check (verifies PostgreSQL and Redis connectivity)
+  app.get('/health/ready', async (_request, reply) => {
+    let dbStatus = 'ok';
+    let redisStatus = 'ok';
+    let isReady = true;
+
+    try {
+      await dbCtx.pool.query('SELECT 1');
+    } catch (err) {
+      dbStatus = `error: ${(err as Error).message}`;
+      isReady = false;
+    }
+
+    try {
+      await redis.ping();
+    } catch (err) {
+      redisStatus = `error: ${(err as Error).message}`;
+      isReady = false;
+    }
+
+    const statusCode = isReady ? 200 : 503;
+    return reply.status(statusCode).send({
+      status: isReady ? 'ok' : 'degraded',
+      service: 'citewriter-api',
+      checks: {
+        database: dbStatus,
+        redis: redisStatus,
+      },
+      timestamp: new Date().toISOString(),
+    });
   });
 
   // Auth middleware hook for /runs routes

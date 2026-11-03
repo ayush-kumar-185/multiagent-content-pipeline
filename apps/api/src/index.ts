@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { fileURLToPath } from 'node:url';
 import { buildServer } from './server.js';
 import { createDatabase } from './db/index.js';
 import { createPostgresCheckpointer } from './checkpointer/index.js';
@@ -12,7 +13,12 @@ export * from './queue/index.js';
 export * from './checkpointer/index.js';
 export * from './auth/index.js';
 
-if (process.env.NODE_ENV !== 'test' && import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule =
+  Boolean(process.argv[1]) &&
+  (fileURLToPath(import.meta.url) === process.argv[1] ||
+    import.meta.url === `file://${process.argv[1]}`);
+
+if (process.env.NODE_ENV !== 'test' && isMainModule) {
   const dbCtx = createDatabase();
   const cpCtx = createPostgresCheckpointer(dbCtx.pool);
   const eventBus = new RunEventBus(dbCtx);

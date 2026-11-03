@@ -96,3 +96,12 @@ This document records real bugs, edge-case failures, and architectural issues di
 - **Cause:** All integration test suites (`runs.test.ts`, `queue.test.ts`, and `workerCrashResume.test.ts`) initialized BullMQ `Worker` and `Queue` instances using the identical default queue name `'citewriter-runs'`. When executed concurrently in Vitest, workers in one test suite consumed jobs enqueued by another test suite ("job stealing"), while `job.waitUntilFinished(queueEvents)` hung waiting for pub/sub completion events that never fired on that specific listener.
 - **Fix:** Parameterized `createRunQueue` and `createRunWorker` to accept a customizable `queueName`. Configured dedicated, isolated queue names per test suite (`citewriter-runs-queue-test`, `citewriter-runs-crash-test`, `citewriter-runs-api-test`), added a dual wait pattern racing Redis pub/sub (`job.waitUntilFinished`) against direct database polling (`waitForStatus`), and increased Vitest test timeouts to 60s. Verified that all 30 test files and 140 tests pass deterministically.
 
+---
+
+### [2026-11-03] Shared Subscriber Redis Connection in QueueEvents Teardown
+
+- **Phase:** Phase 10 (Test Suite Stability & Teardown)
+- **Symptom:** In `apps/api/src/queue/queue.test.ts`, `afterAll` timed out with `Error: Hook timed out in 10000ms` during full monorepo test runs.
+- **Cause:** `QueueEvents` was initialized sharing the identical `ioredis` instance as `Worker` and `Queue`. In BullMQ, `QueueEvents` puts its connection into Redis subscriber mode (`SUBSCRIBE`). When `afterAll` sequentially executed `await worker.close()`, `await queueEvents.close()`, and `await redis.quit()`, the shared connection in subscriber mode deadlocked or delayed teardown past Vitest's default 10,000ms hook threshold.
+- **Fix:** Provided `QueueEvents` with a dedicated independent connection via `redis.duplicate()`, invoked `await worker.close(true)` to force immediate worker loop termination, and configured an explicit 30s hook timeout. Verified that `queue.test.ts` tears down cleanly in `<1s`.
+

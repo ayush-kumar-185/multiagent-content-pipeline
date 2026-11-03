@@ -19,6 +19,7 @@ describe('BullMQ Queue and Worker Execution', () => {
   let checkpointer: ReturnType<typeof createPostgresCheckpointer>['checkpointer'];
   let eventBus: RunEventBus;
   let redis: Redis;
+  let queueEventsRedis: Redis;
   let queue: Queue<RunJobData>;
   let worker: Worker<RunJobData>;
   let queueEvents: QueueEvents;
@@ -34,10 +35,11 @@ describe('BullMQ Queue and Worker Execution', () => {
 
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
+    queueEventsRedis = redis.duplicate();
 
     const queueName = 'citewriter-runs-queue-test';
     queue = createRunQueue(redis, queueName);
-    queueEvents = new QueueEvents(queueName, { connection: redis });
+    queueEvents = new QueueEvents(queueName, { connection: queueEventsRedis });
     await queueEvents.waitUntilReady();
 
     worker = createRunWorker({
@@ -57,12 +59,13 @@ describe('BullMQ Queue and Worker Execution', () => {
   });
 
   afterAll(async () => {
-    await worker.close();
+    await worker.close(true);
     await queueEvents.close();
     await queue.close();
+    await queueEventsRedis.quit();
     await redis.quit();
     await dbCtx.close();
-  });
+  }, 30_000);
 
   it('processes run job to awaiting_review and resumes to approved', async () => {
     const runId = `test-queue-run-${Date.now()}`;

@@ -12,6 +12,7 @@ describe('Worker Crash and Checkpoint Resumption', () => {
   let checkpointer: ReturnType<typeof createPostgresCheckpointer>['checkpointer'];
   let eventBus: RunEventBus;
   let redis: Redis;
+  let queueEventsRedis: Redis;
   let queue: Queue<RunJobData>;
   let queueEvents: QueueEvents;
 
@@ -26,10 +27,11 @@ describe('Worker Crash and Checkpoint Resumption', () => {
 
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
+    queueEventsRedis = redis.duplicate();
 
     const queueName = 'citewriter-runs-crash-test';
     queue = createRunQueue(redis, queueName);
-    queueEvents = new QueueEvents(queueName, { connection: redis });
+    queueEvents = new QueueEvents(queueName, { connection: queueEventsRedis });
     await queueEvents.waitUntilReady();
 
     await dbCtx.db.insert(users).values({
@@ -42,9 +44,10 @@ describe('Worker Crash and Checkpoint Resumption', () => {
   afterAll(async () => {
     await queueEvents.close();
     await queue.close();
+    await queueEventsRedis.quit();
     await redis.quit();
     await dbCtx.close();
-  });
+  }, 30_000);
 
   it('worker 1 starts run and is killed; worker 2 boots up and resumes from checkpoint', async () => {
     const runId = `crash-resume-${Date.now()}`;

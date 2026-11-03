@@ -1,0 +1,104 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: citewriter-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-citewriter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-citewriter_prod_password}
+      POSTGRES_DB: ${POSTGRES_DB:-citewriter}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - citewriter_postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-citewriter} -d ${POSTGRES_DB:-citewriter}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: citewriter-redis-prod
+    restart: always
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - citewriter_redis_prod_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: citewriter-api-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-citewriter}:${POSTGRES_PASSWORD:-citewriter_prod_password}@postgres:5432/${POSTGRES_DB:-citewriter}
+      REDIS_URL: redis://redis:6379
+      API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      WEB_URL: http://localhost:3000
+      RESEARCHER_MODEL: ${RESEARCHER_MODEL:-openai/gpt-4o-mini}
+      WRITER_MODEL: ${WRITER_MODEL:-openai/gpt-4o}
+      FACT_CHECKER_MODEL: ${FACT_CHECKER_MODEL:-openai/gpt-4o-mini}
+      EDITOR_MODEL: ${EDITOR_MODEL:-openai/gpt-4o}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      SEARCH_PROVIDER: ${SEARCH_PROVIDER:-tavily}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      BRAVE_SEARCH_API_KEY: ${BRAVE_SEARCH_API_KEY:-}
+      MAX_RUN_TOKENS: ${MAX_RUN_TOKENS:-100000}
+      MAX_RUN_COST_USD: ${MAX_RUN_COST_USD:-1.50}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASEURL: ${LANGFUSE_BASEURL:-https://cloud.langfuse.com}
+      AUTH_SECRET: ${AUTH_SECRET:-default_prod_secret_min_32_chars_long}
+    ports:
+      - '3001:3001'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --no-verbose --tries=1 --spider http://localhost:3001/health/ready || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    container_name: citewriter-web-prod
+    restart: always
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      API_URL: http://api:3001
+    ports:
+      - '3000:3000'
+
+volumes:
+  citewriter_postgres_prod_data:
+  citewriter_redis_prod_data:

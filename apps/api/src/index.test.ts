@@ -20,4 +20,18 @@ describe('Fastify API scaffold test', () => {
     expect(body.service).toBe('citewriter-api');
     expect(body.coreVersion).toBe('0.1.0');
   });
+
+  it('GET /health/ready checks PostgreSQL and Redis connectivity', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health/ready',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.status).toBe('ok');
+    expect(body.service).toBe('citewriter-api');
+    expect(body.checks.database).toBe('ok');
+    expect(body.checks.redis).toBe('ok');
+  });
 });

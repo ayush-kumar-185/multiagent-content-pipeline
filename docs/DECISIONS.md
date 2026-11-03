@@ -377,3 +377,37 @@ Multi-agent LLM systems that ingest untrusted web pages and execute multi-step g
 - _Blocking all redirects:_ Rejected because valid technical documentation websites frequently use 301/302 redirects (e.g. HTTP to HTTPS or canonical path normalization).
 
 ---
+
+## ADR 012: Production Deployment Architecture, Deep Readiness Probes, and Containerization (Phase 10)
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+### Context
+
+To deploy CiteWriter into production environments (Docker Compose, Railway, Render, Fly.io, or Kubernetes) while fulfilling the acceptance criteria of Phase 10:
+
+1. We need containerized production builds for both the backend API/worker and the Next.js frontend with minimal image footprints and non-root security execution.
+2. Cloud orchestrators need distinct probes: a shallow liveness probe (`/health`) and a deep readiness probe (`/health/ready`) to ensure traffic is only routed when PostgreSQL and Redis are both operational.
+3. Server lifecycle must cleanly close database pools, Redis connections, and BullMQ worker listeners during container stop/restart signals (`SIGTERM`/`SIGINT`).
+
+### Decision
+
+1. **Multi-Stage Docker Builds:**
+   - Authored `apps/api/Dockerfile` using Node 22 Alpine, building TypeScript source via `pnpm --filter` and bundling production node_modules with a non-root `citewriter` system user (UID 1001).
+   - Authored `apps/web/Dockerfile` with Next.js `output: 'standalone'` mode, copying minimal runtime artifacts (`.next/standalone` + `.next/static`) into a lightweight container (~120MB) running as non-root `nextjs` (UID 1001).
+2. **Deep Readiness Probe (`GET /health/ready`):**
+   - Implemented a two-tier health checking system in Fastify:
+     - `GET /health`: Shallow liveness probe returning HTTP 200 with service version and timestamp.
+     - `GET /health/ready`: Deep readiness probe executing `SELECT 1` on PostgreSQL and `.ping()` on Redis. Returns HTTP 200 with structured check statuses when healthy, or HTTP 503 degraded when a dependency is unreachable.
+3. **Graceful Server Teardown:**
+   - Registered Fastify `onClose` hooks to close internal BullMQ queue instances, quit Redis connections, and drain PostgreSQL connection pools cleanly upon container termination.
+4. **Production Orchestration (`docker-compose.prod.yml`):**
+   - Configured Docker Compose production profile linking Postgres 16 Alpine, Redis 7 Alpine, API worker, and Web frontend with healthcheck condition dependencies and persistent data volumes.
+
+### Alternatives Considered
+
+- _Single monorepo container running everything via Supervisord:_ Rejected because production best practices require decoupling stateless web frontends from stateful database connections and horizontally scalable background workers.
+- _Next.js custom server inside Fastify:_ Rejected because Next.js App Router standalone server provides optimal caching, streaming SSR, and edge compatibility.
+
+---
