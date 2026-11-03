@@ -23,8 +23,9 @@ export class CiteWriterTracer implements Tracer {
     const secretKey = options.secretKey ?? process.env.LANGFUSE_SECRET_KEY;
     const baseUrl =
       options.baseUrl ??
-      process.env.LANGFUSE_HOST ??
+      process.env.LANGFUSE_BASEURL ??
       process.env.LANGFUSE_BASE_URL ??
+      process.env.LANGFUSE_HOST ??
       'https://cloud.langfuse.com';
 
     this.enabled =
