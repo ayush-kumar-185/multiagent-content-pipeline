@@ -19,11 +19,14 @@ export function createAuthMiddleware(dbCtx: DatabaseContext) {
   return async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
     const authHeader = req.headers.authorization;
     const devUserId = req.headers['x-user-id'] as string | undefined;
+    const queryUserId = (req.query as { userId?: string } | undefined)?.userId;
 
     let userId: string | null = null;
 
     if (devUserId) {
       userId = devUserId;
+    } else if (queryUserId) {
+      userId = queryUserId;
     } else if (authHeader?.startsWith('Bearer ')) {
       // In production / with Auth.js, tokens can be session tokens or JWTs
       // For now, extract token as user ID or bearer identity

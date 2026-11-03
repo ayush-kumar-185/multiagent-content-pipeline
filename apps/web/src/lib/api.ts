@@ -122,8 +122,22 @@ export async function cancelRun(
   return res.json();
 }
 
-export function getEventsStreamUrl(id: string, lastEventId?: number): string {
+export function getEventsStreamUrl(id: string, lastEventId?: number, userId?: string): string {
   const url = new URL(`${API_BASE_URL}/runs/${id}/events`);
+  let uid = userId;
+  if (!uid && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('citewriter_user');
+      if (stored) {
+        uid = JSON.parse(stored).id;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+  if (uid) {
+    url.searchParams.set('userId', uid);
+  }
   if (lastEventId !== undefined && lastEventId > 0) {
     url.searchParams.set('lastEventId', String(lastEventId));
   }

@@ -28,8 +28,12 @@ export class CiteWriterTracer implements Tracer {
       process.env.LANGFUSE_HOST ??
       'https://cloud.langfuse.com';
 
+    const enabledEnv = process.env.LANGFUSE_ENABLED;
+    const isExplicitlyDisabled = enabledEnv === 'false' || enabledEnv === '0';
+
     this.enabled =
-      options.enabled !== undefined ? options.enabled : Boolean(publicKey && secretKey);
+      !isExplicitlyDisabled &&
+      (options.enabled !== undefined ? options.enabled : Boolean(publicKey && secretKey));
 
     if (this.enabled && publicKey && secretKey) {
       try {
@@ -37,6 +41,12 @@ export class CiteWriterTracer implements Tracer {
           publicKey,
           secretKey,
           baseUrl,
+        });
+        this.langfuse.on('error', (err) => {
+          // Gracefully catch background ingestion errors (e.g., v3 vs v4 Otel cloud notices)
+          if (process.env.DEBUG_TRACER === 'true') {
+            console.warn('[Tracer] Langfuse background event notice:', err?.message || err);
+          }
         });
       } catch (err) {
         console.warn('Failed to initialize Langfuse client:', err);

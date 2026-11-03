@@ -134,7 +134,13 @@ export function AgentProgressStream({ run, onRefreshRun }: AgentProgressStreamPr
 
     connectSSE();
 
+    // Fallback polling interval while run is actively executing
+    const pollInterval = setInterval(() => {
+      onRefreshRun();
+    }, 3000);
+
     return () => {
+      clearInterval(pollInterval);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
