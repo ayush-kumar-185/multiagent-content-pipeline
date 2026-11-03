@@ -251,3 +251,44 @@ The CiteWriter user experience requires:
 - _Polling instead of SSE:_ Rejected because polling introduces unnecessary latency and database query load compared to persistent HTTP streaming with reconnection.
 
 ---
+
+## ADR 009: Observability, Langfuse Tracing, and Granular Cost Accounting (Phase 7)
+
+- **Date:** 2026-11-03
+- **Status:** Accepted
+
+### Context
+
+CiteWriter runs are composed of multi-agent, multi-step LLM operations and external tool executions (`web_search`, `fetch_page`). Production operations demand:
+
+1. Complete visibility into prompt tokens, completion tokens, latency, and estimated cost per call.
+2. Tracing every agent run (`Researcher`, `Writer`, `Fact-checker`, `Editor`) and tool call with Langfuse telemetry.
+3. Offline resilience: ensuring the pipeline and all unit/integration tests function cleanly without failing when Langfuse credentials are not provided.
+4. Per-agent resource attribution displayed to users on the run detail page, with UI totals strictly matching the traced totals.
+5. Configurable per-run token and cost budgets configurable from the frontend form and backend API.
+
+### Decision
+
+1. **Decoupled Observability Architecture (`packages/core/src/observability/`):**
+   - Implemented `CiteWriterTracer` wrapping the official `langfuse` SDK.
+   - Dual-mode operation: when credentials (`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`) are present, it emits traces, spans, and generations to Langfuse. When absent or in offline test environments, it maintains an in-memory summary without crashing or throwing network errors.
+   - Traces run lifecycle (`startRunTrace`), agent execution spans (`startAgentSpan`, `endAgentSpan`), LLM generations (`recordLLMCall`), and tool executions (`recordToolCall`).
+2. **Per-Agent Metric Tracking (`agentMetrics`):**
+   - Added `AgentMetricsSchema` and `agentMetrics` channel in `GraphState` and Drizzle schema for `runs` table: `{ [agent]: { tokensUsed, costUsd, calls } }`.
+   - Each agent automatically records its token usage, cost USD, and call count, merging deterministically across iterative graph cycles.
+   - `traceIntegration.test.ts` formally verifies that total tokens and cost in the graph state exactly match the sum of per-agent metrics and tracer totals.
+3. **Configurable Per-Run Budget Limits:**
+   - Extended `RunConfigSchema` with optional `maxTokens` and `maxCostUsd`.
+   - Updated `NewRunForm.tsx` to include budget limits configuration.
+   - Updated `assertWithinBudget` and `resolveBudgetLimits` to prioritize per-run configured caps with fallback to environment defaults (`MAX_RUN_TOKENS`, `MAX_RUN_COST_USD`).
+4. **Interactive Observability UI (`ObservabilityBreakdown.tsx`):**
+   - Visual cost and token budget usage progress bars against configured caps.
+   - 4-agent resource accounting cards (Researcher, Writer, Fact-Checker, Editor) with tokens, cost USD, call count, and percentage share of run cost.
+   - Trace ID and telemetry verification status badge.
+
+### Alternatives Considered
+
+- _Directly calling Langfuse inside agent prompts:_ Rejected because it couples LLM logic to a third-party observability vendor and breaks unit testing in offline environments.
+- _Global Token Accumulator without Per-Agent Attribution:_ Rejected because technical readers and operators need to know which agent consumed the most budget (e.g. Writer vs. Researcher).
+
+---

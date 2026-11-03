@@ -8,6 +8,7 @@ import { RunRecord } from '@/lib/types';
 import { AgentProgressStream } from '@/components/AgentProgressStream';
 import { ClaimHighlightArticle } from '@/components/ClaimHighlightArticle';
 import { HumanReviewActions } from '@/components/HumanReviewActions';
+import { ObservabilityBreakdown } from '@/components/ObservabilityBreakdown';
 import {
   ArrowLeft,
   Cpu,
@@ -186,6 +187,9 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           </div>
         </div>
       </div>
+
+      {/* Observability & Per-Agent Cost Breakdown */}
+      <ObservabilityBreakdown run={run} />
 
       {/* Main Content Area based on Status */}
       {/* 1. Live SSE Progress Stream (shown when running or pending) */}

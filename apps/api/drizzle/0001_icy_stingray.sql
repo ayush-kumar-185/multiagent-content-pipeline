@@ -1,0 +1,1 @@
+ALTER TABLE "runs" ADD COLUMN "agent_metrics" jsonb DEFAULT '{}'::jsonb NOT NULL;

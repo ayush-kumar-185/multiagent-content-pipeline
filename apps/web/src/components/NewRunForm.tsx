@@ -4,7 +4,15 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createRun } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { Sparkles, Globe, Sliders, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import {
+  Sparkles,
+  Globe,
+  Sliders,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
+  ShieldCheck,
+} from 'lucide-react';
 
 export function NewRunForm() {
   const router = useRouter();
@@ -15,6 +23,8 @@ export function NewRunForm() {
   const [audience, setAudience] = useState('software engineers and architects');
   const [tone, setTone] = useState('technical, precise, and practical');
   const [targetWords, setTargetWords] = useState(400);
+  const [maxTokens, setMaxTokens] = useState(100000);
+  const [maxCostUsd, setMaxCostUsd] = useState(1.5);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +48,8 @@ export function NewRunForm() {
             audience,
             tone,
             targetWords: Number(targetWords),
+            maxTokens: Number(maxTokens),
+            maxCostUsd: Number(maxCostUsd),
           },
         },
         user.id,
@@ -178,6 +190,68 @@ export function NewRunForm() {
                 onChange={(e) => setTargetWords(Number(e.target.value))}
                 className="w-full accent-blue-600 cursor-pointer"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Configurable Budget Guard & Observability */}
+        <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
+          <div className="flex items-center space-x-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Configurable Budget Limits & Observability</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label
+                  htmlFor="maxTokens"
+                  className="block text-xs font-medium text-neutral-600 dark:text-neutral-400"
+                >
+                  Max Token Budget
+                </label>
+                <span className="text-[11px] font-mono text-neutral-500 font-medium">
+                  {maxTokens.toLocaleString()} tokens
+                </span>
+              </div>
+              <input
+                id="maxTokens"
+                type="number"
+                min="10000"
+                max="500000"
+                step="5000"
+                value={maxTokens}
+                onChange={(e) => setMaxTokens(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[10px] text-neutral-400 mt-1">
+                Halts run and transitions to review on breach
+              </p>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label
+                  htmlFor="maxCostUsd"
+                  className="block text-xs font-medium text-neutral-600 dark:text-neutral-400"
+                >
+                  Max Cost Limit (USD)
+                </label>
+                <span className="text-[11px] font-mono text-neutral-500 font-medium">
+                  ${maxCostUsd.toFixed(2)}
+                </span>
+              </div>
+              <input
+                id="maxCostUsd"
+                type="number"
+                min="0.10"
+                max="10.00"
+                step="0.10"
+                value={maxCostUsd}
+                onChange={(e) => setMaxCostUsd(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[10px] text-neutral-400 mt-1">Default $1.50 per run</p>
             </div>
           </div>
         </div>

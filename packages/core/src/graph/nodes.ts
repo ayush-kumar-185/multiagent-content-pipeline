@@ -17,6 +17,7 @@ import { runEditorAgent } from '../agents/editor/editorAgent.js';
 import { SearchProvider } from '../tools/search/types.js';
 import { FetchPageOptions } from '../tools/fetch/fetchPage.js';
 import { BudgetExceededError } from '../llm/budget.js';
+import { Tracer } from '../observability/types.js';
 
 export interface NodeOptions {
   fakeAgentOptions?: FakeAgentOptions;
@@ -31,6 +32,7 @@ export interface NodeOptions {
   editorModel?: string;
   searchProvider?: SearchProvider;
   fetchOptions?: FetchPageOptions;
+  tracer?: Tracer;
 }
 
 export function createGraphNodes(options: NodeOptions = {}) {
@@ -47,6 +49,7 @@ export function createGraphNodes(options: NodeOptions = {}) {
     editorModel,
     searchProvider,
     fetchOptions,
+    tracer,
   } = options;
 
   const researcherNode = async (state: GraphState): Promise<Partial<GraphState>> => {
@@ -54,15 +57,23 @@ export function createGraphNodes(options: NodeOptions = {}) {
       return {};
     }
 
+    tracer?.startAgentSpan(state.runId, 'researcher');
+
     if (useRealResearcher) {
       try {
-        return await runResearcherAgent(state, {
+        const res = await runResearcherAgent(state, {
           client: llmClient,
           model: researcherModel,
           searchProvider,
           fetchOptions,
+          tracer,
         });
+        tracer?.endAgentSpan(state.runId, 'researcher', { notesCount: res.notes.length });
+        return res;
       } catch (err: unknown) {
+        tracer?.endAgentSpan(state.runId, 'researcher', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
@@ -82,11 +93,20 @@ export function createGraphNodes(options: NodeOptions = {}) {
     const existingIds = new Set(state.notes.map((n) => n.id));
     const mergedNotes = [...state.notes, ...newNotes.filter((n) => !existingIds.has(n.id))];
 
+    tracer?.endAgentSpan(state.runId, 'researcher', { notesCount: mergedNotes.length });
+
     return {
       researchRounds: nextRound,
       notes: mergedNotes,
       tokensUsed: state.tokensUsed + 500,
       costUsd: Number((state.costUsd + 0.005).toFixed(4)),
+      agentMetrics: {
+        researcher: {
+          tokensUsed: 500,
+          costUsd: 0.005,
+          calls: 1,
+        },
+      },
     };
   };
 
@@ -95,13 +115,21 @@ export function createGraphNodes(options: NodeOptions = {}) {
       return {};
     }
 
+    tracer?.startAgentSpan(state.runId, 'writer');
+
     if (useRealWriter) {
       try {
-        return await runWriterAgent(state, {
+        const res = await runWriterAgent(state, {
           client: llmClient,
           model: writerModel,
+          tracer,
         });
+        tracer?.endAgentSpan(state.runId, 'writer', { claimsCount: res.claims.length });
+        return res;
       } catch (err: unknown) {
+        tracer?.endAgentSpan(state.runId, 'writer', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
@@ -118,12 +146,21 @@ export function createGraphNodes(options: NodeOptions = {}) {
       ? fakeAgentOptions.writerBehavior(nextCycle, state.notes)
       : { draft: defaultFakeDraft, claims: defaultFakeClaims };
 
+    tracer?.endAgentSpan(state.runId, 'writer', { claimsCount: claims.length });
+
     return {
       writeCycles: nextCycle,
       draft,
       claims,
       tokensUsed: state.tokensUsed + 1200,
       costUsd: Number((state.costUsd + 0.015).toFixed(4)),
+      agentMetrics: {
+        writer: {
+          tokensUsed: 1200,
+          costUsd: 0.015,
+          calls: 1,
+        },
+      },
     };
   };
 
@@ -132,14 +169,22 @@ export function createGraphNodes(options: NodeOptions = {}) {
       return {};
     }
 
+    tracer?.startAgentSpan(state.runId, 'factChecker');
+
     if (useRealFactChecker) {
       try {
-        return await runFactCheckerAgent(state, {
+        const res = await runFactCheckerAgent(state, {
           client: llmClient,
           model: factCheckerModel,
           fetchOptions,
+          tracer,
         });
+        tracer?.endAgentSpan(state.runId, 'factChecker', { checksCount: res.claimChecks.length });
+        return res;
       } catch (err: unknown) {
+        tracer?.endAgentSpan(state.runId, 'factChecker', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
@@ -157,10 +202,19 @@ export function createGraphNodes(options: NodeOptions = {}) {
       ? fakeAgentOptions.factCheckerBehavior(state.claims, state.notes)
       : defaultFakeClaimChecks;
 
+    tracer?.endAgentSpan(state.runId, 'factChecker', { checksCount: claimChecks.length });
+
     return {
       claimChecks,
       tokensUsed: state.tokensUsed + 800,
       costUsd: Number((state.costUsd + 0.008).toFixed(4)),
+      agentMetrics: {
+        factChecker: {
+          tokensUsed: 800,
+          costUsd: 0.008,
+          calls: 1,
+        },
+      },
     };
   };
 
@@ -169,13 +223,21 @@ export function createGraphNodes(options: NodeOptions = {}) {
       return {};
     }
 
+    tracer?.startAgentSpan(state.runId, 'editor');
+
     if (useRealEditor) {
       try {
-        return await runEditorAgent(state, {
+        const res = await runEditorAgent(state, {
           client: llmClient,
           model: editorModel,
+          tracer,
         });
+        tracer?.endAgentSpan(state.runId, 'editor', { verdict: res.editorVerdict.decision });
+        return res;
       } catch (err: unknown) {
+        tracer?.endAgentSpan(state.runId, 'editor', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
@@ -191,10 +253,19 @@ export function createGraphNodes(options: NodeOptions = {}) {
       ? fakeAgentOptions.editorBehavior(state.draft, state.claims, state.writeCycles)
       : defaultFakeEditorVerdict;
 
+    tracer?.endAgentSpan(state.runId, 'editor', { verdict: editorVerdict.decision });
+
     return {
       editorVerdict,
       tokensUsed: state.tokensUsed + 600,
       costUsd: Number((state.costUsd + 0.006).toFixed(4)),
+      agentMetrics: {
+        editor: {
+          tokensUsed: 600,
+          costUsd: 0.006,
+          calls: 1,
+        },
+      },
     };
   };
 

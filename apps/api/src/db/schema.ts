@@ -9,7 +9,14 @@ import {
   serial,
   index,
 } from 'drizzle-orm/pg-core';
-import type { Note, Claim, ClaimCheck, EditorVerdict, RunConfig } from '@citewriter/core';
+import type {
+  Note,
+  Claim,
+  ClaimCheck,
+  EditorVerdict,
+  RunConfig,
+  RunAgentMetrics,
+} from '@citewriter/core';
 
 export const users = pgTable('users', {
   id: varchar('id', { length: 128 }).primaryKey(),
@@ -40,6 +47,7 @@ export const runs = pgTable(
     openIssues: jsonb('open_issues').$type<string[]>().notNull().default([]),
     tokensUsed: integer('tokens_used').notNull().default(0),
     costUsd: doublePrecision('cost_usd').notNull().default(0),
+    agentMetrics: jsonb('agent_metrics').$type<RunAgentMetrics>().notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

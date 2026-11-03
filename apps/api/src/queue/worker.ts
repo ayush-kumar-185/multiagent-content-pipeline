@@ -7,6 +7,7 @@ import {
   Command,
   GraphBuilderOptions,
   BaseCheckpointSaver,
+  getTracer,
 } from '@citewriter/core';
 import { DatabaseContext, runs, draftVersions } from '../db/index.js';
 import { RunEventBus } from '../events/eventBus.js';
@@ -58,10 +59,18 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
         data: { status: 'running', action: action ?? 'start' },
       });
 
-      // 3. Compile graph with checkpointer
+      // 3. Initialize Observability Trace & Compile graph with checkpointer
+      const tracer = getTracer();
+      tracer.startRunTrace(runId, {
+        topic: runRecord.topic,
+        config: runRecord.config,
+        userId: runRecord.userId,
+      });
+
       const app = createCiteWriterGraph({
         ...graphOptions,
         checkpointer,
+        tracer,
       });
 
       try {
@@ -112,6 +121,7 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
             if (update.writeCycles !== undefined) patch.writeCycles = update.writeCycles;
             if (update.tokensUsed !== undefined) patch.tokensUsed = update.tokensUsed;
             if (update.costUsd !== undefined) patch.costUsd = update.costUsd;
+            if (update.agentMetrics !== undefined) patch.agentMetrics = update.agentMetrics;
             if (update.openIssues !== undefined) patch.openIssues = update.openIssues;
 
             if (Object.keys(patch).length > 1) {
@@ -148,6 +158,7 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
             writeCycles: finalState.writeCycles ?? 0,
             tokensUsed: finalState.tokensUsed ?? 0,
             costUsd: finalState.costUsd ?? 0,
+            agentMetrics: finalState.agentMetrics ?? {},
             openIssues: finalState.openIssues ?? [],
             updatedAt: new Date(),
           })
@@ -203,8 +214,10 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
           });
         }
 
+        await tracer.flush().catch(() => {});
         return { status: finalState.status, runId };
       } catch (error) {
+        await tracer.flush().catch(() => {});
         const errorMsg = error instanceof Error ? error.message : String(error);
         await dbCtx.db
           .update(runs)

@@ -21,6 +21,7 @@
     "@langchain/langgraph": "^1.6.0",
     "cheerio": "^1.2.0",
     "dotenv": "^18.0.9",
+    "langfuse": "^3.39.2",
     "openai": "^7.47.0",
     "zod": "^3.24.2"
   },

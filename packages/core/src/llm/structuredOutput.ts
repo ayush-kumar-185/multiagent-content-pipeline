@@ -1,8 +1,10 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { TokenUsage } from './types.js';
+import { TokenUsage, BudgetLimits } from './types.js';
 import { estimateCostUsd } from './cost.js';
 import { assertWithinBudget } from './budget.js';
+import { AgentRole } from './client.js';
+import { Tracer } from '../observability/types.js';
 
 export interface StructuredOutputOptions<T> {
   client: OpenAI;
@@ -12,6 +14,10 @@ export interface StructuredOutputOptions<T> {
   userPrompt: string;
   currentTokensUsed?: number;
   currentCostUsd?: number;
+  budgetLimits?: BudgetLimits;
+  runId?: string;
+  agentRole?: AgentRole;
+  tracer?: Tracer;
   maxRetries?: number;
   temperature?: number;
 }
@@ -44,6 +50,10 @@ export async function generateStructuredOutput<T>(
     userPrompt,
     currentTokensUsed = 0,
     currentCostUsd = 0,
+    budgetLimits,
+    runId,
+    agentRole = 'writer',
+    tracer,
     maxRetries = 2,
     temperature = 0.2,
   } = options;
@@ -67,14 +77,17 @@ export async function generateStructuredOutput<T>(
     assertWithinBudget(
       currentTokensUsed + totalPromptTokens + totalCompletionTokens,
       currentCostUsd + accumulatedCostUsd,
+      budgetLimits,
     );
 
+    const callStart = Date.now();
     const completion = await client.chat.completions.create({
       model,
       messages,
       temperature,
       response_format: { type: 'json_object' },
     });
+    const latencyMs = Date.now() - callStart;
 
     const usage = completion.usage;
     const promptTokens = usage?.prompt_tokens ?? 0;
@@ -93,6 +106,22 @@ export async function generateStructuredOutput<T>(
       const validation = schema.safeParse(parsedRaw);
 
       if (validation.success) {
+        if (tracer && runId) {
+          tracer.recordLLMCall(runId, {
+            agentRole,
+            model,
+            messages,
+            output: validation.data,
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+            costUsd: callCost,
+            latencyMs,
+            attempt,
+            success: true,
+          });
+        }
+
         return {
           data: validation.data,
           tokens: {
@@ -110,6 +139,23 @@ export async function generateStructuredOutput<T>(
         .map((issue) => `Field "${issue.path.join('.')}": ${issue.message}`)
         .join('; ');
 
+      if (tracer && runId) {
+        tracer.recordLLMCall(runId, {
+          agentRole,
+          model,
+          messages,
+          output: content,
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+          costUsd: callCost,
+          latencyMs,
+          attempt,
+          success: false,
+          error: errorDetails,
+        });
+      }
+
       if (attempt === maxAttempts) {
         throw new Error(
           `Output failed Zod schema validation after ${maxRetries} retries: ${errorDetails}`,
@@ -123,6 +169,24 @@ export async function generateStructuredOutput<T>(
         content: `Your previous JSON output failed validation with the following errors:\n${errorDetails}\n\nPlease fix the issues and output ONLY the corrected JSON conforming to the schema.`,
       });
     } catch (err: unknown) {
+      if (tracer && runId) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        tracer.recordLLMCall(runId, {
+          agentRole,
+          model,
+          messages,
+          output: content,
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+          costUsd: callCost,
+          latencyMs,
+          attempt,
+          success: false,
+          error: errorMsg,
+        });
+      }
+
       if (attempt === maxAttempts) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         throw new Error(`Structured output failed after ${maxRetries} retries: ${errorMsg}`);

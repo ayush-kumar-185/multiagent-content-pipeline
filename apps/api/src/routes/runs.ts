@@ -16,6 +16,8 @@ const CreateRunBodySchema = z.object({
       audience: z.string().optional(),
       tone: z.string().optional(),
       targetWords: z.number().int().min(50).max(5000).optional(),
+      maxTokens: z.number().int().positive().optional(),
+      maxCostUsd: z.number().positive().optional(),
     })
     .optional(),
 });
@@ -72,6 +74,8 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
       audience: config?.audience ?? 'engineers and technical readers',
       tone: config?.tone ?? 'authoritative, clear, and informative',
       targetWords: config?.targetWords ?? 400,
+      maxTokens: config?.maxTokens,
+      maxCostUsd: config?.maxCostUsd,
     };
 
     const [newRun] = await dbCtx.db

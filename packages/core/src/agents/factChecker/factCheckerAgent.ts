@@ -1,9 +1,11 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { GraphState } from '../../schemas/state.js';
+import { GraphState, RunAgentMetrics } from '../../schemas/state.js';
 import { Claim, ClaimCheck, ClaimCheckSchema } from '../../schemas/claim.js';
 import { createLLMClient, getAgentModel } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
+import { resolveBudgetLimits } from '../../llm/budget.js';
+import { Tracer } from '../../observability/types.js';
 import { runDeterministicFactPreChecks } from './deterministicPreChecks.js';
 import { buildFactCheckerSystemPrompt, buildFactCheckerUserPrompt } from './prompt.js';
 import { fetchPage, FetchPageOptions } from '../../tools/fetch/fetchPage.js';
@@ -19,6 +21,7 @@ export interface FactCheckerAgentOptions {
   model?: string;
   fetchOptions?: FetchPageOptions;
   allowSourceFetch?: boolean;
+  tracer?: Tracer;
 }
 
 export async function runFactCheckerAgent(
@@ -28,15 +31,24 @@ export async function runFactCheckerAgent(
   claimChecks: ClaimCheck[];
   tokensUsed: number;
   costUsd: number;
+  agentMetrics: RunAgentMetrics;
 }> {
   const client = options.client ?? createLLMClient();
   const model = options.model ?? getAgentModel('factChecker');
+  const tracer = options.tracer;
 
   if (!state.claims || state.claims.length === 0) {
     return {
       claimChecks: [],
       tokensUsed: state.tokensUsed,
       costUsd: state.costUsd,
+      agentMetrics: {
+        factChecker: {
+          tokensUsed: 0,
+          costUsd: 0,
+          calls: 0,
+        },
+      },
     };
   }
 
@@ -73,13 +85,35 @@ export async function runFactCheckerAgent(
       }
 
       for (const url of Array.from(urlsToFetch).slice(0, 3)) {
+        const fetchStart = Date.now();
         try {
           const page = await fetchPage(url, options.fetchOptions);
+          const latencyMs = Date.now() - fetchStart;
+          if (tracer && state.runId) {
+            tracer.recordToolCall(state.runId, {
+              agentRole: 'factChecker',
+              toolName: 'fetch_page',
+              input: { url },
+              output: { length: page.rawText.length },
+              latencyMs,
+              success: true,
+            });
+          }
           if (page.rawText) {
             sourceContexts.set(url, page.rawText);
           }
-        } catch {
-          // Fallback cleanly to note quote alone if fetch fails
+        } catch (err: unknown) {
+          const latencyMs = Date.now() - fetchStart;
+          if (tracer && state.runId) {
+            tracer.recordToolCall(state.runId, {
+              agentRole: 'factChecker',
+              toolName: 'fetch_page',
+              input: { url },
+              latencyMs,
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
         }
       }
     }
@@ -87,6 +121,7 @@ export async function runFactCheckerAgent(
     const systemPrompt = buildFactCheckerSystemPrompt();
     const userPrompt = buildFactCheckerUserPrompt(claimsForLLM, state.notes, sourceContexts);
 
+    const budgetLimits = resolveBudgetLimits(state.config);
     const result = await generateStructuredOutput({
       client,
       model,
@@ -95,6 +130,10 @@ export async function runFactCheckerAgent(
       userPrompt,
       currentTokensUsed: totalTokensUsed,
       currentCostUsd: totalCostUsd,
+      budgetLimits,
+      runId: state.runId,
+      agentRole: 'factChecker',
+      tracer,
     });
 
     totalTokensUsed += result.tokens.totalTokens;
@@ -124,9 +163,19 @@ export async function runFactCheckerAgent(
     };
   });
 
+  const tokensDelta = totalTokensUsed - state.tokensUsed;
+  const costDelta = Number((totalCostUsd - state.costUsd).toFixed(4));
+
   return {
     claimChecks: finalChecks,
     tokensUsed: totalTokensUsed,
     costUsd: totalCostUsd,
+    agentMetrics: {
+      factChecker: {
+        tokensUsed: tokensDelta,
+        costUsd: costDelta,
+        calls: claimsForLLM.length > 0 ? 1 : 0,
+      },
+    },
   };
 }

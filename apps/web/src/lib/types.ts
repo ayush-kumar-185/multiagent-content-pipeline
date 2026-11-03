@@ -26,6 +26,7 @@ export interface RunRecord {
   openIssues: string[];
   tokensUsed: number;
   costUsd: number;
+  agentMetrics?: Record<string, { tokensUsed: number; costUsd: number; calls: number }>;
   createdAt: string;
   updatedAt: string;
 }

@@ -24,6 +24,36 @@ export const HumanActionSchema = z.object({
 
 export type HumanAction = z.infer<typeof HumanActionSchema>;
 
+export const AgentMetricsSchema = z.object({
+  tokensUsed: z.number().int().nonnegative().default(0),
+  costUsd: z.number().nonnegative().default(0),
+  calls: z.number().int().nonnegative().default(0),
+});
+
+export type AgentMetrics = z.infer<typeof AgentMetricsSchema>;
+
+export const RunAgentMetricsSchema = z.record(z.string(), AgentMetricsSchema);
+export type RunAgentMetrics = z.infer<typeof RunAgentMetricsSchema>;
+
+export function mergeAgentMetrics(
+  existing?: RunAgentMetrics,
+  incoming?: RunAgentMetrics,
+): RunAgentMetrics {
+  const result: RunAgentMetrics = { ...(existing ?? {}) };
+  if (!incoming) return result;
+
+  for (const [agent, m] of Object.entries(incoming)) {
+    const prev = result[agent] ?? { tokensUsed: 0, costUsd: 0, calls: 0 };
+    result[agent] = {
+      tokensUsed: prev.tokensUsed + m.tokensUsed,
+      costUsd: Number((prev.costUsd + m.costUsd).toFixed(6)),
+      calls: prev.calls + m.calls,
+    };
+  }
+
+  return result;
+}
+
 export const GraphStateSchema = z.object({
   runId: z.string().min(1),
   topic: z.string().min(1),
@@ -42,6 +72,7 @@ export const GraphStateSchema = z.object({
   editorVerdict: EditorVerdictSchema.optional(),
   tokensUsed: z.number().int().nonnegative().default(0),
   costUsd: z.number().nonnegative().default(0),
+  agentMetrics: RunAgentMetricsSchema.default({}),
   status: RunStatusSchema.default('running'),
   openIssues: z.array(z.string()).default([]),
   humanAction: HumanActionSchema.optional(),
@@ -101,6 +132,10 @@ export const StateAnnotation = Annotation.Root({
   costUsd: Annotation<number>({
     reducer: (x, y) => y ?? x,
     default: () => 0,
+  }),
+  agentMetrics: Annotation<RunAgentMetrics>({
+    reducer: (x, y) => mergeAgentMetrics(x, y),
+    default: () => ({}),
   }),
   status: Annotation<RunStatus>({
     reducer: (x, y) => y ?? x,

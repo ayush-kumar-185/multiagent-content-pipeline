@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { GraphState } from '../../schemas/state.js';
+import { GraphState, RunAgentMetrics } from '../../schemas/state.js';
 import { Note, NoteSchema } from '../../schemas/note.js';
 import { SearchProvider } from '../../tools/search/types.js';
 import { createSearchProvider } from '../../tools/search/factory.js';
@@ -8,6 +8,8 @@ import { fetchPage, FetchPageOptions } from '../../tools/fetch/fetchPage.js';
 import { filterVerifiedNotes } from './quoteVerifier.js';
 import { createLLMClient, getAgentModel } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
+import { resolveBudgetLimits } from '../../llm/budget.js';
+import { Tracer } from '../../observability/types.js';
 import {
   buildResearcherSystemPrompt,
   buildResearcherInitialPrompt,
@@ -28,6 +30,7 @@ export interface ResearcherAgentOptions {
   searchProvider?: SearchProvider;
   fetchOptions?: FetchPageOptions;
   maxFetchesPerRound?: number;
+  tracer?: Tracer;
 }
 
 export async function runResearcherAgent(
@@ -38,11 +41,13 @@ export async function runResearcherAgent(
   researchRounds: number;
   tokensUsed: number;
   costUsd: number;
+  agentMetrics: RunAgentMetrics;
 }> {
   const client = options.client ?? createLLMClient();
   const model = options.model ?? getAgentModel('researcher');
   const searchProvider = options.searchProvider ?? createSearchProvider();
   const maxFetches = options.maxFetchesPerRound ?? MAX_FETCHES_PER_ROUND;
+  const tracer = options.tracer;
 
   const isReResearch = state.researchRounds > 0;
   const claimsNeedingResearch = state.claimChecks.filter((c) => c.status === 'needs_more_research');
@@ -66,14 +71,39 @@ export async function runResearcherAgent(
   }
 
   for (const query of queries) {
+    const searchStart = Date.now();
     try {
       const results = await searchProvider.search(query, 4);
+      const latencyMs = Date.now() - searchStart;
+
+      if (tracer && state.runId) {
+        tracer.recordToolCall(state.runId, {
+          agentRole: 'researcher',
+          toolName: 'web_search',
+          input: { query },
+          output: { count: results.length, urls: results.map((r) => r.url) },
+          latencyMs,
+          success: true,
+        });
+      }
+
       for (const res of results) {
         if (res.url) {
           allowedUrls.add(res.url);
         }
       }
     } catch (err: unknown) {
+      const latencyMs = Date.now() - searchStart;
+      if (tracer && state.runId) {
+        tracer.recordToolCall(state.runId, {
+          agentRole: 'researcher',
+          toolName: 'web_search',
+          input: { query },
+          latencyMs,
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
       console.warn(`Search error for query "${query}":`, err);
     }
   }
@@ -85,13 +115,38 @@ export async function runResearcherAgent(
   const rawTextsByUrl = new Map<string, string>();
 
   for (const url of candidateUrls) {
+    const fetchStart = Date.now();
     try {
       const pageResult = await fetchPage(url, options.fetchOptions);
+      const latencyMs = Date.now() - fetchStart;
+
+      if (tracer && state.runId) {
+        tracer.recordToolCall(state.runId, {
+          agentRole: 'researcher',
+          toolName: 'fetch_page',
+          input: { url },
+          output: { title: pageResult.title, length: pageResult.rawText.length },
+          latencyMs,
+          success: true,
+        });
+      }
+
       if (pageResult.rawText && pageResult.rawText.length > 20) {
         fetchedPages.push(pageResult);
         rawTextsByUrl.set(url, pageResult.rawText);
       }
     } catch (err: unknown) {
+      const latencyMs = Date.now() - fetchStart;
+      if (tracer && state.runId) {
+        tracer.recordToolCall(state.runId, {
+          agentRole: 'researcher',
+          toolName: 'fetch_page',
+          input: { url },
+          latencyMs,
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
       // Continue to next URL on fetch errors (SSRF, timeout, 404, etc.)
       console.warn(
         `Failed to fetch candidate URL "${url}":`,
@@ -107,6 +162,13 @@ export async function runResearcherAgent(
       researchRounds: state.researchRounds + 1,
       tokensUsed: state.tokensUsed,
       costUsd: state.costUsd,
+      agentMetrics: {
+        researcher: {
+          tokensUsed: 0,
+          costUsd: 0,
+          calls: 0,
+        },
+      },
     };
   }
 
@@ -117,6 +179,7 @@ export async function runResearcherAgent(
       ? buildResearcherReResearchPrompt(claimsNeedingResearch, fetchedPages)
       : buildResearcherInitialPrompt(state.topic, fetchedPages);
 
+  const budgetLimits = resolveBudgetLimits(state.config);
   const result = await generateStructuredOutput({
     client,
     model,
@@ -125,6 +188,10 @@ export async function runResearcherAgent(
     userPrompt,
     currentTokensUsed: state.tokensUsed,
     currentCostUsd: state.costUsd,
+    budgetLimits,
+    runId: state.runId,
+    agentRole: 'researcher',
+    tracer,
   });
 
   // 5. Code-level Substring Verification (Drop unverified notes)
@@ -145,10 +212,20 @@ export async function runResearcherAgent(
     });
   }
 
+  const tokensDelta = result.tokens.totalTokens;
+  const costDelta = result.costUsd;
+
   return {
     notes: Array.from(existingNotesMap.values()),
     researchRounds: state.researchRounds + 1,
-    tokensUsed: state.tokensUsed + result.tokens.totalTokens,
-    costUsd: Number((state.costUsd + result.costUsd).toFixed(4)),
+    tokensUsed: state.tokensUsed + tokensDelta,
+    costUsd: Number((state.costUsd + costDelta).toFixed(4)),
+    agentMetrics: {
+      researcher: {
+        tokensUsed: tokensDelta,
+        costUsd: costDelta,
+        calls: 1,
+      },
+    },
   };
 }

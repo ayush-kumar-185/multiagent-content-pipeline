@@ -1,4 +1,5 @@
 import { BudgetLimits } from './types.js';
+import type { RunConfig } from '../schemas/config.js';
 
 export class BudgetExceededError extends Error {
   public readonly tokensUsed: number;
@@ -22,6 +23,16 @@ export function getBudgetLimitsFromEnv(): BudgetLimits {
   return {
     maxRunTokens,
     maxRunCostUsd,
+  };
+}
+
+export function resolveBudgetLimits(
+  config?: RunConfig,
+  envLimits: BudgetLimits = getBudgetLimitsFromEnv(),
+): BudgetLimits {
+  return {
+    maxRunTokens: config?.maxTokens ?? envLimits.maxRunTokens,
+    maxRunCostUsd: config?.maxCostUsd ?? envLimits.maxRunCostUsd,
   };
 }
 
