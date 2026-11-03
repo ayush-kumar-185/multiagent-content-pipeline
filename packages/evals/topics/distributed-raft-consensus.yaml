@@ -1,0 +1,37 @@
+id: distributed-raft-consensus
+title: 'Raft Consensus: Leader Election and Safety Invariants'
+category: 'Distributed Systems'
+prompt: 'Explain how the Raft consensus algorithm guarantees state machine replication safety during leader elections, specifically detailing term numbers, split votes, and the Election Safety invariant.'
+config:
+  audience: 'distributed systems engineers'
+  tone: 'rigorous and technical'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Role transitions between Follower, Candidate, and Leader states'
+    - 'Randomized election timeouts (typically 150ms-300ms) to resolve split votes'
+    - 'Term numbers acting as a logical clock to detect obsolete leaders'
+    - 'Election Safety property ensuring at most one leader can be elected per term'
+    - 'Candidate log completeness requirement: vote is granted only if candidate log is as up-to-date as voter'
+  expectedCitations:
+    - "Ongaro & Ousterhout (2014) 'In Search of an Understandable Consensus Algorithm'"
+    - 'Section 5.2 (Leader Election) and Section 5.4.1 (Election Restriction)'
+  unsupportedClaimRisks:
+    - 'Claiming Raft handles Byzantine faults (Raft is a crash-fault-tolerant algorithm, not Byzantine)'
+    - 'Stating a candidate can be elected with a minority of votes'
+mockNotes:
+  - id: 'n1'
+    claim: 'Raft divides time into terms of arbitrary length, numbered with consecutive integers that act as logical clocks.'
+    sourceUrl: 'https://raft.github.io/raft.pdf'
+    quote: 'Raft divides time into terms of arbitrary length. Terms are numbered with consecutive integers.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'To prevent split votes, election timeouts are chosen randomly from a fixed interval such as 150 to 300 milliseconds.'
+    sourceUrl: 'https://raft.github.io/raft.pdf'
+    quote: 'Raft uses randomized election timeouts to ensure that split votes are rare and that they are resolved quickly.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'Raft guarantees the Election Safety invariant: at most one leader can be elected in a given term.'
+    sourceUrl: 'https://raft.github.io/raft.pdf'
+    quote: 'Election Safety: at most one leader can be elected in a given term.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

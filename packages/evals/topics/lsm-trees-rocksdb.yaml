@@ -1,0 +1,37 @@
+id: lsm-trees-rocksdb
+title: 'Log-Structured Merge Trees and Compaction in RocksDB'
+category: 'Storage Engines'
+prompt: 'Analyze the architecture of Log-Structured Merge (LSM) trees in RocksDB, comparing MemTable write buffering, Write-Ahead Logs, SSTable levels, and Leveled Compaction.'
+config:
+  audience: 'storage engineers and database developers'
+  tone: 'architectural and quantitative'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Ingestion path: concurrent writes to in-memory MemTable (SkipList) and append-only WAL'
+    - 'Immutable MemTable flush to SSTables in Level 0 (L0)'
+    - 'Leveled Compaction strategy maintaining non-overlapping key ranges from Level 1 onwards'
+    - 'Trade-offs in write amplification, read amplification, and space amplification (RUM conjecture)'
+    - 'Bloom filters used to skip SSTables on point lookups'
+  expectedCitations:
+    - "O'Neil et al. (1996) 'The Log-Structured Merge-Tree (LSM-Tree)'"
+    - 'RocksDB Architecture Guide (GitHub rocksdb/rocksdb Wiki)'
+  unsupportedClaimRisks:
+    - 'Claiming Level 0 SSTables have strictly non-overlapping key ranges (L0 files can overlap)'
+    - 'Claiming LSM trees provide faster random reads than B+ trees'
+mockNotes:
+  - id: 'n1'
+    claim: 'In RocksDB, writes first go to an in-memory buffer called MemTable and an append-only Write-Ahead Log before being flushed to SSTables on disk.'
+    sourceUrl: 'https://github.com/facebook/rocksdb/wiki/RocksDB-Basics'
+    quote: 'When a write request comes, it is written to an in-memory data structure called memtable and optionally to a write-ahead log.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'Files in Level 0 can have overlapping key ranges, whereas files in Level 1 and higher are sorted and have strictly non-overlapping key ranges.'
+    sourceUrl: 'https://github.com/facebook/rocksdb/wiki/Leveled-Compaction'
+    quote: 'Files in Level 0 can have overlapping key ranges. For other levels, keys within a level are partitioned into non-overlapping files.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'RocksDB uses Bloom filters placed within SSTable blocks to avoid unnecessary disk I/O when a searched key does not exist.'
+    sourceUrl: 'https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter'
+    quote: 'Bloom filters are a space-efficient probabilistic data structure used to test whether an element is a member of a set, reducing disk reads for non-existent keys.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

@@ -1,0 +1,37 @@
+id: postgres-mvcc-wal
+title: 'PostgreSQL MVCC Tuple Visibility and WAL Durability'
+category: 'Databases'
+prompt: 'Describe how PostgreSQL implements Multi-Version Concurrency Control (MVCC) through tuple headers (xmin, xmax) and how Write-Ahead Logging (WAL) ensures ACID durability before shared buffer flush.'
+config:
+  audience: 'database engineers and backend architects'
+  tone: 'in-depth and architectural'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Heap tuple header fields: xmin (inserting transaction ID) and xmax (deleting/updating transaction ID)'
+    - 'Snapshot isolation rules determining tuple visibility without read locks'
+    - 'Write-Ahead Logging: WAL records must be flushed to disk via fsync before buffer pages are written'
+    - 'Log Sequence Numbers (LSNs) linking dirty pages to the corresponding WAL record'
+    - 'VACUUM mechanism for reclaiming dead tuple space'
+  expectedCitations:
+    - 'PostgreSQL Official Documentation: Chapter 13 (Concurrency Control) & Chapter 30 (Reliability and the Write-Ahead Log)'
+    - 'The Internals of PostgreSQL (Hironobu Suzuki)'
+  unsupportedClaimRisks:
+    - 'Claiming PostgreSQL uses in-place row overwrites with undo logs (Postgres uses append-only heap tuples, unlike MySQL InnoDB)'
+    - 'Claiming reading transactions acquire shared read locks on table rows'
+mockNotes:
+  - id: 'n1'
+    claim: 'In PostgreSQL, each heap tuple header records xmin for the inserting transaction ID and xmax for the deleting or updating transaction ID.'
+    sourceUrl: 'https://www.postgresql.org/docs/current/routine-vacuuming.html'
+    quote: 'Each tuple has an xmin, which is the transaction ID of the inserting transaction, and an xmax, which is the transaction ID of the deleting or updating transaction.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'PostgreSQL write-ahead logging requires that changes are written to WAL storage before modified data pages are written to disk.'
+    sourceUrl: 'https://www.postgresql.org/docs/current/wal-intro.html'
+    quote: 'Write-Ahead Logging (WAL) is a standard approach to transaction logging. Its central concept is that changes to data files must be written only after those changes have been logged.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'PostgreSQL read transactions never block write transactions, and write transactions never block read transactions.'
+    sourceUrl: 'https://www.postgresql.org/docs/current/mvcc-intro.html'
+    quote: 'The main advantage of using the MVCC model of concurrency control rather than locking is that in MVCC locks acquired for querying data do not conflict with locks acquired for writing data.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

@@ -12,7 +12,9 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
-    "start:stub": "pnpm --filter @citewriter/core run start:stub"
+    "start:stub": "pnpm --filter @citewriter/core run start:stub",
+    "eval": "pnpm --filter @citewriter/evals run eval",
+    "eval:report": "pnpm --filter @citewriter/evals run eval:stub"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

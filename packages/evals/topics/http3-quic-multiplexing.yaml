@@ -1,0 +1,36 @@
+id: http3-quic-multiplexing
+title: 'HTTP/3 and QUIC: Solving Head-of-Line Blocking'
+category: 'Networking'
+prompt: 'Analyze how HTTP/3 built on UDP-based QUIC resolves the transport-layer Head-of-Line (HoL) blocking inherent to HTTP/2 over TCP.'
+config:
+  audience: 'network systems engineers and web infrastructure developers'
+  tone: 'technical and comparative'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'TCP transport-layer Head-of-Line (HoL) blocking in HTTP/2 when packet loss stalls all multiplexed streams'
+    - 'QUIC transport layer running over UDP with independent per-stream byte stream tracking'
+    - 'Connection migration capability using 64-bit Connection IDs rather than IP/port 4-tuple'
+    - 'Integrated TLS 1.3 handshake within QUIC packets minimizing connection setup round-trips'
+  expectedCitations:
+    - "RFC 9000: 'QUIC: A UDP-Based Multiplexed and Secure Transport'"
+    - "RFC 9114: 'HTTP/3'"
+  unsupportedClaimRisks:
+    - 'Claiming HTTP/2 has stream-level HoL blocking at the HTTP layer (HTTP/2 solved application HoL; TCP retained transport HoL)'
+    - 'Claiming QUIC operates over raw IP without UDP encapsulation'
+mockNotes:
+  - id: 'n1'
+    claim: "In HTTP/2 over TCP, packet loss on a single stream delays delivery of packets across all other multiplexed streams due to TCP's strictly ordered byte-stream guarantee."
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/rfc9000'
+    quote: 'Because TCP guarantees in-order delivery of a stream of bytes, packet loss causes head-of-line blocking for all data traveling across that connection.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'QUIC assigns each logical stream an independent stream ID and offset, so packet loss on one stream does not stall data processing on unaffected streams.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/rfc9000#section-2'
+    quote: 'Streams in QUIC are independently managed, so packet loss impacting one stream does not hold up transmission or delivery on other streams.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'QUIC allows connections to migrate seamlessly across network interfaces using Connection IDs instead of the client IP address and port.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/rfc9000#section-9'
+    quote: 'QUIC uses Connection IDs to identify connections, allowing endpoints to migrate to new IP addresses without terminating the transport session.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

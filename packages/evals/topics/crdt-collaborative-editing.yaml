@@ -1,0 +1,37 @@
+id: crdt-collaborative-editing
+title: 'Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text'
+category: 'Distributed Data'
+prompt: 'Analyze how sequence Conflict-Free Replicated Data Types (CRDTs) such as RGA and Yjs enable real-time collaborative text editing without centralized locking or Operational Transformation (OT).'
+config:
+  audience: 'distributed systems and collaborative software engineers'
+  tone: 'mathematical and architectural'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Mathematical properties of CRDTs: commutativity, associativity, and idempotence guaranteeing strong eventual consistency'
+    - 'Limitations of centralized Operational Transformation (OT) requiring a central sequencer'
+    - 'Sequence CRDT algorithms: RGA (Replicated Growable Array), Fugue, and Yjs Item structure'
+    - 'Unique item identifiers composed of Client ID and Lamport timestamp / logical clock counter'
+    - 'Interleaving anomaly and tombstone handling for deleted text characters'
+  expectedCitations:
+    - "Shapiro et al. (2011) 'Conflict-Free Replicated Data Types' (INRIA)"
+    - "Kleppmann et al. (2019) 'A highly available move operation for replicated trees and graphs'"
+  unsupportedClaimRisks:
+    - 'Claiming CRDTs require a centralized coordinator to resolve concurrent character insertions'
+    - 'Claiming naive character deletion in CRDTs can immediately reclaim item identifiers without tombstones or garbage collection'
+mockNotes:
+  - id: 'n1'
+    claim: 'Conflict-free Replicated Data Types guarantee strong eventual consistency by ensuring concurrent operations commute and merge into the same state regardless of arrival order.'
+    sourceUrl: 'https://hal.inria.fr/inria-00609399'
+    quote: 'A CRDT is a replicated data type where replicas can be updated concurrently without coordination, and are mathematically guaranteed to converge.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'In sequence CRDTs like Yjs and RGA, every character is identified by a unique tuple of client identifier and logical clock sequence number.'
+    sourceUrl: 'https://www.nature.com/articles/s41598-020-74635-4'
+    quote: 'Each inserted character is assigned a globally unique identifier comprising an agent ID and a monotonic sequence counter.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'Character deletions in sequence CRDTs mark elements with tombstones to maintain positional anchor references for concurrent neighboring insertions.'
+    sourceUrl: 'https://hal.inria.fr/inria-00609399'
+    quote: 'Deleted items are marked with tombstones so that other replicas can locate the relative positions of concurrent insertions.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

@@ -1,0 +1,37 @@
+id: go-goroutine-scheduler
+title: 'Go M:N Runtime Scheduler and Work-Stealing'
+category: 'Runtimes'
+prompt: 'Explain the architecture of the Go runtime scheduler, detailing the G-M-P model, work-stealing algorithm, and asynchronous preemption mechanism.'
+config:
+  audience: 'Go backend engineers and runtime developers'
+  tone: 'in-depth and systems-oriented'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'G-M-P structural model: Goroutine (G), Machine/OS Thread (M), and Processor logical context (P)'
+    - 'Local run queues (256 slots) per P and global run queue with lock contention reduction'
+    - "Work-stealing algorithm: idle P attempts to steal half of another P's local run queue"
+    - 'Network poller integration and sysmon background thread'
+    - 'Preemption evolution: from cooperative function prologue checks to signal-based asynchronous preemption (Go 1.14+)'
+  expectedCitations:
+    - "Vyukov, D. (2012) 'Go Preemptive Scheduler Design Doc'"
+    - 'Go Runtime Source Code: src/runtime/proc.go'
+  unsupportedClaimRisks:
+    - 'Equating Goroutines directly to 1:1 kernel threads'
+    - 'Claiming tight CPU loops can never be preempted in modern Go runtimes'
+mockNotes:
+  - id: 'n1'
+    claim: 'Go uses an M:N scheduler where G represents goroutines, M represents OS threads, and P represents logical processors required to execute Go code.'
+    sourceUrl: 'https://golang.org/s/go15gcpacing'
+    quote: 'The runtime scheduler manages G (goroutines), M (machine threads), and P (logical processors), binding M to P to execute G.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: "When an OS thread's local run queue becomes empty, it attempts to steal half the executable goroutines from another processor's queue."
+    sourceUrl: 'https://go.dev/src/runtime/proc.go'
+    quote: 'If an idle P cannot find work in its local or global queue, it randomly selects another P and steals half of its runnable goroutines.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'Starting in Go 1.14, the runtime implements asynchronous non-cooperative preemption using OS signals (SIGURG on Unix) to interrupt long-running loops.'
+    sourceUrl: 'https://go.googlesource.com/proposal/+/master/design/24543-non-cooperative-preemption.md'
+    quote: 'Non-cooperative goroutine preemption sends OS signals to running threads to interrupt execution at safe register points without compiler loop checks.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

@@ -7,6 +7,6 @@ export default defineConfig({
     include: ['**/*.test.ts', '**/*.spec.ts', '**/*.test.tsx'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/.next/**'],
     fileParallelism: false,
-    pool: 'forks',
+    pool: 'threads',
   },
 });

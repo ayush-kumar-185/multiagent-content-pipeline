@@ -1,0 +1,37 @@
+id: kafka-log-compaction
+title: 'Apache Kafka Log Compaction and Partition Retention'
+category: 'Streaming Systems'
+prompt: 'Describe how Apache Kafka performs log compaction on keyed message topics, explaining cleaner threads, the log cleaner offset map, and tombstone records.'
+config:
+  audience: 'data platform engineers and distributed systems architects'
+  tone: 'in-depth and operational'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Distinction between time/size-based retention and key-based log compaction'
+    - 'Cleaner thread workflow: scanning dirty segments to populate the in-memory offset map (SkimpyOffsetMap)'
+    - 'Deduplication phase: rewriting clean segments, retaining only the latest record for each key'
+    - 'Tombstone records: message with null payload indicating deletion, and delete.retention.ms'
+    - 'Clean versus dirty log head and tail boundaries'
+  expectedCitations:
+    - "Apache Kafka Documentation: 'Log Compaction' (kafka.apache.org/documentation/#compaction)"
+    - "Kreps et al. (2011) 'Kafka: a Distributed Messaging System for Log Processing'"
+  unsupportedClaimRisks:
+    - 'Claiming Kafka log compaction works on unkeyed topics'
+    - 'Claiming tombstone records are deleted immediately upon ingestion'
+mockNotes:
+  - id: 'n1'
+    claim: 'Kafka log compaction retains at least the last known value for each record key within the log of a given topic partition.'
+    sourceUrl: 'https://kafka.apache.org/documentation/#compaction'
+    quote: 'Log compaction is a mechanism to give finer-grained per-record retention, rather than a coarse-grained time-based retention.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'A tombstone message has a non-null key with a null payload, serving as a marker that deletes previous records for that key after delete.retention.ms.'
+    sourceUrl: 'https://kafka.apache.org/documentation/#compaction'
+    quote: 'A message with a null payload acts as a tombstone. It signifies that the key should be deleted and is retained for delete.retention.ms.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'Kafka cleaner threads build an in-memory hash table of keys and their latest offsets from the dirty section of the log before rewriting clean segments.'
+    sourceUrl: 'https://kafka.apache.org/documentation/#compaction'
+    quote: 'The cleaner builds an in-memory hash table of keys and their latest offset, then recopies log segments omitting obsolete records.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

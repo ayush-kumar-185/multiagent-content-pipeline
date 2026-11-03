@@ -1,0 +1,36 @@
+id: nodejs-event-loop
+title: 'Node.js Event Loop Phases and Libuv Thread Pool'
+category: 'Runtimes & Libuv'
+prompt: 'Detail the execution order of the Node.js event loop phases in libuv, differentiating between macrotask phases and microtask queues (process.nextTick, Promise jobs).'
+config:
+  audience: 'senior JavaScript and backend developers'
+  tone: 'in-depth and precise'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Six major event loop phases: timers, pending callbacks, idle/prepare, poll, check (setImmediate), and close callbacks'
+    - 'Microtask queues priority: process.nextTickQueue drains before promise MicrotaskQueue between operations'
+    - 'Libuv default thread pool of 4 threads handling file I/O, DNS lookup, and crypto tasks'
+    - 'Non-blocking epoll/kqueue/IOCP mechanism for network sockets'
+  expectedCitations:
+    - "Node.js Official Documentation: 'The Node.js Event Loop, Timers, and process.nextTick()'"
+    - 'libuv Design Overview (docs.libuv.org)'
+  unsupportedClaimRisks:
+    - 'Claiming network I/O calls use the libuv thread pool by default (network sockets use OS async notification primitives)'
+    - 'Claiming setImmediate always executes before setTimeout(fn, 0) in the main module'
+mockNotes:
+  - id: 'n1'
+    claim: 'The Node.js event loop has distinct phases: timers, pending callbacks, idle/prepare, poll, check, and close callbacks.'
+    sourceUrl: 'https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick'
+    quote: 'Each phase has a FIFO queue of callbacks to execute. When the event loop enters a given phase, it will perform operations specific to that phase.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'process.nextTick callbacks are executed immediately after the current operation completes, before the event loop continues to any other phase or microtask.'
+    sourceUrl: 'https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick'
+    quote: 'process.nextTick() is not technically part of the event loop. Instead, the nextTickQueue will be processed after the current operation is completed.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'Libuv allocates a default thread pool size of 4 threads, configurable via UV_THREADPOOL_SIZE up to 1024.'
+    sourceUrl: 'https://docs.libuv.org/en/v1.x/threadpool.html'
+    quote: 'The size of the threadpool is determined by UV_THREADPOOL_SIZE. The default size is 4, but it can be increased at startup.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

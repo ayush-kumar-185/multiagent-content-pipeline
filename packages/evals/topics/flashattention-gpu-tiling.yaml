@@ -1,0 +1,37 @@
+id: flashattention-gpu-tiling
+title: 'FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention'
+category: 'AI & Systems'
+prompt: 'Explain the architecture of FlashAttention, detailing how it avoids quadratic HBM read/write overhead by tiling self-attention computation into fast on-chip GPU SRAM.'
+config:
+  audience: 'machine learning engineers and GPU systems architects'
+  tone: 'mathematical and systems-focused'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'GPU memory hierarchy bottleneck: High-Bandwidth Memory (HBM) bandwidth vs on-chip SRAM capacity'
+    - 'Standard attention bottleneck: computing and materializing N x N attention matrix S and P into HBM'
+    - 'Online softmax algorithm (Milakov & Gimelshein) to compute attention incrementally in SRAM without full row max/sum'
+    - 'Recomputing attention scores in the backward pass rather than storing the intermediate N x N matrix in HBM'
+    - 'Sub-quadratic IO complexity: reduction from O(N^2) memory transfers to O(N^2 * d^2 / M)'
+  expectedCitations:
+    - "Dao et al. (2022) 'FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness'"
+    - "Milakov & Gimelshein (2018) 'Online normalizer calculation for softmax'"
+  unsupportedClaimRisks:
+    - 'Claiming FlashAttention is an approximate or sparse attention mechanism (FlashAttention is mathematically exact)'
+    - 'Confusing GPU SRAM with host CPU memory'
+mockNotes:
+  - id: 'n1'
+    claim: 'Standard attention scales quadratic memory I/O with sequence length N because it writes the intermediate N x N attention matrix to GPU HBM.'
+    sourceUrl: 'https://arxiv.org/abs/2205.14135'
+    quote: 'Standard attention materializes intermediate matrices S and P to HBM, leading to O(N^2) HBM read and write operations that dominate execution time.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'FlashAttention computes exact attention by tiling query, key, and value blocks into on-chip SRAM and using an online softmax technique.'
+    sourceUrl: 'https://arxiv.org/abs/2205.14135'
+    quote: 'We split inputs into blocks, load them into fast SRAM, and compute attention incrementally with an online softmax formulation.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'During backpropagation, FlashAttention recomputes intermediate attention weights from SRAM blocks instead of reading them back from HBM.'
+    sourceUrl: 'https://arxiv.org/abs/2205.14135'
+    quote: 'In the backward pass, we recompute attention weights on chip in SRAM rather than storing the large N x N activation matrices in HBM.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

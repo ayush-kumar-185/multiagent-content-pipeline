@@ -8,3 +8,10 @@ export function getEvalsInfo() {
     coreVersion: CITEWRITER_CORE_VERSION,
   };
 }
+
+export * from './types.js';
+export * from './loader.js';
+export * from './metrics.js';
+export * from './baselines.js';
+export * from './reportGenerator.js';
+export * from './runner.js';

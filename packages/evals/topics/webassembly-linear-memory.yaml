@@ -1,0 +1,37 @@
+id: webassembly-linear-memory
+title: 'WebAssembly Linear Memory and Sandboxing Security'
+category: 'Runtimes'
+prompt: 'Examine how WebAssembly enforces capability-based memory safety and sandboxing through linear memory bounds checking, control flow integrity, and WASI capabilities.'
+config:
+  audience: 'security engineers and runtime developers'
+  tone: 'technical and security-focused'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Linear memory model: single contiguous 1D array of uninterpreted bytes isolated from host process memory'
+    - 'Memory growth semantics: memory.grow instruction allocating 64 KiB memory pages'
+    - 'Dynamic and hardware-enforced memory bounds checking preventing buffer overruns into host space'
+    - 'Structured control flow integrity (CFI): indirect calls strictly validated against typed function tables'
+    - 'WASI (WebAssembly System Interface) capability-based filesystem and network access'
+  expectedCitations:
+    - "Haas et al. (2017) 'Bringing the Web up to Speed with WebAssembly' (PLDI)"
+    - "W3C Recommendation: 'WebAssembly Core Specification'"
+  unsupportedClaimRisks:
+    - 'Claiming WebAssembly code can directly dereference host raw OS pointers'
+    - 'Claiming memory.grow can automatically shrink linear memory back to the host operating system'
+mockNotes:
+  - id: 'n1'
+    claim: 'WebAssembly linear memory is a contiguous, byte-addressable array of memory that cannot directly address or corrupt host process memory outside its allocated boundary.'
+    sourceUrl: 'https://www.w3.org/TR/wasm-core-1/#memory-instances'
+    quote: 'A memory instance is the runtime representation of a linear memory. It holds a vector of raw bytes and an optional maximum size.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'WebAssembly memory pages have a fixed size of 64 kilobytes (65,536 bytes), allocated and expanded via the memory.grow instruction.'
+    sourceUrl: 'https://www.w3.org/TR/wasm-core-1/#page-size'
+    quote: 'Page size is 64 KiB = 65,536 bytes. The length of a memory is always an integer multiple of the page size.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'Control flow integrity in WebAssembly is enforced by validating all indirect call targets against typed function tables at runtime.'
+    sourceUrl: 'https://www.w3.org/TR/wasm-core-1/#exec-call-indirect'
+    quote: 'The call_indirect instruction looks up a function in a table and dynamically validates that its function signature matches the expected type.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

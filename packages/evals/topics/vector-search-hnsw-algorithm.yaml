@@ -1,0 +1,37 @@
+id: vector-search-hnsw-algorithm
+title: 'Hierarchical Navigable Small World (HNSW) Vector Indexing'
+category: 'Data Structures & AI'
+prompt: 'Analyze how Hierarchical Navigable Small World (HNSW) graphs enable fast Approximate Nearest Neighbor (ANN) search over high-dimensional vector embeddings.'
+config:
+  audience: 'search engineers and machine learning systems developers'
+  tone: 'algorithmic and mathematical'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Multi-layer graph architecture inspired by SkipLists: sparse top layers for coarse routing, dense bottom layers for fine search'
+    - 'Greedy routing algorithm traversing long-range edges to locate closest local entry points'
+    - 'Hyperparameters: M (maximum number of bi-directional outgoing connections) and efConstruction / efSearch (search beam width)'
+    - 'Logarithmic search time complexity O(log N) compared to brute-force linear scan O(N)'
+    - 'Trade-offs: high memory footprint versus sub-millisecond query latency and high recall'
+  expectedCitations:
+    - "Malkov & Yashunin (2018) 'Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs'"
+    - 'IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI)'
+  unsupportedClaimRisks:
+    - 'Claiming HNSW computes exact k-nearest neighbors with 100% recall guarantees'
+    - 'Claiming HNSW requires low RAM consumption compared to Inverted File Flat (IVFFlat) indexes'
+mockNotes:
+  - id: 'n1'
+    claim: 'HNSW builds a multi-layer graph where the uppermost layers contain fewer vectors with longer links, similar to a skip list structure.'
+    sourceUrl: 'https://arxiv.org/abs/1603.09320'
+    quote: 'The hierarchical navigable small world structure stratifies the graph into multiple layers, with link length decreasing from top layers to the bottom layer.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'Search query latency in HNSW graphs scales logarithmically O(log N) with the number of elements N in the database.'
+    sourceUrl: 'https://arxiv.org/abs/1603.09320'
+    quote: 'The algorithm achieves polylogarithmic or logarithmic search time complexity while maintaining high recall across high-dimensional datasets.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'The parameter M sets the maximum number of outgoing links per node, while efSearch sets the dynamic candidate list size during query execution.'
+    sourceUrl: 'https://arxiv.org/abs/1603.09320'
+    quote: 'M defines the maximum number of bidirectional connection links per node, and ef controls the trade-off between search quality and query speed.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

@@ -1,0 +1,37 @@
+id: ebpf-kernel-tracing
+title: 'eBPF Architecture: In-Kernel Verification and JIT Compilation'
+category: 'Operating Systems'
+prompt: 'Examine how extended Berkeley Packet Filter (eBPF) enables safe, programmable execution within the Linux kernel without modifying source code or loading kernel modules.'
+config:
+  audience: 'systems engineers and infrastructure developers'
+  tone: 'in-depth and architectural'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Kernel safety boundary: in-kernel verifier ensuring program termination, bounded loops, and safe pointer dereferencing'
+    - 'eBPF virtual machine register architecture: 11 64-bit registers (R0-R10) and 512-byte stack space'
+    - 'JIT (Just-In-Time) compilation converting eBPF bytecode to native machine instructions'
+    - 'eBPF Maps for state sharing between kernel space and user space'
+    - 'Hook attachment points: kprobes, tracepoints, socket filters, and XDP (eXpress Data Path)'
+  expectedCitations:
+    - "Gregg, B. (2019) 'BPF Performance Tools'"
+    - 'Linux Kernel Documentation: Documentation/bpf/'
+  unsupportedClaimRisks:
+    - 'Claiming arbitrary unverified C code can be loaded directly into kernel memory via eBPF'
+    - 'Claiming eBPF programs can sleep or allocate arbitrary heap memory in fast packet paths'
+mockNotes:
+  - id: 'n1'
+    claim: 'The Linux eBPF verifier analyzes program control flow to guarantee termination and verify that memory accesses stay within valid bounds.'
+    sourceUrl: 'https://docs.kernel.org/bpf/verifier.html'
+    quote: 'The verifier evaluates all possible execution paths to ensure the program terminates and does not perform illegal memory accesses.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'eBPF programs use eBPF Maps—efficient key/value data stores—to share state between multiple kernel programs and user space applications.'
+    sourceUrl: 'https://docs.kernel.org/bpf/maps.html'
+    quote: 'BPF maps are generic storage structures of different types that allow sharing of data between kernel programs and user space.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'The eBPF virtual machine specifies ten general-purpose 64-bit registers (R0 through R9) and one read-only frame pointer register (R10).'
+    sourceUrl: 'https://docs.kernel.org/bpf/instruction-set.html'
+    quote: 'eBPF has 10 general purpose registers R0 - R9 and 1 read-only stack frame pointer register R10, with 512 bytes of stack space.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

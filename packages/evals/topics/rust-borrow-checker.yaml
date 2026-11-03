@@ -1,0 +1,36 @@
+id: rust-borrow-checker
+title: 'Rust Borrow Checker and Non-Lexical Lifetimes (NLL)'
+category: 'Language Runtimes'
+prompt: "Explain how Rust's borrow checker enforces memory safety without a garbage collector, focusing on aliasing XOR mutability and Non-Lexical Lifetimes (NLL)."
+config:
+  audience: 'systems programmers and compiler engineers'
+  tone: 'technical and analytical'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Aliasing XOR mutability invariant: multiple immutable references (&T) OR a single exclusive mutable reference (&mut T)'
+    - 'Non-Lexical Lifetimes (NLL) based on the Control Flow Graph (CFG) rather than lexical syntax scopes'
+    - 'Compile-time elimination of data races, use-after-free, and dangling pointers'
+    - "Drop check semantics and lifetime annotations ('a)"
+  expectedCitations:
+    - 'The Rust Programming Language (Klabnik & Nichols, Chapter 4)'
+    - 'Rust RFC 2094 (Non-Lexical Lifetimes)'
+  unsupportedClaimRisks:
+    - 'Claiming Rust performs runtime reference counting for standard borrows (&T)'
+    - 'Claiming borrow checker rules apply unchecked across unsafe blocks'
+mockNotes:
+  - id: 'n1'
+    claim: 'Rust enforces that at any given time, you can have either one mutable reference or any number of immutable references to a resource, but not both.'
+    sourceUrl: 'https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html'
+    quote: 'At any given time, you can have either one mutable reference or any number of immutable references.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: "Non-Lexical Lifetimes allow the compiler to end a reference's lifetime at its last actual use rather than at the end of the enclosing block."
+    sourceUrl: 'https://rust-lang.github.io/rfcs/2094-nll.html'
+    quote: 'Lifetimes are based on the control-flow graph of the function rather than the lexical syntax structure.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'Rust guarantees thread safety and prevents data races at compile time via the Send and Sync marker traits.'
+    sourceUrl: 'https://doc.rust-lang.org/nomicon/send-and-sync.html'
+    quote: 'A type is Send if it is safe to transfer ownership of it to another thread. A type is Sync if it is safe to share references to it with multiple threads.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

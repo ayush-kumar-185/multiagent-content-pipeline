@@ -1,0 +1,37 @@
+id: tls13-0rtt-security
+title: 'TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks'
+category: 'Networking & Security'
+prompt: 'Examine the performance optimizations of the TLS 1.3 handshake compared to TLS 1.2, focusing on 1-RTT connection setup and the security vulnerabilities of 0-RTT early data.'
+config:
+  audience: 'network engineers and security architects'
+  tone: 'technical and analytical'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Reduction from 2-RTT to 1-RTT for full handshake using combined ClientHello and Diffie-Hellman key shares'
+    - 'Elimination of insecure legacy cryptographic suites: static RSA key exchange, RC4, CBC-mode ciphers, SHA-1'
+    - '0-RTT (Zero Round Trip Time) early data resumption using pre-shared keys (PSK)'
+    - 'Replay attack vulnerability of 0-RTT data: early data lacks forward secrecy and can be replayed across sessions'
+    - 'Mitigations: restricting 0-RTT data to strictly idempotent requests (GET, not POST) and single-use ticket mechanisms'
+  expectedCitations:
+    - "RFC 8446: 'The Transport Layer Security (TLS) Protocol Version 1.3'"
+    - "Rescorla, E. (2018) 'An Overview of TLS 1.3'"
+  unsupportedClaimRisks:
+    - 'Claiming 0-RTT early data provides forward secrecy'
+    - 'Recommending non-idempotent financial or mutation endpoints be sent in 0-RTT data'
+mockNotes:
+  - id: 'n1'
+    claim: 'TLS 1.3 reduces the standard handshake latency from two round-trip times (2-RTT) to one round-trip time (1-RTT) by sending key share parameters in the initial ClientHello.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/rfc8446'
+    quote: 'The handshake protocol now operates in 1-RTT, reducing network latency for new connections.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'Early data sent in 0-RTT does not provide forward secrecy and is inherently susceptible to network replay attacks by passive or active adversaries.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/rfc8446#section-8'
+    quote: 'The primary security property of 0-RTT data is that it is not protected against replay attacks. An attacker who captures 0-RTT data can replay it to the server.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'TLS 1.3 deprecated static RSA key exchange, requiring (EC)DHE ephemeral keys for all cipher suites to guarantee perfect forward secrecy.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/rfc8446'
+    quote: 'Static RSA and Diffie-Hellman cipher suites have been removed; all public-key based key exchange mechanisms now provide forward secrecy.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

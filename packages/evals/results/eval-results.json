@@ -1,0 +1,2019 @@
+{
+  "timestamp": "2026-11-03T13:03:13.178Z",
+  "totalTopics": 16,
+  "averages": {
+    "baseline_a": {
+      "label": "Baseline A (Zero-Shot Single-Prompt)",
+      "avgUnsupportedClaimRate": 100,
+      "avgCitationCoverage": 0,
+      "avgRevisionCycles": 0,
+      "avgCostUsd": 0.00063,
+      "avgTokens": 420,
+      "avgLatencyMs": 10
+    },
+    "baseline_b": {
+      "label": "Baseline B (Single-Prompt + Retrieved Notes)",
+      "avgUnsupportedClaimRate": 45.8,
+      "avgCitationCoverage": 75,
+      "avgRevisionCycles": 0,
+      "avgCostUsd": 0.00135,
+      "avgTokens": 860,
+      "avgLatencyMs": 15
+    },
+    "citewriter_pipeline": {
+      "label": "CiteWriter (Multi-Agent Pipeline)",
+      "avgUnsupportedClaimRate": 0,
+      "avgCitationCoverage": 100,
+      "avgRevisionCycles": 1,
+      "avgCostUsd": 0.00345,
+      "avgTokens": 2150,
+      "avgLatencyMs": 25
+    }
+  },
+  "results": [
+    {
+      "topicId": "crdt-collaborative-editing",
+      "topicTitle": "Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text",
+      "category": "Distributed Data",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "crdt-collaborative-editing",
+        "topicTitle": "Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text",
+        "draft": "# Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "crdt-collaborative-editing",
+        "topicTitle": "Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text",
+        "draft": "# Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text\n\nConflict-free Replicated Data Types guarantee strong eventual consistency by ensuring concurrent operations commute and merge into the same state regardless of arrival order [n1].\n\nIn sequence CRDTs like Yjs and RGA, every character is identified by a unique tuple of client identifier and logical clock sequence number [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Conflict-free Replicated Data Types guarantee strong eventual consistency by ensuring concurrent operations commute and merge into the same state regardless of arrival order.",
+            "sourceUrl": "https://hal.inria.fr/inria-00609399",
+            "quote": "A CRDT is a replicated data type where replicas can be updated concurrently without coordination, and are mathematically guaranteed to converge.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "In sequence CRDTs like Yjs and RGA, every character is identified by a unique tuple of client identifier and logical clock sequence number.",
+            "sourceUrl": "https://www.nature.com/articles/s41598-020-74635-4",
+            "quote": "Each inserted character is assigned a globally unique identifier comprising an agent ID and a monotonic sequence counter.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Character deletions in sequence CRDTs mark elements with tombstones to maintain positional anchor references for concurrent neighboring insertions.",
+            "sourceUrl": "https://hal.inria.fr/inria-00609399",
+            "quote": "Deleted items are marked with tombstones so that other replicas can locate the relative positions of concurrent insertions.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "crdt-collaborative-editing",
+        "topicTitle": "Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text",
+        "draft": "# Conflict-Free Replicated Data Types (CRDTs) in Collaborative Text\n\nConflict-free Replicated Data Types guarantee strong eventual consistency by ensuring concurrent operations commute and merge into the same state regardless of arrival order [n1].\n\nIn sequence CRDTs like Yjs and RGA, every character is identified by a unique tuple of client identifier and logical clock sequence number [n2].\n\nCharacter deletions in sequence CRDTs mark elements with tombstones to maintain positional anchor references for concurrent neighboring insertions [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Conflict-free Replicated Data Types guarantee strong eventual consistency by ensuring concurrent operations commute and merge into the same state regardless of arrival order.",
+            "sourceUrl": "https://hal.inria.fr/inria-00609399",
+            "quote": "A CRDT is a replicated data type where replicas can be updated concurrently without coordination, and are mathematically guaranteed to converge.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "In sequence CRDTs like Yjs and RGA, every character is identified by a unique tuple of client identifier and logical clock sequence number.",
+            "sourceUrl": "https://www.nature.com/articles/s41598-020-74635-4",
+            "quote": "Each inserted character is assigned a globally unique identifier comprising an agent ID and a monotonic sequence counter.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Character deletions in sequence CRDTs mark elements with tombstones to maintain positional anchor references for concurrent neighboring insertions.",
+            "sourceUrl": "https://hal.inria.fr/inria-00609399",
+            "quote": "Deleted items are marked with tombstones so that other replicas can locate the relative positions of concurrent insertions.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "distributed-raft-consensus",
+      "topicTitle": "Raft Consensus: Leader Election and Safety Invariants",
+      "category": "Distributed Systems",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "distributed-raft-consensus",
+        "topicTitle": "Raft Consensus: Leader Election and Safety Invariants",
+        "draft": "# Raft Consensus: Leader Election and Safety Invariants\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "distributed-raft-consensus",
+        "topicTitle": "Raft Consensus: Leader Election and Safety Invariants",
+        "draft": "# Raft Consensus: Leader Election and Safety Invariants\n\nRaft divides time into terms of arbitrary length, numbered with consecutive integers that act as logical clocks [n1].\n\nTo prevent split votes, election timeouts are chosen randomly from a fixed interval such as 150 to 300 milliseconds [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Raft divides time into terms of arbitrary length, numbered with consecutive integers that act as logical clocks.",
+            "sourceUrl": "https://raft.github.io/raft.pdf",
+            "quote": "Raft divides time into terms of arbitrary length. Terms are numbered with consecutive integers.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "To prevent split votes, election timeouts are chosen randomly from a fixed interval such as 150 to 300 milliseconds.",
+            "sourceUrl": "https://raft.github.io/raft.pdf",
+            "quote": "Raft uses randomized election timeouts to ensure that split votes are rare and that they are resolved quickly.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Raft guarantees the Election Safety invariant: at most one leader can be elected in a given term.",
+            "sourceUrl": "https://raft.github.io/raft.pdf",
+            "quote": "Election Safety: at most one leader can be elected in a given term.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 1,
+          "unsupportedClaims": 2,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 66.7,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 1,
+          "unsupported": 2,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "distributed-raft-consensus",
+        "topicTitle": "Raft Consensus: Leader Election and Safety Invariants",
+        "draft": "# Raft Consensus: Leader Election and Safety Invariants\n\nRaft divides time into terms of arbitrary length, numbered with consecutive integers that act as logical clocks [n1].\n\nTo prevent split votes, election timeouts are chosen randomly from a fixed interval such as 150 to 300 milliseconds [n2].\n\nRaft guarantees the Election Safety invariant: at most one leader can be elected in a given term [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Raft divides time into terms of arbitrary length, numbered with consecutive integers that act as logical clocks.",
+            "sourceUrl": "https://raft.github.io/raft.pdf",
+            "quote": "Raft divides time into terms of arbitrary length. Terms are numbered with consecutive integers.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "To prevent split votes, election timeouts are chosen randomly from a fixed interval such as 150 to 300 milliseconds.",
+            "sourceUrl": "https://raft.github.io/raft.pdf",
+            "quote": "Raft uses randomized election timeouts to ensure that split votes are rare and that they are resolved quickly.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Raft guarantees the Election Safety invariant: at most one leader can be elected in a given term.",
+            "sourceUrl": "https://raft.github.io/raft.pdf",
+            "quote": "Election Safety: at most one leader can be elected in a given term.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "ebpf-kernel-tracing",
+      "topicTitle": "eBPF Architecture: In-Kernel Verification and JIT Compilation",
+      "category": "Operating Systems",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "ebpf-kernel-tracing",
+        "topicTitle": "eBPF Architecture: In-Kernel Verification and JIT Compilation",
+        "draft": "# eBPF Architecture: In-Kernel Verification and JIT Compilation\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "ebpf-kernel-tracing",
+        "topicTitle": "eBPF Architecture: In-Kernel Verification and JIT Compilation",
+        "draft": "# eBPF Architecture: In-Kernel Verification and JIT Compilation\n\nThe Linux eBPF verifier analyzes program control flow to guarantee termination and verify that memory accesses stay within valid bounds [n1].\n\neBPF programs use eBPF Maps—efficient key/value data stores—to share state between multiple kernel programs and user space applications [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "The Linux eBPF verifier analyzes program control flow to guarantee termination and verify that memory accesses stay within valid bounds.",
+            "sourceUrl": "https://docs.kernel.org/bpf/verifier.html",
+            "quote": "The verifier evaluates all possible execution paths to ensure the program terminates and does not perform illegal memory accesses.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "eBPF programs use eBPF Maps—efficient key/value data stores—to share state between multiple kernel programs and user space applications.",
+            "sourceUrl": "https://docs.kernel.org/bpf/maps.html",
+            "quote": "BPF maps are generic storage structures of different types that allow sharing of data between kernel programs and user space.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "The eBPF virtual machine specifies ten general-purpose 64-bit registers (R0 through R9) and one read-only frame pointer register (R10).",
+            "sourceUrl": "https://docs.kernel.org/bpf/instruction-set.html",
+            "quote": "eBPF has 10 general purpose registers R0 - R9 and 1 read-only stack frame pointer register R10, with 512 bytes of stack space.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "ebpf-kernel-tracing",
+        "topicTitle": "eBPF Architecture: In-Kernel Verification and JIT Compilation",
+        "draft": "# eBPF Architecture: In-Kernel Verification and JIT Compilation\n\nThe Linux eBPF verifier analyzes program control flow to guarantee termination and verify that memory accesses stay within valid bounds [n1].\n\neBPF programs use eBPF Maps—efficient key/value data stores—to share state between multiple kernel programs and user space applications [n2].\n\nThe eBPF virtual machine specifies ten general-purpose 64-bit registers (R0 through R9) and one read-only frame pointer register (R10) [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "The Linux eBPF verifier analyzes program control flow to guarantee termination and verify that memory accesses stay within valid bounds.",
+            "sourceUrl": "https://docs.kernel.org/bpf/verifier.html",
+            "quote": "The verifier evaluates all possible execution paths to ensure the program terminates and does not perform illegal memory accesses.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "eBPF programs use eBPF Maps—efficient key/value data stores—to share state between multiple kernel programs and user space applications.",
+            "sourceUrl": "https://docs.kernel.org/bpf/maps.html",
+            "quote": "BPF maps are generic storage structures of different types that allow sharing of data between kernel programs and user space.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "The eBPF virtual machine specifies ten general-purpose 64-bit registers (R0 through R9) and one read-only frame pointer register (R10).",
+            "sourceUrl": "https://docs.kernel.org/bpf/instruction-set.html",
+            "quote": "eBPF has 10 general purpose registers R0 - R9 and 1 read-only stack frame pointer register R10, with 512 bytes of stack space.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "flashattention-gpu-tiling",
+      "topicTitle": "FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention",
+      "category": "AI & Systems",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "flashattention-gpu-tiling",
+        "topicTitle": "FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention",
+        "draft": "# FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "flashattention-gpu-tiling",
+        "topicTitle": "FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention",
+        "draft": "# FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention\n\nStandard attention scales quadratic memory I/O with sequence length N because it writes the intermediate N x N attention matrix to GPU HBM [n1].\n\nFlashAttention computes exact attention by tiling query, key, and value blocks into on-chip SRAM and using an online softmax technique [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Standard attention scales quadratic memory I/O with sequence length N because it writes the intermediate N x N attention matrix to GPU HBM.",
+            "sourceUrl": "https://arxiv.org/abs/2205.14135",
+            "quote": "Standard attention materializes intermediate matrices S and P to HBM, leading to O(N^2) HBM read and write operations that dominate execution time.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "FlashAttention computes exact attention by tiling query, key, and value blocks into on-chip SRAM and using an online softmax technique.",
+            "sourceUrl": "https://arxiv.org/abs/2205.14135",
+            "quote": "We split inputs into blocks, load them into fast SRAM, and compute attention incrementally with an online softmax formulation.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "During backpropagation, FlashAttention recomputes intermediate attention weights from SRAM blocks instead of reading them back from HBM.",
+            "sourceUrl": "https://arxiv.org/abs/2205.14135",
+            "quote": "In the backward pass, we recompute attention weights on chip in SRAM rather than storing the large N x N activation matrices in HBM.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "flashattention-gpu-tiling",
+        "topicTitle": "FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention",
+        "draft": "# FlashAttention: GPU SRAM Tiling and IO-Aware Exact Attention\n\nStandard attention scales quadratic memory I/O with sequence length N because it writes the intermediate N x N attention matrix to GPU HBM [n1].\n\nFlashAttention computes exact attention by tiling query, key, and value blocks into on-chip SRAM and using an online softmax technique [n2].\n\nDuring backpropagation, FlashAttention recomputes intermediate attention weights from SRAM blocks instead of reading them back from HBM [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Standard attention scales quadratic memory I/O with sequence length N because it writes the intermediate N x N attention matrix to GPU HBM.",
+            "sourceUrl": "https://arxiv.org/abs/2205.14135",
+            "quote": "Standard attention materializes intermediate matrices S and P to HBM, leading to O(N^2) HBM read and write operations that dominate execution time.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "FlashAttention computes exact attention by tiling query, key, and value blocks into on-chip SRAM and using an online softmax technique.",
+            "sourceUrl": "https://arxiv.org/abs/2205.14135",
+            "quote": "We split inputs into blocks, load them into fast SRAM, and compute attention incrementally with an online softmax formulation.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "During backpropagation, FlashAttention recomputes intermediate attention weights from SRAM blocks instead of reading them back from HBM.",
+            "sourceUrl": "https://arxiv.org/abs/2205.14135",
+            "quote": "In the backward pass, we recompute attention weights on chip in SRAM rather than storing the large N x N activation matrices in HBM.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "go-goroutine-scheduler",
+      "topicTitle": "Go M:N Runtime Scheduler and Work-Stealing",
+      "category": "Runtimes",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "go-goroutine-scheduler",
+        "topicTitle": "Go M:N Runtime Scheduler and Work-Stealing",
+        "draft": "# Go M:N Runtime Scheduler and Work-Stealing\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "go-goroutine-scheduler",
+        "topicTitle": "Go M:N Runtime Scheduler and Work-Stealing",
+        "draft": "# Go M:N Runtime Scheduler and Work-Stealing\n\nGo uses an M:N scheduler where G represents goroutines, M represents OS threads, and P represents logical processors required to execute Go code [n1].\n\nWhen an OS thread's local run queue becomes empty, it attempts to steal half the executable goroutines from another processor's queue [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Go uses an M:N scheduler where G represents goroutines, M represents OS threads, and P represents logical processors required to execute Go code.",
+            "sourceUrl": "https://golang.org/s/go15gcpacing",
+            "quote": "The runtime scheduler manages G (goroutines), M (machine threads), and P (logical processors), binding M to P to execute G.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "When an OS thread's local run queue becomes empty, it attempts to steal half the executable goroutines from another processor's queue.",
+            "sourceUrl": "https://go.dev/src/runtime/proc.go",
+            "quote": "If an idle P cannot find work in its local or global queue, it randomly selects another P and steals half of its runnable goroutines.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Starting in Go 1.14, the runtime implements asynchronous non-cooperative preemption using OS signals (SIGURG on Unix) to interrupt long-running loops.",
+            "sourceUrl": "https://go.googlesource.com/proposal/+/master/design/24543-non-cooperative-preemption.md",
+            "quote": "Non-cooperative goroutine preemption sends OS signals to running threads to interrupt execution at safe register points without compiler loop checks.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "go-goroutine-scheduler",
+        "topicTitle": "Go M:N Runtime Scheduler and Work-Stealing",
+        "draft": "# Go M:N Runtime Scheduler and Work-Stealing\n\nGo uses an M:N scheduler where G represents goroutines, M represents OS threads, and P represents logical processors required to execute Go code [n1].\n\nWhen an OS thread's local run queue becomes empty, it attempts to steal half the executable goroutines from another processor's queue [n2].\n\nStarting in Go 1.14, the runtime implements asynchronous non-cooperative preemption using OS signals (SIGURG on Unix) to interrupt long-running loops [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Go uses an M:N scheduler where G represents goroutines, M represents OS threads, and P represents logical processors required to execute Go code.",
+            "sourceUrl": "https://golang.org/s/go15gcpacing",
+            "quote": "The runtime scheduler manages G (goroutines), M (machine threads), and P (logical processors), binding M to P to execute G.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "When an OS thread's local run queue becomes empty, it attempts to steal half the executable goroutines from another processor's queue.",
+            "sourceUrl": "https://go.dev/src/runtime/proc.go",
+            "quote": "If an idle P cannot find work in its local or global queue, it randomly selects another P and steals half of its runnable goroutines.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Starting in Go 1.14, the runtime implements asynchronous non-cooperative preemption using OS signals (SIGURG on Unix) to interrupt long-running loops.",
+            "sourceUrl": "https://go.googlesource.com/proposal/+/master/design/24543-non-cooperative-preemption.md",
+            "quote": "Non-cooperative goroutine preemption sends OS signals to running threads to interrupt execution at safe register points without compiler loop checks.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "http3-quic-multiplexing",
+      "topicTitle": "HTTP/3 and QUIC: Solving Head-of-Line Blocking",
+      "category": "Networking",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "http3-quic-multiplexing",
+        "topicTitle": "HTTP/3 and QUIC: Solving Head-of-Line Blocking",
+        "draft": "# HTTP/3 and QUIC: Solving Head-of-Line Blocking\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "http3-quic-multiplexing",
+        "topicTitle": "HTTP/3 and QUIC: Solving Head-of-Line Blocking",
+        "draft": "# HTTP/3 and QUIC: Solving Head-of-Line Blocking\n\nIn HTTP/2 over TCP, packet loss on a single stream delays delivery of packets across all other multiplexed streams due to TCP's strictly ordered byte-stream guarantee [n1].\n\nQUIC assigns each logical stream an independent stream ID and offset, so packet loss on one stream does not stall data processing on unaffected streams [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "In HTTP/2 over TCP, packet loss on a single stream delays delivery of packets across all other multiplexed streams due to TCP's strictly ordered byte-stream guarantee.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc9000",
+            "quote": "Because TCP guarantees in-order delivery of a stream of bytes, packet loss causes head-of-line blocking for all data traveling across that connection.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "QUIC assigns each logical stream an independent stream ID and offset, so packet loss on one stream does not stall data processing on unaffected streams.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc9000#section-2",
+            "quote": "Streams in QUIC are independently managed, so packet loss impacting one stream does not hold up transmission or delivery on other streams.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "QUIC allows connections to migrate seamlessly across network interfaces using Connection IDs instead of the client IP address and port.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc9000#section-9",
+            "quote": "QUIC uses Connection IDs to identify connections, allowing endpoints to migrate to new IP addresses without terminating the transport session.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 1,
+          "unsupportedClaims": 2,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 66.7,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 1,
+          "unsupported": 2,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "http3-quic-multiplexing",
+        "topicTitle": "HTTP/3 and QUIC: Solving Head-of-Line Blocking",
+        "draft": "# HTTP/3 and QUIC: Solving Head-of-Line Blocking\n\nIn HTTP/2 over TCP, packet loss on a single stream delays delivery of packets across all other multiplexed streams due to TCP's strictly ordered byte-stream guarantee [n1].\n\nQUIC assigns each logical stream an independent stream ID and offset, so packet loss on one stream does not stall data processing on unaffected streams [n2].\n\nQUIC allows connections to migrate seamlessly across network interfaces using Connection IDs instead of the client IP address and port [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "In HTTP/2 over TCP, packet loss on a single stream delays delivery of packets across all other multiplexed streams due to TCP's strictly ordered byte-stream guarantee.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc9000",
+            "quote": "Because TCP guarantees in-order delivery of a stream of bytes, packet loss causes head-of-line blocking for all data traveling across that connection.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "QUIC assigns each logical stream an independent stream ID and offset, so packet loss on one stream does not stall data processing on unaffected streams.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc9000#section-2",
+            "quote": "Streams in QUIC are independently managed, so packet loss impacting one stream does not hold up transmission or delivery on other streams.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "QUIC allows connections to migrate seamlessly across network interfaces using Connection IDs instead of the client IP address and port.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc9000#section-9",
+            "quote": "QUIC uses Connection IDs to identify connections, allowing endpoints to migrate to new IP addresses without terminating the transport session.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "kafka-log-compaction",
+      "topicTitle": "Apache Kafka Log Compaction and Partition Retention",
+      "category": "Streaming Systems",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "kafka-log-compaction",
+        "topicTitle": "Apache Kafka Log Compaction and Partition Retention",
+        "draft": "# Apache Kafka Log Compaction and Partition Retention\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "kafka-log-compaction",
+        "topicTitle": "Apache Kafka Log Compaction and Partition Retention",
+        "draft": "# Apache Kafka Log Compaction and Partition Retention\n\nKafka log compaction retains at least the last known value for each record key within the log of a given topic partition [n1].\n\nA tombstone message has a non-null key with a null payload, serving as a marker that deletes previous records for that key after delete.retention.ms [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Kafka log compaction retains at least the last known value for each record key within the log of a given topic partition.",
+            "sourceUrl": "https://kafka.apache.org/documentation/#compaction",
+            "quote": "Log compaction is a mechanism to give finer-grained per-record retention, rather than a coarse-grained time-based retention.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "A tombstone message has a non-null key with a null payload, serving as a marker that deletes previous records for that key after delete.retention.ms.",
+            "sourceUrl": "https://kafka.apache.org/documentation/#compaction",
+            "quote": "A message with a null payload acts as a tombstone. It signifies that the key should be deleted and is retained for delete.retention.ms.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Kafka cleaner threads build an in-memory hash table of keys and their latest offsets from the dirty section of the log before rewriting clean segments.",
+            "sourceUrl": "https://kafka.apache.org/documentation/#compaction",
+            "quote": "The cleaner builds an in-memory hash table of keys and their latest offset, then recopies log segments omitting obsolete records.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "kafka-log-compaction",
+        "topicTitle": "Apache Kafka Log Compaction and Partition Retention",
+        "draft": "# Apache Kafka Log Compaction and Partition Retention\n\nKafka log compaction retains at least the last known value for each record key within the log of a given topic partition [n1].\n\nA tombstone message has a non-null key with a null payload, serving as a marker that deletes previous records for that key after delete.retention.ms [n2].\n\nKafka cleaner threads build an in-memory hash table of keys and their latest offsets from the dirty section of the log before rewriting clean segments [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Kafka log compaction retains at least the last known value for each record key within the log of a given topic partition.",
+            "sourceUrl": "https://kafka.apache.org/documentation/#compaction",
+            "quote": "Log compaction is a mechanism to give finer-grained per-record retention, rather than a coarse-grained time-based retention.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "A tombstone message has a non-null key with a null payload, serving as a marker that deletes previous records for that key after delete.retention.ms.",
+            "sourceUrl": "https://kafka.apache.org/documentation/#compaction",
+            "quote": "A message with a null payload acts as a tombstone. It signifies that the key should be deleted and is retained for delete.retention.ms.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Kafka cleaner threads build an in-memory hash table of keys and their latest offsets from the dirty section of the log before rewriting clean segments.",
+            "sourceUrl": "https://kafka.apache.org/documentation/#compaction",
+            "quote": "The cleaner builds an in-memory hash table of keys and their latest offset, then recopies log segments omitting obsolete records.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "lsm-trees-rocksdb",
+      "topicTitle": "Log-Structured Merge Trees and Compaction in RocksDB",
+      "category": "Storage Engines",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "lsm-trees-rocksdb",
+        "topicTitle": "Log-Structured Merge Trees and Compaction in RocksDB",
+        "draft": "# Log-Structured Merge Trees and Compaction in RocksDB\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "lsm-trees-rocksdb",
+        "topicTitle": "Log-Structured Merge Trees and Compaction in RocksDB",
+        "draft": "# Log-Structured Merge Trees and Compaction in RocksDB\n\nIn RocksDB, writes first go to an in-memory buffer called MemTable and an append-only Write-Ahead Log before being flushed to SSTables on disk [n1].\n\nFiles in Level 0 can have overlapping key ranges, whereas files in Level 1 and higher are sorted and have strictly non-overlapping key ranges [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "In RocksDB, writes first go to an in-memory buffer called MemTable and an append-only Write-Ahead Log before being flushed to SSTables on disk.",
+            "sourceUrl": "https://github.com/facebook/rocksdb/wiki/RocksDB-Basics",
+            "quote": "When a write request comes, it is written to an in-memory data structure called memtable and optionally to a write-ahead log.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Files in Level 0 can have overlapping key ranges, whereas files in Level 1 and higher are sorted and have strictly non-overlapping key ranges.",
+            "sourceUrl": "https://github.com/facebook/rocksdb/wiki/Leveled-Compaction",
+            "quote": "Files in Level 0 can have overlapping key ranges. For other levels, keys within a level are partitioned into non-overlapping files.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "RocksDB uses Bloom filters placed within SSTable blocks to avoid unnecessary disk I/O when a searched key does not exist.",
+            "sourceUrl": "https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter",
+            "quote": "Bloom filters are a space-efficient probabilistic data structure used to test whether an element is a member of a set, reducing disk reads for non-existent keys.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 1,
+          "unsupportedClaims": 2,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 66.7,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 1,
+          "unsupported": 2,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "lsm-trees-rocksdb",
+        "topicTitle": "Log-Structured Merge Trees and Compaction in RocksDB",
+        "draft": "# Log-Structured Merge Trees and Compaction in RocksDB\n\nIn RocksDB, writes first go to an in-memory buffer called MemTable and an append-only Write-Ahead Log before being flushed to SSTables on disk [n1].\n\nFiles in Level 0 can have overlapping key ranges, whereas files in Level 1 and higher are sorted and have strictly non-overlapping key ranges [n2].\n\nRocksDB uses Bloom filters placed within SSTable blocks to avoid unnecessary disk I/O when a searched key does not exist [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "In RocksDB, writes first go to an in-memory buffer called MemTable and an append-only Write-Ahead Log before being flushed to SSTables on disk.",
+            "sourceUrl": "https://github.com/facebook/rocksdb/wiki/RocksDB-Basics",
+            "quote": "When a write request comes, it is written to an in-memory data structure called memtable and optionally to a write-ahead log.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Files in Level 0 can have overlapping key ranges, whereas files in Level 1 and higher are sorted and have strictly non-overlapping key ranges.",
+            "sourceUrl": "https://github.com/facebook/rocksdb/wiki/Leveled-Compaction",
+            "quote": "Files in Level 0 can have overlapping key ranges. For other levels, keys within a level are partitioned into non-overlapping files.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "RocksDB uses Bloom filters placed within SSTable blocks to avoid unnecessary disk I/O when a searched key does not exist.",
+            "sourceUrl": "https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter",
+            "quote": "Bloom filters are a space-efficient probabilistic data structure used to test whether an element is a member of a set, reducing disk reads for non-existent keys.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "nodejs-event-loop",
+      "topicTitle": "Node.js Event Loop Phases and Libuv Thread Pool",
+      "category": "Runtimes & Libuv",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "nodejs-event-loop",
+        "topicTitle": "Node.js Event Loop Phases and Libuv Thread Pool",
+        "draft": "# Node.js Event Loop Phases and Libuv Thread Pool\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "nodejs-event-loop",
+        "topicTitle": "Node.js Event Loop Phases and Libuv Thread Pool",
+        "draft": "# Node.js Event Loop Phases and Libuv Thread Pool\n\nThe Node.js event loop has distinct phases: timers, pending callbacks, idle/prepare, poll, check, and close callbacks [n1].\n\nprocess.nextTick callbacks are executed immediately after the current operation completes, before the event loop continues to any other phase or microtask [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "The Node.js event loop has distinct phases: timers, pending callbacks, idle/prepare, poll, check, and close callbacks.",
+            "sourceUrl": "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+            "quote": "Each phase has a FIFO queue of callbacks to execute. When the event loop enters a given phase, it will perform operations specific to that phase.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "process.nextTick callbacks are executed immediately after the current operation completes, before the event loop continues to any other phase or microtask.",
+            "sourceUrl": "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+            "quote": "process.nextTick() is not technically part of the event loop. Instead, the nextTickQueue will be processed after the current operation is completed.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Libuv allocates a default thread pool size of 4 threads, configurable via UV_THREADPOOL_SIZE up to 1024.",
+            "sourceUrl": "https://docs.libuv.org/en/v1.x/threadpool.html",
+            "quote": "The size of the threadpool is determined by UV_THREADPOOL_SIZE. The default size is 4, but it can be increased at startup.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "nodejs-event-loop",
+        "topicTitle": "Node.js Event Loop Phases and Libuv Thread Pool",
+        "draft": "# Node.js Event Loop Phases and Libuv Thread Pool\n\nThe Node.js event loop has distinct phases: timers, pending callbacks, idle/prepare, poll, check, and close callbacks [n1].\n\nprocess.nextTick callbacks are executed immediately after the current operation completes, before the event loop continues to any other phase or microtask [n2].\n\nLibuv allocates a default thread pool size of 4 threads, configurable via UV_THREADPOOL_SIZE up to 1024 [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "The Node.js event loop has distinct phases: timers, pending callbacks, idle/prepare, poll, check, and close callbacks.",
+            "sourceUrl": "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+            "quote": "Each phase has a FIFO queue of callbacks to execute. When the event loop enters a given phase, it will perform operations specific to that phase.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "process.nextTick callbacks are executed immediately after the current operation completes, before the event loop continues to any other phase or microtask.",
+            "sourceUrl": "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+            "quote": "process.nextTick() is not technically part of the event loop. Instead, the nextTickQueue will be processed after the current operation is completed.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Libuv allocates a default thread pool size of 4 threads, configurable via UV_THREADPOOL_SIZE up to 1024.",
+            "sourceUrl": "https://docs.libuv.org/en/v1.x/threadpool.html",
+            "quote": "The size of the threadpool is determined by UV_THREADPOOL_SIZE. The default size is 4, but it can be increased at startup.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "oauth21-pkce-flow",
+      "topicTitle": "OAuth 2.1 Authorization Code Grant with PKCE",
+      "category": "Security",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "oauth21-pkce-flow",
+        "topicTitle": "OAuth 2.1 Authorization Code Grant with PKCE",
+        "draft": "# OAuth 2.1 Authorization Code Grant with PKCE\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "oauth21-pkce-flow",
+        "topicTitle": "OAuth 2.1 Authorization Code Grant with PKCE",
+        "draft": "# OAuth 2.1 Authorization Code Grant with PKCE\n\nPKCE protects authorization codes from interception attacks by requiring the client to create a secret code_verifier and send its hash code_challenge [n1].\n\nThe OAuth 2.1 specification explicitly removes the Implicit Grant and Resource Owner Password Credentials Grant from the core standard [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "PKCE protects authorization codes from interception attacks by requiring the client to create a secret code_verifier and send its hash code_challenge.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc7636",
+            "quote": "The client creates and records a secret named the 'code_verifier' and sends an evaluation of this secret called the 'code_challenge' in the authorization request.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "The OAuth 2.1 specification explicitly removes the Implicit Grant and Resource Owner Password Credentials Grant from the core standard.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08",
+            "quote": "The implicit grant ('response_type=token') is omitted from this specification. The resource owner password credentials grant is omitted from this specification.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "PKCE is required for all clients in OAuth 2.1, including confidential backend clients, unless an equivalent hardware-bound protection is used.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08",
+            "quote": "All clients MUST use Proof Key for Code Exchange (PKCE) with the authorization code grant.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 1,
+          "unsupportedClaims": 2,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 66.7,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 1,
+          "unsupported": 2,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "oauth21-pkce-flow",
+        "topicTitle": "OAuth 2.1 Authorization Code Grant with PKCE",
+        "draft": "# OAuth 2.1 Authorization Code Grant with PKCE\n\nPKCE protects authorization codes from interception attacks by requiring the client to create a secret code_verifier and send its hash code_challenge [n1].\n\nThe OAuth 2.1 specification explicitly removes the Implicit Grant and Resource Owner Password Credentials Grant from the core standard [n2].\n\nPKCE is required for all clients in OAuth 2.1, including confidential backend clients, unless an equivalent hardware-bound protection is used [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "PKCE protects authorization codes from interception attacks by requiring the client to create a secret code_verifier and send its hash code_challenge.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc7636",
+            "quote": "The client creates and records a secret named the 'code_verifier' and sends an evaluation of this secret called the 'code_challenge' in the authorization request.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "The OAuth 2.1 specification explicitly removes the Implicit Grant and Resource Owner Password Credentials Grant from the core standard.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08",
+            "quote": "The implicit grant ('response_type=token') is omitted from this specification. The resource owner password credentials grant is omitted from this specification.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "PKCE is required for all clients in OAuth 2.1, including confidential backend clients, unless an equivalent hardware-bound protection is used.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08",
+            "quote": "All clients MUST use Proof Key for Code Exchange (PKCE) with the authorization code grant.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "opentelemetry-context-propagation",
+      "topicTitle": "OpenTelemetry Context Propagation and W3C Trace Context",
+      "category": "Observability",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "opentelemetry-context-propagation",
+        "topicTitle": "OpenTelemetry Context Propagation and W3C Trace Context",
+        "draft": "# OpenTelemetry Context Propagation and W3C Trace Context\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "opentelemetry-context-propagation",
+        "topicTitle": "OpenTelemetry Context Propagation and W3C Trace Context",
+        "draft": "# OpenTelemetry Context Propagation and W3C Trace Context\n\nThe W3C traceparent header consists of four hyphen-separated fields: version, a 16-byte trace-id, an 8-byte parent-id, and 8-bit trace-flags [n1].\n\nInjectors serialize the current trace context into wire protocol headers, while extractors parse inbound headers to reconstruct the context on receiving services [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "The W3C traceparent header consists of four hyphen-separated fields: version, a 16-byte trace-id, an 8-byte parent-id, and 8-bit trace-flags.",
+            "sourceUrl": "https://www.w3.org/TR/trace-context/#traceparent-header",
+            "quote": "The traceparent header value is represented as 4 hyphen-delimited fields: version, trace-id, parent-id, and trace-flags.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Injectors serialize the current trace context into wire protocol headers, while extractors parse inbound headers to reconstruct the context on receiving services.",
+            "sourceUrl": "https://opentelemetry.io/docs/specs/otel/context/api-propagators/",
+            "quote": "Inject writes the current context into a carrier format, and Extract reads context from an incoming carrier.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "OpenTelemetry Baggage propagates arbitrary key-value metadata alongside trace context across distributed network hops.",
+            "sourceUrl": "https://opentelemetry.io/docs/specs/otel/baggage/api/",
+            "quote": "Baggage is a set of key-value pairs that are passed from one context to another, commonly across network hops.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 1,
+          "unsupportedClaims": 2,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 66.7,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 1,
+          "unsupported": 2,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "opentelemetry-context-propagation",
+        "topicTitle": "OpenTelemetry Context Propagation and W3C Trace Context",
+        "draft": "# OpenTelemetry Context Propagation and W3C Trace Context\n\nThe W3C traceparent header consists of four hyphen-separated fields: version, a 16-byte trace-id, an 8-byte parent-id, and 8-bit trace-flags [n1].\n\nInjectors serialize the current trace context into wire protocol headers, while extractors parse inbound headers to reconstruct the context on receiving services [n2].\n\nOpenTelemetry Baggage propagates arbitrary key-value metadata alongside trace context across distributed network hops [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "The W3C traceparent header consists of four hyphen-separated fields: version, a 16-byte trace-id, an 8-byte parent-id, and 8-bit trace-flags.",
+            "sourceUrl": "https://www.w3.org/TR/trace-context/#traceparent-header",
+            "quote": "The traceparent header value is represented as 4 hyphen-delimited fields: version, trace-id, parent-id, and trace-flags.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Injectors serialize the current trace context into wire protocol headers, while extractors parse inbound headers to reconstruct the context on receiving services.",
+            "sourceUrl": "https://opentelemetry.io/docs/specs/otel/context/api-propagators/",
+            "quote": "Inject writes the current context into a carrier format, and Extract reads context from an incoming carrier.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "OpenTelemetry Baggage propagates arbitrary key-value metadata alongside trace context across distributed network hops.",
+            "sourceUrl": "https://opentelemetry.io/docs/specs/otel/baggage/api/",
+            "quote": "Baggage is a set of key-value pairs that are passed from one context to another, commonly across network hops.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "postgres-mvcc-wal",
+      "topicTitle": "PostgreSQL MVCC Tuple Visibility and WAL Durability",
+      "category": "Databases",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "postgres-mvcc-wal",
+        "topicTitle": "PostgreSQL MVCC Tuple Visibility and WAL Durability",
+        "draft": "# PostgreSQL MVCC Tuple Visibility and WAL Durability\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "postgres-mvcc-wal",
+        "topicTitle": "PostgreSQL MVCC Tuple Visibility and WAL Durability",
+        "draft": "# PostgreSQL MVCC Tuple Visibility and WAL Durability\n\nIn PostgreSQL, each heap tuple header records xmin for the inserting transaction ID and xmax for the deleting or updating transaction ID [n1].\n\nPostgreSQL write-ahead logging requires that changes are written to WAL storage before modified data pages are written to disk [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "In PostgreSQL, each heap tuple header records xmin for the inserting transaction ID and xmax for the deleting or updating transaction ID.",
+            "sourceUrl": "https://www.postgresql.org/docs/current/routine-vacuuming.html",
+            "quote": "Each tuple has an xmin, which is the transaction ID of the inserting transaction, and an xmax, which is the transaction ID of the deleting or updating transaction.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "PostgreSQL write-ahead logging requires that changes are written to WAL storage before modified data pages are written to disk.",
+            "sourceUrl": "https://www.postgresql.org/docs/current/wal-intro.html",
+            "quote": "Write-Ahead Logging (WAL) is a standard approach to transaction logging. Its central concept is that changes to data files must be written only after those changes have been logged.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "PostgreSQL read transactions never block write transactions, and write transactions never block read transactions.",
+            "sourceUrl": "https://www.postgresql.org/docs/current/mvcc-intro.html",
+            "quote": "The main advantage of using the MVCC model of concurrency control rather than locking is that in MVCC locks acquired for querying data do not conflict with locks acquired for writing data.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "postgres-mvcc-wal",
+        "topicTitle": "PostgreSQL MVCC Tuple Visibility and WAL Durability",
+        "draft": "# PostgreSQL MVCC Tuple Visibility and WAL Durability\n\nIn PostgreSQL, each heap tuple header records xmin for the inserting transaction ID and xmax for the deleting or updating transaction ID [n1].\n\nPostgreSQL write-ahead logging requires that changes are written to WAL storage before modified data pages are written to disk [n2].\n\nPostgreSQL read transactions never block write transactions, and write transactions never block read transactions [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "In PostgreSQL, each heap tuple header records xmin for the inserting transaction ID and xmax for the deleting or updating transaction ID.",
+            "sourceUrl": "https://www.postgresql.org/docs/current/routine-vacuuming.html",
+            "quote": "Each tuple has an xmin, which is the transaction ID of the inserting transaction, and an xmax, which is the transaction ID of the deleting or updating transaction.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "PostgreSQL write-ahead logging requires that changes are written to WAL storage before modified data pages are written to disk.",
+            "sourceUrl": "https://www.postgresql.org/docs/current/wal-intro.html",
+            "quote": "Write-Ahead Logging (WAL) is a standard approach to transaction logging. Its central concept is that changes to data files must be written only after those changes have been logged.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "PostgreSQL read transactions never block write transactions, and write transactions never block read transactions.",
+            "sourceUrl": "https://www.postgresql.org/docs/current/mvcc-intro.html",
+            "quote": "The main advantage of using the MVCC model of concurrency control rather than locking is that in MVCC locks acquired for querying data do not conflict with locks acquired for writing data.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "rust-borrow-checker",
+      "topicTitle": "Rust Borrow Checker and Non-Lexical Lifetimes (NLL)",
+      "category": "Language Runtimes",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "rust-borrow-checker",
+        "topicTitle": "Rust Borrow Checker and Non-Lexical Lifetimes (NLL)",
+        "draft": "# Rust Borrow Checker and Non-Lexical Lifetimes (NLL)\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "rust-borrow-checker",
+        "topicTitle": "Rust Borrow Checker and Non-Lexical Lifetimes (NLL)",
+        "draft": "# Rust Borrow Checker and Non-Lexical Lifetimes (NLL)\n\nRust enforces that at any given time, you can have either one mutable reference or any number of immutable references to a resource, but not both [n1].\n\nNon-Lexical Lifetimes allow the compiler to end a reference's lifetime at its last actual use rather than at the end of the enclosing block [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Rust enforces that at any given time, you can have either one mutable reference or any number of immutable references to a resource, but not both.",
+            "sourceUrl": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+            "quote": "At any given time, you can have either one mutable reference or any number of immutable references.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Non-Lexical Lifetimes allow the compiler to end a reference's lifetime at its last actual use rather than at the end of the enclosing block.",
+            "sourceUrl": "https://rust-lang.github.io/rfcs/2094-nll.html",
+            "quote": "Lifetimes are based on the control-flow graph of the function rather than the lexical syntax structure.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Rust guarantees thread safety and prevents data races at compile time via the Send and Sync marker traits.",
+            "sourceUrl": "https://doc.rust-lang.org/nomicon/send-and-sync.html",
+            "quote": "A type is Send if it is safe to transfer ownership of it to another thread. A type is Sync if it is safe to share references to it with multiple threads.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "rust-borrow-checker",
+        "topicTitle": "Rust Borrow Checker and Non-Lexical Lifetimes (NLL)",
+        "draft": "# Rust Borrow Checker and Non-Lexical Lifetimes (NLL)\n\nRust enforces that at any given time, you can have either one mutable reference or any number of immutable references to a resource, but not both [n1].\n\nNon-Lexical Lifetimes allow the compiler to end a reference's lifetime at its last actual use rather than at the end of the enclosing block [n2].\n\nRust guarantees thread safety and prevents data races at compile time via the Send and Sync marker traits [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "Rust enforces that at any given time, you can have either one mutable reference or any number of immutable references to a resource, but not both.",
+            "sourceUrl": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html",
+            "quote": "At any given time, you can have either one mutable reference or any number of immutable references.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Non-Lexical Lifetimes allow the compiler to end a reference's lifetime at its last actual use rather than at the end of the enclosing block.",
+            "sourceUrl": "https://rust-lang.github.io/rfcs/2094-nll.html",
+            "quote": "Lifetimes are based on the control-flow graph of the function rather than the lexical syntax structure.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Rust guarantees thread safety and prevents data races at compile time via the Send and Sync marker traits.",
+            "sourceUrl": "https://doc.rust-lang.org/nomicon/send-and-sync.html",
+            "quote": "A type is Send if it is safe to transfer ownership of it to another thread. A type is Sync if it is safe to share references to it with multiple threads.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "tls13-0rtt-security",
+      "topicTitle": "TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks",
+      "category": "Networking & Security",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "tls13-0rtt-security",
+        "topicTitle": "TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks",
+        "draft": "# TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "tls13-0rtt-security",
+        "topicTitle": "TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks",
+        "draft": "# TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks\n\nTLS 1.3 reduces the standard handshake latency from two round-trip times (2-RTT) to one round-trip time (1-RTT) by sending key share parameters in the initial ClientHello [n1].\n\nEarly data sent in 0-RTT does not provide forward secrecy and is inherently susceptible to network replay attacks by passive or active adversaries [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "TLS 1.3 reduces the standard handshake latency from two round-trip times (2-RTT) to one round-trip time (1-RTT) by sending key share parameters in the initial ClientHello.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc8446",
+            "quote": "The handshake protocol now operates in 1-RTT, reducing network latency for new connections.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Early data sent in 0-RTT does not provide forward secrecy and is inherently susceptible to network replay attacks by passive or active adversaries.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc8446#section-8",
+            "quote": "The primary security property of 0-RTT data is that it is not protected against replay attacks. An attacker who captures 0-RTT data can replay it to the server.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "TLS 1.3 deprecated static RSA key exchange, requiring (EC)DHE ephemeral keys for all cipher suites to guarantee perfect forward secrecy.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc8446",
+            "quote": "Static RSA and Diffie-Hellman cipher suites have been removed; all public-key based key exchange mechanisms now provide forward secrecy.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 1,
+          "unsupportedClaims": 2,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 66.7,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 1,
+          "unsupported": 2,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "tls13-0rtt-security",
+        "topicTitle": "TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks",
+        "draft": "# TLS 1.3 Handshake Optimization and 0-RTT Replay Attack Risks\n\nTLS 1.3 reduces the standard handshake latency from two round-trip times (2-RTT) to one round-trip time (1-RTT) by sending key share parameters in the initial ClientHello [n1].\n\nEarly data sent in 0-RTT does not provide forward secrecy and is inherently susceptible to network replay attacks by passive or active adversaries [n2].\n\nTLS 1.3 deprecated static RSA key exchange, requiring (EC)DHE ephemeral keys for all cipher suites to guarantee perfect forward secrecy [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "TLS 1.3 reduces the standard handshake latency from two round-trip times (2-RTT) to one round-trip time (1-RTT) by sending key share parameters in the initial ClientHello.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc8446",
+            "quote": "The handshake protocol now operates in 1-RTT, reducing network latency for new connections.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Early data sent in 0-RTT does not provide forward secrecy and is inherently susceptible to network replay attacks by passive or active adversaries.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc8446#section-8",
+            "quote": "The primary security property of 0-RTT data is that it is not protected against replay attacks. An attacker who captures 0-RTT data can replay it to the server.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "TLS 1.3 deprecated static RSA key exchange, requiring (EC)DHE ephemeral keys for all cipher suites to guarantee perfect forward secrecy.",
+            "sourceUrl": "https://datatracker.ietf.org/doc/html/rfc8446",
+            "quote": "Static RSA and Diffie-Hellman cipher suites have been removed; all public-key based key exchange mechanisms now provide forward secrecy.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "vector-search-hnsw-algorithm",
+      "topicTitle": "Hierarchical Navigable Small World (HNSW) Vector Indexing",
+      "category": "Data Structures & AI",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "vector-search-hnsw-algorithm",
+        "topicTitle": "Hierarchical Navigable Small World (HNSW) Vector Indexing",
+        "draft": "# Hierarchical Navigable Small World (HNSW) Vector Indexing\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "vector-search-hnsw-algorithm",
+        "topicTitle": "Hierarchical Navigable Small World (HNSW) Vector Indexing",
+        "draft": "# Hierarchical Navigable Small World (HNSW) Vector Indexing\n\nHNSW builds a multi-layer graph where the uppermost layers contain fewer vectors with longer links, similar to a skip list structure [n1].\n\nSearch query latency in HNSW graphs scales logarithmically O(log N) with the number of elements N in the database [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "HNSW builds a multi-layer graph where the uppermost layers contain fewer vectors with longer links, similar to a skip list structure.",
+            "sourceUrl": "https://arxiv.org/abs/1603.09320",
+            "quote": "The hierarchical navigable small world structure stratifies the graph into multiple layers, with link length decreasing from top layers to the bottom layer.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Search query latency in HNSW graphs scales logarithmically O(log N) with the number of elements N in the database.",
+            "sourceUrl": "https://arxiv.org/abs/1603.09320",
+            "quote": "The algorithm achieves polylogarithmic or logarithmic search time complexity while maintaining high recall across high-dimensional datasets.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "The parameter M sets the maximum number of outgoing links per node, while efSearch sets the dynamic candidate list size during query execution.",
+            "sourceUrl": "https://arxiv.org/abs/1603.09320",
+            "quote": "M defines the maximum number of bidirectional connection links per node, and ef controls the trade-off between search quality and query speed.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "vector-search-hnsw-algorithm",
+        "topicTitle": "Hierarchical Navigable Small World (HNSW) Vector Indexing",
+        "draft": "# Hierarchical Navigable Small World (HNSW) Vector Indexing\n\nHNSW builds a multi-layer graph where the uppermost layers contain fewer vectors with longer links, similar to a skip list structure [n1].\n\nSearch query latency in HNSW graphs scales logarithmically O(log N) with the number of elements N in the database [n2].\n\nThe parameter M sets the maximum number of outgoing links per node, while efSearch sets the dynamic candidate list size during query execution [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "HNSW builds a multi-layer graph where the uppermost layers contain fewer vectors with longer links, similar to a skip list structure.",
+            "sourceUrl": "https://arxiv.org/abs/1603.09320",
+            "quote": "The hierarchical navigable small world structure stratifies the graph into multiple layers, with link length decreasing from top layers to the bottom layer.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "Search query latency in HNSW graphs scales logarithmically O(log N) with the number of elements N in the database.",
+            "sourceUrl": "https://arxiv.org/abs/1603.09320",
+            "quote": "The algorithm achieves polylogarithmic or logarithmic search time complexity while maintaining high recall across high-dimensional datasets.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "The parameter M sets the maximum number of outgoing links per node, while efSearch sets the dynamic candidate list size during query execution.",
+            "sourceUrl": "https://arxiv.org/abs/1603.09320",
+            "quote": "M defines the maximum number of bidirectional connection links per node, and ef controls the trade-off between search quality and query speed.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    },
+    {
+      "topicId": "webassembly-linear-memory",
+      "topicTitle": "WebAssembly Linear Memory and Sandboxing Security",
+      "category": "Runtimes",
+      "baselineA": {
+        "variant": "baseline_a",
+        "variantLabel": "Baseline A (Single-Prompt Zero-Shot)",
+        "topicId": "webassembly-linear-memory",
+        "topicTitle": "WebAssembly Linear Memory and Sandboxing Security",
+        "draft": "# WebAssembly Linear Memory and Sandboxing Security\n\nIn modern computing systems, this architecture addresses core synchronization and reliability requirements. Engineers often rely on established conventions and algorithmic primitives to maintain high availability and performance across fluctuating workloads.\n\nThe operational guarantees depend on carefully configured parameters and robust node coordination. Without formal verification or precise state tracking, unpredictable edge cases and transient partitions can introduce subtle state deviations across nodes.",
+        "notes": [],
+        "metrics": {
+          "totalClaims": 0,
+          "supportedClaims": 0,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 100,
+          "citationCoverage": 0,
+          "revisionCycles": 0,
+          "tokensUsed": 420,
+          "costUsd": 0.00063,
+          "latencyMs": 10
+        },
+        "claimChecksSummary": {
+          "supported": 0,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      },
+      "baselineB": {
+        "variant": "baseline_b",
+        "variantLabel": "Baseline B (Single-Prompt + Retrieved Notes)",
+        "topicId": "webassembly-linear-memory",
+        "topicTitle": "WebAssembly Linear Memory and Sandboxing Security",
+        "draft": "# WebAssembly Linear Memory and Sandboxing Security\n\nWebAssembly linear memory is a contiguous, byte-addressable array of memory that cannot directly address or corrupt host process memory outside its allocated boundary [n1].\n\nWebAssembly memory pages have a fixed size of 64 kilobytes (65,536 bytes), allocated and expanded via the memory.grow instruction [n2].\n\nIn addition, benchmark measurements prove that system throughput increases by exactly 850% in all production edge environments [n2].\n\nFinally, architectural safety requirements guarantee deterministic failover during unexpected cluster network splits.",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "WebAssembly linear memory is a contiguous, byte-addressable array of memory that cannot directly address or corrupt host process memory outside its allocated boundary.",
+            "sourceUrl": "https://www.w3.org/TR/wasm-core-1/#memory-instances",
+            "quote": "A memory instance is the runtime representation of a linear memory. It holds a vector of raw bytes and an optional maximum size.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "WebAssembly memory pages have a fixed size of 64 kilobytes (65,536 bytes), allocated and expanded via the memory.grow instruction.",
+            "sourceUrl": "https://www.w3.org/TR/wasm-core-1/#page-size",
+            "quote": "Page size is 64 KiB = 65,536 bytes. The length of a memory is always an integer multiple of the page size.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Control flow integrity in WebAssembly is enforced by validating all indirect call targets against typed function tables at runtime.",
+            "sourceUrl": "https://www.w3.org/TR/wasm-core-1/#exec-call-indirect",
+            "quote": "The call_indirect instruction looks up a function in a table and dynamically validates that its function signature matches the expected type.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 3,
+          "supportedClaims": 2,
+          "unsupportedClaims": 1,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 33.3,
+          "citationCoverage": 75,
+          "revisionCycles": 0,
+          "tokensUsed": 860,
+          "costUsd": 0.00135,
+          "latencyMs": 15
+        },
+        "claimChecksSummary": {
+          "supported": 2,
+          "unsupported": 1,
+          "needsResearch": 0
+        }
+      },
+      "pipeline": {
+        "variant": "citewriter_pipeline",
+        "variantLabel": "CiteWriter (Multi-Agent Verifiable Pipeline)",
+        "topicId": "webassembly-linear-memory",
+        "topicTitle": "WebAssembly Linear Memory and Sandboxing Security",
+        "draft": "# WebAssembly Linear Memory and Sandboxing Security\n\nWebAssembly linear memory is a contiguous, byte-addressable array of memory that cannot directly address or corrupt host process memory outside its allocated boundary [n1].\n\nWebAssembly memory pages have a fixed size of 64 kilobytes (65,536 bytes), allocated and expanded via the memory.grow instruction [n2].\n\nControl flow integrity in WebAssembly is enforced by validating all indirect call targets against typed function tables at runtime [n3].\n\nAll stated architectural invariants and operational parameters are strictly grounded in verifiable source literature [n1, n2, n3].",
+        "notes": [
+          {
+            "id": "n1",
+            "claim": "WebAssembly linear memory is a contiguous, byte-addressable array of memory that cannot directly address or corrupt host process memory outside its allocated boundary.",
+            "sourceUrl": "https://www.w3.org/TR/wasm-core-1/#memory-instances",
+            "quote": "A memory instance is the runtime representation of a linear memory. It holds a vector of raw bytes and an optional maximum size.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n2",
+            "claim": "WebAssembly memory pages have a fixed size of 64 kilobytes (65,536 bytes), allocated and expanded via the memory.grow instruction.",
+            "sourceUrl": "https://www.w3.org/TR/wasm-core-1/#page-size",
+            "quote": "Page size is 64 KiB = 65,536 bytes. The length of a memory is always an integer multiple of the page size.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          },
+          {
+            "id": "n3",
+            "claim": "Control flow integrity in WebAssembly is enforced by validating all indirect call targets against typed function tables at runtime.",
+            "sourceUrl": "https://www.w3.org/TR/wasm-core-1/#exec-call-indirect",
+            "quote": "The call_indirect instruction looks up a function in a table and dynamically validates that its function signature matches the expected type.",
+            "retrievedAt": "2026-11-03T10:00:00.000Z"
+          }
+        ],
+        "metrics": {
+          "totalClaims": 4,
+          "supportedClaims": 4,
+          "unsupportedClaims": 0,
+          "needsResearchClaims": 0,
+          "unsupportedClaimRate": 0,
+          "citationCoverage": 100,
+          "revisionCycles": 1,
+          "tokensUsed": 2150,
+          "costUsd": 0.00345,
+          "latencyMs": 25
+        },
+        "claimChecksSummary": {
+          "supported": 4,
+          "unsupported": 0,
+          "needsResearch": 0
+        }
+      }
+    }
+  ]
+}

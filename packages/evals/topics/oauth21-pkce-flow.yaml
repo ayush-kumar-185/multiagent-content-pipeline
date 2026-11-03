@@ -1,0 +1,36 @@
+id: oauth21-pkce-flow
+title: 'OAuth 2.1 Authorization Code Grant with PKCE'
+category: 'Security'
+prompt: 'Explain why OAuth 2.1 deprecates the Implicit Grant in favor of Authorization Code Grant with Proof Key for Code Exchange (PKCE) for public clients like SPAs and mobile apps.'
+config:
+  audience: 'security engineers and full-stack architects'
+  tone: 'security-focused and authoritative'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'Vulnerabilities of the legacy Implicit Grant: token leakage via URI fragments, browser history, and Referer headers'
+    - 'PKCE mechanics: code_verifier (high-entropy cryptographic random string) and code_challenge (SHA-256 hash)'
+    - 'Mitigation of authorization code interception attacks on public clients lacking client secrets'
+    - 'OAuth 2.1 consolidation: PKCE mandatory for all OAuth clients, removal of Resource Owner Password Credentials'
+  expectedCitations:
+    - "RFC 7636: 'Proof Key for Code Exchange by OAuth Public Clients'"
+    - "IETF Draft: 'The OAuth 2.1 Authorization Framework'"
+  unsupportedClaimRisks:
+    - 'Claiming client_secret can be securely embedded inside single-page applications or native mobile apps'
+    - 'Confusing code_verifier with client_secret'
+mockNotes:
+  - id: 'n1'
+    claim: 'PKCE protects authorization codes from interception attacks by requiring the client to create a secret code_verifier and send its hash code_challenge.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/rfc7636'
+    quote: "The client creates and records a secret named the 'code_verifier' and sends an evaluation of this secret called the 'code_challenge' in the authorization request."
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'The OAuth 2.1 specification explicitly removes the Implicit Grant and Resource Owner Password Credentials Grant from the core standard.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08'
+    quote: "The implicit grant ('response_type=token') is omitted from this specification. The resource owner password credentials grant is omitted from this specification."
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'PKCE is required for all clients in OAuth 2.1, including confidential backend clients, unless an equivalent hardware-bound protection is used.'
+    sourceUrl: 'https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08'
+    quote: 'All clients MUST use Proof Key for Code Exchange (PKCE) with the authorization code grant.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'

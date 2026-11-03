@@ -1,0 +1,37 @@
+id: opentelemetry-context-propagation
+title: 'OpenTelemetry Context Propagation and W3C Trace Context'
+category: 'Observability'
+prompt: 'Describe how distributed tracing across microservices operates via OpenTelemetry Context Propagation and the W3C Trace Context HTTP header specification.'
+config:
+  audience: 'cloud architects and observability engineers'
+  tone: 'technical and standard-compliant'
+  targetWords: 500
+rubric:
+  mustInclude:
+    - 'W3C Trace Context header format: traceparent (version-trace_id-parent_id-trace_flags) and tracestate'
+    - 'Trace ID (16-byte hex) and Span ID (8-byte hex) semantics'
+    - 'Carrier injection and extraction across network boundaries (HTTP, gRPC, messaging queues)'
+    - 'Baggage propagation for non-trace operational metadata'
+    - 'Sampling decision bits and trace flag representations'
+  expectedCitations:
+    - "W3C Recommendation: 'Trace Context' (www.w3.org/TR/trace-context/)"
+    - "OpenTelemetry Specification: 'Context & Propagation'"
+  unsupportedClaimRisks:
+    - 'Confusing trace_id (global per-request) with parent_id / span_id (per-operation hop)'
+    - 'Claiming tracestate stores application telemetry metrics'
+mockNotes:
+  - id: 'n1'
+    claim: 'The W3C traceparent header consists of four hyphen-separated fields: version, a 16-byte trace-id, an 8-byte parent-id, and 8-bit trace-flags.'
+    sourceUrl: 'https://www.w3.org/TR/trace-context/#traceparent-header'
+    quote: 'The traceparent header value is represented as 4 hyphen-delimited fields: version, trace-id, parent-id, and trace-flags.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n2'
+    claim: 'Injectors serialize the current trace context into wire protocol headers, while extractors parse inbound headers to reconstruct the context on receiving services.'
+    sourceUrl: 'https://opentelemetry.io/docs/specs/otel/context/api-propagators/'
+    quote: 'Inject writes the current context into a carrier format, and Extract reads context from an incoming carrier.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
+  - id: 'n3'
+    claim: 'OpenTelemetry Baggage propagates arbitrary key-value metadata alongside trace context across distributed network hops.'
+    sourceUrl: 'https://opentelemetry.io/docs/specs/otel/baggage/api/'
+    quote: 'Baggage is a set of key-value pairs that are passed from one context to another, commonly across network hops.'
+    retrievedAt: '2026-11-03T10:00:00.000Z'
