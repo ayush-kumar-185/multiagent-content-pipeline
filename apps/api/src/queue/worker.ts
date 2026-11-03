@@ -18,15 +18,22 @@ export interface WorkerDependencies {
   checkpointer: BaseCheckpointSaver;
   eventBus: RunEventBus;
   redis?: Redis;
+  queueName?: string;
   graphOptions?: Partial<GraphBuilderOptions>;
 }
 
 export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
-  const { dbCtx, checkpointer, eventBus, graphOptions = {} } = deps;
+  const {
+    dbCtx,
+    checkpointer,
+    eventBus,
+    graphOptions = {},
+    queueName = CITEWRITER_RUNS_QUEUE,
+  } = deps;
   const connection = deps.redis ?? createRedisConnection();
 
   const worker = new Worker<RunJobData>(
-    CITEWRITER_RUNS_QUEUE,
+    queueName,
     async (job: Job<RunJobData>) => {
       const { runId, action, resumePayload } = job.data;
 

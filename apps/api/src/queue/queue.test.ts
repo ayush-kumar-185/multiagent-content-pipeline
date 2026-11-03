@@ -35,8 +35,9 @@ describe('BullMQ Queue and Worker Execution', () => {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
 
-    queue = createRunQueue(redis);
-    queueEvents = new QueueEvents(queue.name, { connection: redis });
+    const queueName = 'citewriter-runs-queue-test';
+    queue = createRunQueue(redis, queueName);
+    queueEvents = new QueueEvents(queueName, { connection: redis });
     await queueEvents.waitUntilReady();
 
     worker = createRunWorker({
@@ -44,6 +45,7 @@ describe('BullMQ Queue and Worker Execution', () => {
       checkpointer,
       eventBus,
       redis,
+      queueName,
     });
     await worker.waitUntilReady();
 
@@ -78,6 +80,17 @@ describe('BullMQ Queue and Worker Execution', () => {
       status: 'pending',
     });
 
+    // Helper to safely poll status if pub/sub event has network latency
+    async function waitForStatus(targetStatus: string, maxWaitMs = 15000) {
+      const start = Date.now();
+      while (Date.now() - start < maxWaitMs) {
+        const [r] = await dbCtx.db.select().from(runs).where(eq(runs.id, runId));
+        if (r && r.status === targetStatus) return r;
+        await new Promise((res) => setTimeout(res, 100));
+      }
+      return null;
+    }
+
     // 2. Add job to queue
     const job = await queue.add('start-run', {
       runId,
@@ -85,7 +98,7 @@ describe('BullMQ Queue and Worker Execution', () => {
     });
 
     // 3. Wait for job to complete (pauses at awaiting_review)
-    await job.waitUntilFinished(queueEvents);
+    await Promise.race([job.waitUntilFinished(queueEvents), waitForStatus('awaiting_review')]);
 
     // Verify DB run state is awaiting_review
     const [runAfterStart] = await dbCtx.db.select().from(runs).where(eq(runs.id, runId));
@@ -116,7 +129,7 @@ describe('BullMQ Queue and Worker Execution', () => {
       },
     });
 
-    await resumeJob.waitUntilFinished(queueEvents);
+    await Promise.race([resumeJob.waitUntilFinished(queueEvents), waitForStatus('approved')]);
 
     // Verify DB run state is approved
     const [runAfterResume] = await dbCtx.db.select().from(runs).where(eq(runs.id, runId));
@@ -126,5 +139,5 @@ describe('BullMQ Queue and Worker Execution', () => {
     const finalEvents = await dbCtx.db.select().from(runEvents).where(eq(runEvents.runId, runId));
     const finalEventTypes = finalEvents.map((e) => e.type);
     expect(finalEventTypes).toContain('run_completed');
-  }, 15000);
+  }, 60000);
 });

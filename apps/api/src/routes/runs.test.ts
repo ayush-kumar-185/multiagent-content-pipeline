@@ -28,8 +28,9 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
 
-    queue = createRunQueue(redis);
-    queueEvents = new QueueEvents(queue.name, { connection: redis });
+    const queueName = 'citewriter-runs-api-test';
+    queue = createRunQueue(redis, queueName);
+    queueEvents = new QueueEvents(queueName, { connection: redis });
     await queueEvents.waitUntilReady();
 
     worker = createRunWorker({
@@ -37,6 +38,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       checkpointer: cpCtx.checkpointer,
       eventBus,
       redis,
+      queueName,
     });
     await worker.waitUntilReady();
 

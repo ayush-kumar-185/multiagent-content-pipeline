@@ -20,9 +20,12 @@ export function createRedisConnection(): Redis {
   });
 }
 
-export function createRunQueue(redis?: Redis): Queue<RunJobData> {
+export function createRunQueue(
+  redis?: Redis,
+  queueName: string = CITEWRITER_RUNS_QUEUE,
+): Queue<RunJobData> {
   const connection = redis ?? createRedisConnection();
-  return new Queue<RunJobData>(CITEWRITER_RUNS_QUEUE, {
+  return new Queue<RunJobData>(queueName, {
     connection,
     defaultJobOptions: {
       attempts: 2,

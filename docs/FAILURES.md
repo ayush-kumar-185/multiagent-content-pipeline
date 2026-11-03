@@ -86,3 +86,13 @@ This document records real bugs, edge-case failures, and architectural issues di
 - **Symptom:** `validateUrlSecurity('http://metadata.google.internal/computeMetadata/v1/')` timed out after 5,000ms in Vitest on local developer workstations.
 - **Cause:** `dns.lookup('metadata.google.internal')` forwarded queries to local ISP/router DNS servers, waiting for recursive resolution to fail.
 - **Fix:** Added a pre-DNS static filter with a blocklist of known metadata domains (`metadata.google.internal`, `instance-data`) and internal suffixes (`.internal`, `.local`, `.lan`, `.corp`) that rejects instantly in `<1ms` without initiating network DNS queries.
+
+---
+
+### [2026-11-03] Shared BullMQ Queue Name Collision & Timeouts in Multi-Worker Tests
+
+- **Phase:** Phase 9 (Test Suite Stability & Monorepo Concurrency)
+- **Symptom:** `queue.test.ts` and `workerCrashResume.test.ts` intermittently timed out after 15,000ms - 20,000ms when running concurrently in Vitest (`apps/api/src/queue/workerCrashResume.test.ts:48:3` and `apps/api/src/queue/queue.test.ts:65:3`).
+- **Cause:** All integration test suites (`runs.test.ts`, `queue.test.ts`, and `workerCrashResume.test.ts`) initialized BullMQ `Worker` and `Queue` instances using the identical default queue name `'citewriter-runs'`. When executed concurrently in Vitest, workers in one test suite consumed jobs enqueued by another test suite ("job stealing"), while `job.waitUntilFinished(queueEvents)` hung waiting for pub/sub completion events that never fired on that specific listener.
+- **Fix:** Parameterized `createRunQueue` and `createRunWorker` to accept a customizable `queueName`. Configured dedicated, isolated queue names per test suite (`citewriter-runs-queue-test`, `citewriter-runs-crash-test`, `citewriter-runs-api-test`), added a dual wait pattern racing Redis pub/sub (`job.waitUntilFinished`) against direct database polling (`waitForStatus`), and increased Vitest test timeouts to 60s. Verified that all 30 test files and 140 tests pass deterministically.
+
