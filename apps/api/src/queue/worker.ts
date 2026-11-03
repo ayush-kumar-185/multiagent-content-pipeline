@@ -74,7 +74,15 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
         userId: runRecord.userId,
       });
 
+      const hasLLMKey = Boolean(process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY);
+      const isTestEnv = process.env.NODE_ENV === 'test';
+      const defaultUseReal = hasLLMKey && !isTestEnv;
+
       const app = createCiteWriterGraph({
+        useRealResearcher: graphOptions.useRealResearcher ?? defaultUseReal,
+        useRealWriter: graphOptions.useRealWriter ?? defaultUseReal,
+        useRealFactChecker: graphOptions.useRealFactChecker ?? defaultUseReal,
+        useRealEditor: graphOptions.useRealEditor ?? defaultUseReal,
         ...graphOptions,
         checkpointer,
         tracer,

@@ -105,3 +105,17 @@ This document records real bugs, edge-case failures, and architectural issues di
 - **Cause:** `QueueEvents` was initialized sharing the identical `ioredis` instance as `Worker` and `Queue`. In BullMQ, `QueueEvents` puts its connection into Redis subscriber mode (`SUBSCRIBE`). When `afterAll` sequentially executed `await worker.close()`, `await queueEvents.close()`, and `await redis.quit()`, the shared connection in subscriber mode deadlocked or delayed teardown past Vitest's default 10,000ms hook threshold.
 - **Fix:** Provided `QueueEvents` with a dedicated independent connection via `redis.duplicate()`, invoked `await worker.close(true)` to force immediate worker loop termination, and configured an explicit 30s hook timeout. Verified that `queue.test.ts` tears down cleanly in `<1s`.
 
+---
+
+### [2026-11-04] Monorepo Dotenv Scope and Fake Agent Default in Dev Server
+
+- **Phase:** Phase 10 (End-to-End Product Testing)
+- **Symptom:** Submitting a run in the web UI for topic `"Raft consensus algorithm..."` produced a canned draft titled `"# TypeScript 5.0 Advancements"`, and the interactive article was displayed below the review action box rather than at the top.
+- **Cause:** Two distinct issues:
+  1. `apps/api/src/start.ts` invoked `createRunWorker` without passing `useReal*` graph options. In `packages/core/src/graph/nodes.ts`, `useRealResearcher`, `useRealWriter`, etc., default to `false` (fake agents) for stub testing, which hardcodes the canned TypeScript 5.0 draft.
+  2. In monorepo execution, running `pnpm --filter @citewriter/api run dev` runs with `process.cwd()` set to `apps/api`. Calling `dotenv.config()` without path resolution only looked for `apps/api/.env`, leaving `OPENROUTER_API_KEY` and `TAVILY_API_KEY` unpopulated and falling back to dummy keys.
+- **Fix:**
+  1. Updated `apps/api/src/start.ts` and `apps/api/src/queue/worker.ts` so that in non-test environments (`NODE_ENV !== 'test'`), `useReal*` flags automatically default to `true` when LLM credentials are present.
+  2. Configured multi-path `dotenv` resolution in `client.ts`, `factory.ts`, and `start.ts` to search parent workspace root `.env` files (`../../.env`, `../.env`), and copied `.env` into `apps/api` and `apps/web`.
+  3. Reordered `apps/web/src/app/runs/[id]/page.tsx` so `ClaimHighlightArticle` renders prominently at the top with interactive claim highlighting and source drawer, followed by `HumanReviewActions`.
+

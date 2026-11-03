@@ -1,7 +1,13 @@
+import dotenv from 'dotenv';
+import path from 'node:path';
 import { SearchProvider } from './types.js';
 import { TavilySearchProvider } from './tavily.js';
 import { BraveSearchProvider } from './brave.js';
 import { MockSearchProvider } from './mock.js';
+
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 export interface SearchFactoryOptions {
   provider?: string;

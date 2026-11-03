@@ -1,8 +1,11 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import path from 'node:path';
 
-// Ensure environment variables are loaded
+// Ensure environment variables are loaded from cwd or monorepo root
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 export interface LLMClientConfig {
   apiKey?: string;

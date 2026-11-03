@@ -1,4 +1,11 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'node:path';
+
+// Ensure root monorepo .env is loaded
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+
 import { createDatabase } from './db/index.js';
 import { createPostgresCheckpointer } from './checkpointer/index.js';
 import { RunEventBus } from './events/eventBus.js';
@@ -15,12 +22,20 @@ async function startServer(): Promise<void> {
   // Initialize Postgres checkpointer tables
   await cpCtx.setup();
 
-  // Initialize background worker
+  const hasLLMKey = Boolean(process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY);
+
+  // Initialize background worker with real agents when LLM credentials are present
   const worker = createRunWorker({
     dbCtx,
     checkpointer: cpCtx.checkpointer,
     eventBus,
     redis,
+    graphOptions: {
+      useRealResearcher: hasLLMKey,
+      useRealWriter: hasLLMKey,
+      useRealFactChecker: hasLLMKey,
+      useRealEditor: hasLLMKey,
+    },
   });
 
   const server = buildServer({

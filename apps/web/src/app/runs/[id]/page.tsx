@@ -203,24 +203,25 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200 flex items-center space-x-2">
             <Sparkles className="w-4 h-4 text-blue-600 flex-shrink-0" />
             <span>
-              All 4 agents have completed their automated loops. Review the factual claims below and
-              choose your editorial decision.
+              All 4 agents have completed their automated loops. Click any highlighted claim in the article draft below to inspect verified sources, then approve or edit.
             </span>
           </div>
 
+          {/* Interactive Article Draft with sentence-level claim verification */}
+          <ClaimHighlightArticle
+            draft={run.draft}
+            claims={run.claims}
+            claimChecks={run.claimChecks}
+            notes={run.notes}
+          />
+
+          {/* Editor Agent Verdict & Human Review Decisions */}
           <HumanReviewActions
             runId={run.id}
             initialDraft={run.draft}
             editorVerdict={run.editorVerdict}
             openIssues={run.openIssues}
             onActionComplete={fetchRun}
-          />
-
-          <ClaimHighlightArticle
-            draft={run.draft}
-            claims={run.claims}
-            claimChecks={run.claimChecks}
-            notes={run.notes}
           />
         </div>
       )}
