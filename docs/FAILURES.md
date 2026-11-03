@@ -68,3 +68,21 @@ This document records real bugs, edge-case failures, and architectural issues di
 - **Symptom:** In evaluation runs, CiteWriter citation coverage unexpectedly measured 20% instead of 100%.
 - **Cause:** Note claims ended with a terminal period (e.g. `"Raft consensus guarantees safety."`). Concatenating citations as `"${n.claim} [${n.id}]."` created `"Raft consensus guarantees safety. [n1]."`. The naive sentence splitter `/(?<=[.!?])\s+/` split immediately after `"safety."`, leaving the primary sentence without a citation tag and isolating `"[n1]."` as a 5-character orphan.
 - **Fix:** Stripped trailing punctuation from note claims with `.replace(/\.+$/, '')` before appending citation brackets, and enhanced sentence tokenization with negative lookahead `/(?<=[.!?])(?!\s*\[n\d+)\s+/` to ensure citations remain bonded to their parent sentence.
+
+---
+
+### [2026-11-03] Empty String Environment Variable Nullish Coalescing in LLM Client
+
+- **Phase:** Phase 9 (Hardening & Resilience)
+- **Symptom:** Unit test for budget breach resilience threw `Error: Missing credentials. Please pass an apiKey` when initializing `createLLMClient()`.
+- **Cause:** In `.env`, `OPENAI_API_KEY=` was defined as an empty string `""`. In JavaScript/TypeScript, nullish coalescing `process.env.OPENAI_API_KEY ?? 'dummy-key'` evaluates to `""` because an empty string is neither `null` nor `undefined`. Passing `""` to the OpenAI SDK triggered its credentials validation error.
+- **Fix:** Replaced nullish coalescing `??` with logical OR `||` (`process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || 'dummy-key'`) so falsy empty strings cleanly fall back to test credentials.
+
+---
+
+### [2026-11-03] DNS Timeout on Unresolvable Cloud Metadata Hostnames During SSRF Checks
+
+- **Phase:** Phase 9 (Hardening & Security)
+- **Symptom:** `validateUrlSecurity('http://metadata.google.internal/computeMetadata/v1/')` timed out after 5,000ms in Vitest on local developer workstations.
+- **Cause:** `dns.lookup('metadata.google.internal')` forwarded queries to local ISP/router DNS servers, waiting for recursive resolution to fail.
+- **Fix:** Added a pre-DNS static filter with a blocklist of known metadata domains (`metadata.google.internal`, `instance-data`) and internal suffixes (`.internal`, `.local`, `.lan`, `.corp`) that rejects instantly in `<1ms` without initiating network DNS queries.

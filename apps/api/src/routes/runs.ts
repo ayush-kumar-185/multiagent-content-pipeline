@@ -9,23 +9,37 @@ import { RunJobData } from '../queue/index.js';
 import { Queue } from 'bullmq';
 
 const CreateRunBodySchema = z.object({
-  topic: z.string().min(3, 'Topic must be at least 3 characters'),
-  sourceUrl: z.string().url().optional(),
+  topic: z
+    .string()
+    .min(3, 'Topic must be at least 3 characters')
+    .max(1000, 'Topic must not exceed 1000 characters'),
+  sourceUrl: z
+    .string()
+    .url('Invalid source URL format')
+    .refine((url) => {
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    }, 'Only HTTP and HTTPS URLs are permitted')
+    .optional(),
   config: z
     .object({
-      audience: z.string().optional(),
-      tone: z.string().optional(),
+      audience: z.string().max(200).optional(),
+      tone: z.string().max(200).optional(),
       targetWords: z.number().int().min(50).max(5000).optional(),
-      maxTokens: z.number().int().positive().optional(),
-      maxCostUsd: z.number().positive().optional(),
+      maxTokens: z.number().int().positive().max(1_000_000).optional(),
+      maxCostUsd: z.number().positive().max(100).optional(),
     })
     .optional(),
 });
 
 const ResumeRunBodySchema = z.object({
   action: z.enum(['approve', 'edit', 'reject']),
-  feedback: z.string().optional(),
-  editedDraft: z.string().optional(),
+  feedback: z.string().max(5000).optional(),
+  editedDraft: z.string().max(100_000).optional(),
 });
 
 export interface RunRoutesOptions extends FastifyPluginOptions {
@@ -46,6 +60,8 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
     if (!parseResult.success) {
       reply.status(400).send({
         error: 'Bad Request',
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid run creation payload',
         validationErrors: parseResult.error.flatten(),
       });
       return;
@@ -229,6 +245,8 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
       if (!parseResult.success) {
         reply.status(400).send({
           error: 'Bad Request',
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid resume payload',
           validationErrors: parseResult.error.flatten(),
         });
         return;

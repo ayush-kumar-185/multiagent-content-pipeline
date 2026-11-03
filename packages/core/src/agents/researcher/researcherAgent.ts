@@ -8,7 +8,7 @@ import { fetchPage, FetchPageOptions } from '../../tools/fetch/fetchPage.js';
 import { filterVerifiedNotes } from './quoteVerifier.js';
 import { createLLMClient, getAgentModel } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
-import { resolveBudgetLimits } from '../../llm/budget.js';
+import { resolveBudgetLimits, assertWithinBudget } from '../../llm/budget.js';
 import { Tracer } from '../../observability/types.js';
 import {
   buildResearcherSystemPrompt,
@@ -49,6 +49,10 @@ export async function runResearcherAgent(
   const maxFetches = options.maxFetchesPerRound ?? MAX_FETCHES_PER_ROUND;
   const tracer = options.tracer;
 
+  // Upfront Budget Guard Check before executing any tool or network operations
+  const limits = resolveBudgetLimits(state.config);
+  assertWithinBudget(state.tokensUsed, state.costUsd, limits);
+
   const isReResearch = state.researchRounds > 0;
   const claimsNeedingResearch = state.claimChecks.filter((c) => c.status === 'needs_more_research');
 
@@ -65,6 +69,9 @@ export async function runResearcherAgent(
 
   // 2. Perform Searches & Collect Allowed URLs
   const allowedUrls = new Set<string>();
+  if (state.sourceUrl) {
+    allowedUrls.add(state.sourceUrl);
+  }
   // Pre-seed with any existing note source URLs
   for (const n of state.notes) {
     allowedUrls.add(n.sourceUrl);

@@ -1,4 +1,4 @@
-import Fastify, { FastifyInstance } from 'fastify';
+import Fastify, { FastifyInstance, FastifyError } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { CITEWRITER_CORE_VERSION } from '@citewriter/core';
@@ -21,6 +21,38 @@ export interface ServerOptions {
 export function buildServer(options: ServerOptions = {}): FastifyInstance {
   const app = Fastify({
     logger: false,
+    bodyLimit: 1048576, // 1 MB request body limit to prevent denial of service
+  });
+
+  // Global structured error handler
+  app.setErrorHandler((error: FastifyError, _request, reply) => {
+    const statusCode = error.statusCode ?? 500;
+    let code = error.code ?? 'INTERNAL_SERVER_ERROR';
+
+    if (error.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
+      code = 'PAYLOAD_TOO_LARGE';
+    } else if (statusCode === 429) {
+      code = 'RATE_LIMIT_EXCEEDED';
+    }
+
+    reply.status(statusCode).send({
+      error: {
+        code,
+        message: error.message,
+        statusCode,
+      },
+    });
+  });
+
+  // Global structured 404 handler
+  app.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({
+      error: {
+        code: 'NOT_FOUND',
+        message: `Route ${request.method} ${request.url} not found`,
+        statusCode: 404,
+      },
+    });
   });
 
   // Database, checkpointer, events & queue

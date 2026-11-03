@@ -7,20 +7,19 @@ dotenv.config();
 export interface LLMClientConfig {
   apiKey?: string;
   baseURL?: string;
+  timeout?: number;
+  maxRetries?: number;
 }
 
 export function createLLMClient(config: LLMClientConfig = {}): OpenAI {
-  const apiKey =
-    config.apiKey ??
-    process.env.OPENROUTER_API_KEY ??
-    process.env.OPENAI_API_KEY ??
-    'dummy-key-for-stubs-and-tests';
+  const envKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+  const apiKey = config.apiKey || envKey || 'dummy-key-for-stubs-and-tests';
 
   const isUsingOpenRouter = Boolean(process.env.OPENROUTER_API_KEY && !process.env.OPENAI_BASE_URL);
 
   const baseURL =
-    config.baseURL ??
-    process.env.OPENAI_BASE_URL ??
+    config.baseURL ||
+    process.env.OPENAI_BASE_URL ||
     (isUsingOpenRouter ? 'https://openrouter.ai/api/v1' : undefined);
 
   const defaultHeaders = isUsingOpenRouter
@@ -34,6 +33,8 @@ export function createLLMClient(config: LLMClientConfig = {}): OpenAI {
     apiKey,
     baseURL,
     defaultHeaders,
+    timeout: config.timeout ?? 30_000,
+    maxRetries: config.maxRetries ?? 3,
   });
 }
 

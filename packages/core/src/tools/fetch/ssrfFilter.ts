@@ -118,7 +118,24 @@ export async function validateUrlSecurity(urlString: string): Promise<URL> {
     throw new SSRFBlockedError(urlString, `Direct localhost access is blocked: "${hostname}"`);
   }
 
-  // 3. Direct IP address check in hostname
+  // 3. Known cloud metadata and internal domains (blocks immediately without waiting on DNS)
+  const BLOCKED_HOST_SUFFIXES = ['.local', '.internal', '.lan', '.corp', '.home', '.arpa'];
+  const BLOCKED_HOSTNAMES = new Set([
+    'metadata.google.internal',
+    'metadata',
+    'instance-data',
+    'kubernetes.default',
+    'kubernetes.default.svc',
+  ]);
+
+  if (BLOCKED_HOSTNAMES.has(hostname) || BLOCKED_HOST_SUFFIXES.some((s) => hostname.endsWith(s))) {
+    throw new SSRFBlockedError(
+      urlString,
+      `Access to internal/metadata domain is blocked: "${hostname}"`,
+    );
+  }
+
+  // 4. Direct IP address check in hostname
   if (net.isIP(hostname)) {
     if (isPrivateIP(hostname)) {
       throw new SSRFBlockedError(
