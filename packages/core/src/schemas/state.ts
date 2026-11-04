@@ -96,6 +96,7 @@ export const StateAnnotation = Annotation.Root({
       audience: 'software engineers',
       tone: 'technical and precise',
       targetWords: 800,
+      format: 'article',
     }),
   }),
   notes: Annotation<Note[]>({

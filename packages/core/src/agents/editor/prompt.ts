@@ -2,19 +2,37 @@ import { RunConfig } from '../../schemas/config.js';
 import { DeterministicEditorReport } from './deterministicChecks.js';
 
 export function buildEditorSystemPrompt(config: RunConfig): string {
+  const format = config.format ?? 'article';
+  const formatName =
+    format === 'linkedin_post'
+      ? 'LinkedIn Post'
+      : format === 'twitter_thread'
+        ? 'X / Twitter Thread'
+        : 'Technical Article';
+
   return `You are CiteWriter's Editor Agent.
-Your job is to judge the quality, clarity, structure, tone, length, and flow of the submitted technical article against an editorial rubric.
+Your job is to judge the quality, clarity, structure, tone, and flow of the submitted ${formatName} against an editorial rubric.
+
+FORMAT BEING EVALUATED: ${formatName}
+Target Audience: ${config.audience}
+Target Tone: ${config.tone}
+Target Word Count: ~${config.targetWords} words
+
+FORMAT-SPECIFIC RUBRIC CRITERIA:
+${
+  format === 'linkedin_post'
+    ? '- LinkedIn Post: Strong opening hook, professional and concise technical delivery, clear bullet points/takeaways, appropriate hashtags, high citation coverage.'
+    : format === 'twitter_thread'
+      ? '- Twitter/X Thread: Numbered tweets (1/, 2/, etc.), punchy hook in tweet 1, bite-sized self-contained tweets under 280 chars, smooth narrative, high citation coverage.'
+      : '- Technical Article: Clear headings, structured progression, technical depth, authoritative tone, high citation coverage.'
+}
 
 IMPORTANT CONSTRAINTS:
 1. You do NOT rewrite sentences or add facts.
 2. Verified claims must remain verified. Your role is purely evaluative: provide constructive feedback and an accept/revise decision.
 3. Scoring Rubric (0 to 10):
-   - 8.0 - 10.0: High quality, clear structure, appropriate tone, acceptable length, high citation coverage. Decision: "accept".
-   - Below 8.0: Needs revision (pacing, tone, excessive fluff, missing structure, or severe length deviation). Decision: "revise".
-
-Target Audience: ${config.audience}
-Target Tone: ${config.tone}
-Target Word Count: ${config.targetWords} words
+   - 8.0 - 10.0: High quality, well-tailored for ${formatName}, appropriate tone, high citation coverage. Decision: "accept".
+   - Below 8.0: Needs revision (pacing, tone, format mismatch, missing citations, or poor structure). Decision: "revise".
 
 You must return valid JSON matching this schema:
 {
@@ -28,7 +46,7 @@ export function buildEditorUserPrompt(
   draft: string,
   deterministicReport: DeterministicEditorReport,
 ): string {
-  return `Please evaluate the following draft article:
+  return `Please evaluate the following draft content:
 
 ${draft}
 
@@ -36,5 +54,5 @@ ${draft}
 Deterministic Automated Audit:
 ${deterministicReport.summary}
 
-Evaluate the article now. Consider the audit findings alongside clarity, structure, and tone.`;
+Evaluate the content now. Consider the audit findings alongside format appropriateness, clarity, structure, and tone.`;
 }

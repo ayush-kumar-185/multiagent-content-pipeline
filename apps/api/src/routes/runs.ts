@@ -29,6 +29,7 @@ const CreateRunBodySchema = z.object({
     .object({
       audience: z.string().max(200).optional(),
       tone: z.string().max(200).optional(),
+      format: z.enum(['article', 'linkedin_post', 'twitter_thread']).optional(),
       targetWords: z.number().int().min(50).max(5000).optional(),
       maxTokens: z.number().int().positive().max(1_000_000).optional(),
       maxCostUsd: z.number().positive().max(100).optional(),
@@ -86,10 +87,15 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
     }
 
     const runId = `run_${crypto.randomUUID()}`;
+    const runFormat = config?.format ?? 'article';
+    const defaultWords =
+      runFormat === 'twitter_thread' ? 250 : runFormat === 'linkedin_post' ? 200 : 400;
+
     const runConfig: RunConfig = {
       audience: config?.audience ?? 'engineers and technical readers',
       tone: config?.tone ?? 'authoritative, clear, and informative',
-      targetWords: config?.targetWords ?? 400,
+      format: runFormat,
+      targetWords: config?.targetWords ?? defaultWords,
       maxTokens: config?.maxTokens,
       maxCostUsd: config?.maxCostUsd,
     };

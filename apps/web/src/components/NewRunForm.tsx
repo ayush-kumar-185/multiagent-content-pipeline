@@ -12,12 +12,16 @@ import {
   Loader2,
   AlertCircle,
   ShieldCheck,
+  FileText,
+  Share2,
+  MessageSquare,
 } from 'lucide-react';
 
 export function NewRunForm() {
   const router = useRouter();
   const { user } = useAuth();
 
+  const [format, setFormat] = useState<'article' | 'linkedin_post' | 'twitter_thread'>('article');
   const [topic, setTopic] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [audience, setAudience] = useState('software engineers and architects');
@@ -28,6 +32,20 @@ export function NewRunForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleFormatSelect = (selectedFormat: 'article' | 'linkedin_post' | 'twitter_thread') => {
+    setFormat(selectedFormat);
+    if (selectedFormat === 'linkedin_post') {
+      setTargetWords(200);
+      setTone('engaging, insightful, and professional');
+    } else if (selectedFormat === 'twitter_thread') {
+      setTargetWords(250);
+      setTone('punchy, technical, and compelling');
+    } else {
+      setTargetWords(400);
+      setTone('technical, precise, and practical');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +63,7 @@ export function NewRunForm() {
           topic: topic.trim(),
           sourceUrl: sourceUrl.trim() || undefined,
           config: {
+            format,
             audience,
             tone,
             targetWords: Number(targetWords),
@@ -71,7 +90,7 @@ export function NewRunForm() {
         </h2>
         <p className="text-sm text-neutral-500 mt-1">
           Four cooperating agents (Researcher, Writer, Fact-checker, Editor) will research, draft,
-          verify, and polish your technical article with sentence-level citations.
+          verify, and polish your content with sentence-level citations.
         </p>
       </div>
 
@@ -83,13 +102,87 @@ export function NewRunForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Content Format Selector */}
+        <div>
+          <label className="block text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-2">
+            Target Publication Format <span className="text-rose-500">*</span>
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => handleFormatSelect('article')}
+              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                format === 'article'
+                  ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-600/20'
+                  : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-800/40'
+              }`}
+            >
+              <div className="flex items-center space-x-2 mb-1.5">
+                <FileText
+                  className={`w-4 h-4 ${format === 'article' ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500'}`}
+                />
+                <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  Technical Article
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                In-depth markdown article with structured sections & technical depth (~400w).
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleFormatSelect('linkedin_post')}
+              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                format === 'linkedin_post'
+                  ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-600/20'
+                  : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-800/40'
+              }`}
+            >
+              <div className="flex items-center space-x-2 mb-1.5">
+                <Share2
+                  className={`w-4 h-4 ${format === 'linkedin_post' ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500'}`}
+                />
+                <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  LinkedIn Post
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                Scroll-stopping hook, concise takeaways, verified bullet points & hashtags (~200w).
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleFormatSelect('twitter_thread')}
+              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                format === 'twitter_thread'
+                  ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-600/20'
+                  : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 bg-white dark:bg-neutral-800/40'
+              }`}
+            >
+              <div className="flex items-center space-x-2 mb-1.5">
+                <MessageSquare
+                  className={`w-4 h-4 ${format === 'twitter_thread' ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500'}`}
+                />
+                <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  X / Twitter Thread
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                Numbered 1/N thread with punchy, verified tweets under 280 characters (~5-8 tweets).
+              </p>
+            </button>
+          </div>
+        </div>
+
         {/* Topic Input */}
         <div>
           <label
             htmlFor="topic"
             className="block text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1.5"
           >
-            Technical Subject or Question <span className="text-rose-500">*</span>
+            Technical Subject or Topic <span className="text-rose-500">*</span>
           </label>
           <input
             id="topic"
@@ -97,7 +190,13 @@ export function NewRunForm() {
             required
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g. TypeScript 5.0 Type Parameters, PostgreSQL 16 Performance, Rust 2024 Closures"
+            placeholder={
+              format === 'linkedin_post'
+                ? 'e.g. Why distributed systems teams use Raft over Paxos'
+                : format === 'twitter_thread'
+                  ? 'e.g. 5 safety rules of the Raft consensus algorithm'
+                  : 'e.g. TypeScript 5.0 Type Parameters, PostgreSQL 16 Performance, Rust Closures'
+            }
             className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/50 focus:bg-white dark:focus:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm text-neutral-900 dark:text-neutral-100"
           />
         </div>
@@ -163,6 +262,8 @@ export function NewRunForm() {
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="technical, precise, and practical">Technical & Precise</option>
+                <option value="engaging, insightful, and professional">Engaging & Professional</option>
+                <option value="punchy, technical, and compelling">Punchy & Compelling</option>
                 <option value="conversational, clear, and engaging">Conversational & Clear</option>
                 <option value="formal, analytical, and rigorous">Formal & Rigorous</option>
               </select>
@@ -183,9 +284,9 @@ export function NewRunForm() {
               <input
                 id="targetWords"
                 type="range"
-                min="150"
+                min="100"
                 max="1200"
-                step="50"
+                step="25"
                 value={targetWords}
                 onChange={(e) => setTargetWords(Number(e.target.value))}
                 className="w-full accent-blue-600 cursor-pointer"
@@ -198,70 +299,56 @@ export function NewRunForm() {
         <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
           <div className="flex items-center space-x-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Configurable Budget Limits & Observability</span>
+            <span>Budget Guard Limits (Per Run)</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label
-                  htmlFor="maxTokens"
-                  className="block text-xs font-medium text-neutral-600 dark:text-neutral-400"
-                >
-                  Max Token Budget
-                </label>
-                <span className="text-[11px] font-mono text-neutral-500 font-medium">
-                  {maxTokens.toLocaleString()} tokens
-                </span>
-              </div>
+              <label
+                htmlFor="maxTokens"
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1"
+              >
+                Max Tokens Allowed
+              </label>
               <input
                 id="maxTokens"
                 type="number"
-                min="10000"
+                min="1000"
                 max="500000"
                 step="5000"
                 value={maxTokens}
                 onChange={(e) => setMaxTokens(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-[10px] text-neutral-400 mt-1">
-                Halts run and transitions to review on breach
-              </p>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label
-                  htmlFor="maxCostUsd"
-                  className="block text-xs font-medium text-neutral-600 dark:text-neutral-400"
-                >
-                  Max Cost Limit (USD)
-                </label>
-                <span className="text-[11px] font-mono text-neutral-500 font-medium">
-                  ${maxCostUsd.toFixed(2)}
-                </span>
-              </div>
+              <label
+                htmlFor="maxCostUsd"
+                className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1"
+              >
+                Max Cost Limit ($ USD)
+              </label>
               <input
                 id="maxCostUsd"
                 type="number"
-                min="0.10"
-                max="10.00"
-                step="0.10"
+                min="0.1"
+                max="20"
+                step="0.1"
                 value={maxCostUsd}
                 onChange={(e) => setMaxCostUsd(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-[10px] text-neutral-400 mt-1">Default $1.50 per run</p>
             </div>
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="pt-2 flex justify-end">
+        {/* Action Button */}
+        <div className="pt-2">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex items-center space-x-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition shadow-sm hover:shadow flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
@@ -270,7 +357,7 @@ export function NewRunForm() {
               </>
             ) : (
               <>
-                <span>Launch Article Pipeline</span>
+                <span>Launch {format === 'article' ? 'Article' : format === 'linkedin_post' ? 'LinkedIn' : 'Twitter'} Pipeline</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

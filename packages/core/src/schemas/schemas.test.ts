@@ -140,6 +140,7 @@ describe('Zod Contracts and Schemas', () => {
       expect(config.audience).toBe('software engineers');
       expect(config.tone).toBe('technical and precise');
       expect(config.targetWords).toBe(800);
+      expect(config.format).toBe('article');
     });
   });
 

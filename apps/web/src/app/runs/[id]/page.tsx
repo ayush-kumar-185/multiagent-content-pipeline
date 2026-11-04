@@ -106,8 +106,16 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           </Link>
 
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
               <span className="font-mono text-xs text-neutral-400 font-medium">{run.id}</span>
+              <span className="text-neutral-300 dark:text-neutral-700">•</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                {run.config.format === 'linkedin_post'
+                  ? 'LinkedIn Post'
+                  : run.config.format === 'twitter_thread'
+                    ? 'X / Twitter Thread'
+                    : 'Technical Article'}
+              </span>
               <span className="text-neutral-300 dark:text-neutral-700">•</span>
               <span className="text-xs text-neutral-500">
                 Created {new Date(run.createdAt).toLocaleDateString()}
@@ -130,7 +138,15 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
-              <span>{copied ? 'Copied' : 'Copy Draft'}</span>
+              <span>
+                {copied
+                  ? 'Copied'
+                  : run.config.format === 'twitter_thread'
+                    ? 'Copy Thread'
+                    : run.config.format === 'linkedin_post'
+                      ? 'Copy Post'
+                      : 'Copy Draft'}
+              </span>
             </button>
           )}
 
