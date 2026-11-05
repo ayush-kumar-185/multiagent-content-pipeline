@@ -308,18 +308,21 @@ export function NewRunForm() {
                 htmlFor="maxTokens"
                 className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1"
               >
-                Max Tokens Allowed
+                Max Tokens Safety Cap (Per Run)
               </label>
               <input
                 id="maxTokens"
                 type="number"
                 min="1000"
                 max="500000"
-                step="1000"
+                step="any"
                 value={maxTokens}
                 onChange={(e) => setMaxTokens(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-[10px] text-neutral-400 mt-1">
+                Upper guardrail for this generation only (default: 100,000). Not your account balance.
+              </p>
             </div>
 
             <div>
@@ -327,18 +330,21 @@ export function NewRunForm() {
                 htmlFor="maxCostUsd"
                 className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1"
               >
-                Max Cost Limit ($ USD)
+                Max Cost Limit ($ USD Per Run)
               </label>
               <input
                 id="maxCostUsd"
                 type="number"
-                min="0.05"
+                min="0.01"
                 max="20"
-                step="0.05"
+                step="any"
                 value={maxCostUsd}
                 onChange={(e) => setMaxCostUsd(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-[10px] text-neutral-400 mt-1">
+                Budget stop for this generation only (default: $1.50).
+              </p>
             </div>
           </div>
         </div>

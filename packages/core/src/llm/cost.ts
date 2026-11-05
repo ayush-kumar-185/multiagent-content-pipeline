@@ -37,6 +37,11 @@ export function estimateCostUsd(
 ): number {
   const lower = model.toLowerCase();
 
+  // Free models (OpenRouter free router or :free models)
+  if (lower.endsWith(':free') || lower === 'openrouter/free' || lower.includes('/free')) {
+    return 0;
+  }
+
   // 1. Exact match
   let pricing = MODEL_PRICING[lower];
 

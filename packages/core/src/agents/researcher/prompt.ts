@@ -33,7 +33,15 @@ export function buildResearcherInitialPrompt(
   pages: Array<{ url: string; wrappedText: string }>,
 ): string {
   const pagesFormatted = pages
-    .map((p, i) => `### Document ${i + 1} (URL: ${p.url})\n${p.wrappedText}`)
+    .slice(0, 5)
+    .map((p, i) => {
+      const content =
+        p.wrappedText.length > 4000
+          ? p.wrappedText.slice(0, 4000) +
+            '\n... [truncated for brevity]\n<<<END_UNTRUSTED_EXTERNAL_WEB_CONTENT>>>'
+          : p.wrappedText;
+      return `### Document ${i + 1} (URL: ${p.url})\n${content}`;
+    })
     .join('\n\n');
 
   return `Topic of Research: "${topic}"
@@ -54,7 +62,15 @@ export function buildResearcherReResearchPrompt(
     .join('\n');
 
   const pagesFormatted = pages
-    .map((p, i) => `### Document ${i + 1} (URL: ${p.url})\n${p.wrappedText}`)
+    .slice(0, 5)
+    .map((p, i) => {
+      const content =
+        p.wrappedText.length > 4000
+          ? p.wrappedText.slice(0, 4000) +
+            '\n... [truncated for brevity]\n<<<END_UNTRUSTED_EXTERNAL_WEB_CONTENT>>>'
+          : p.wrappedText;
+      return `### Document ${i + 1} (URL: ${p.url})\n${content}`;
+    })
     .join('\n\n');
 
   return `Targeted Re-Research Request:
