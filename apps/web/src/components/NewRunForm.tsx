@@ -315,7 +315,7 @@ export function NewRunForm() {
                 type="number"
                 min="1000"
                 max="500000"
-                step="5000"
+                step="1000"
                 value={maxTokens}
                 onChange={(e) => setMaxTokens(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -332,9 +332,9 @@ export function NewRunForm() {
               <input
                 id="maxCostUsd"
                 type="number"
-                min="0.1"
+                min="0.05"
                 max="20"
-                step="0.1"
+                step="0.05"
                 value={maxCostUsd}
                 onChange={(e) => setMaxCostUsd(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
