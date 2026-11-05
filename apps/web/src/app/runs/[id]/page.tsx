@@ -19,7 +19,9 @@ import {
   Copy,
   Check,
   Sparkles,
+  FileText,
 } from 'lucide-react';
+import { cleanForSocialMedia } from '@/lib/formatExport';
 
 export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -29,7 +31,8 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   const [run, setRun] = useState<RunRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedClean, setCopiedClean] = useState(false);
+  const [copiedRaw, setCopiedRaw] = useState(false);
 
   const fetchRun = useCallback(async () => {
     try {
@@ -47,11 +50,22 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
     fetchRun();
   }, [fetchRun]);
 
-  const handleCopyMarkdown = () => {
+  const handleCopyClean = () => {
+    if (run?.draft) {
+      const isSocial =
+        run.config.format === 'linkedin_post' || run.config.format === 'twitter_thread';
+      const clean = cleanForSocialMedia(run.draft, { unicodeBold: isSocial });
+      navigator.clipboard.writeText(clean);
+      setCopiedClean(true);
+      setTimeout(() => setCopiedClean(false), 2000);
+    }
+  };
+
+  const handleCopyRaw = () => {
     if (run?.draft) {
       navigator.clipboard.writeText(run.draft);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedRaw(true);
+      setTimeout(() => setCopiedRaw(false), 2000);
     }
   };
 
@@ -129,25 +143,41 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
 
         <div className="flex items-center space-x-2 self-start sm:self-center">
           {run.draft && (
-            <button
-              onClick={handleCopyMarkdown}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-medium transition"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-              <span>
-                {copied
-                  ? 'Copied'
-                  : run.config.format === 'twitter_thread'
-                    ? 'Copy Thread'
-                    : run.config.format === 'linkedin_post'
-                      ? 'Copy Post'
-                      : 'Copy Draft'}
-              </span>
-            </button>
+            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+              <button
+                onClick={handleCopyClean}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+                title="Copies clean publication-ready text with citation brackets stripped and bold styling formatted for LinkedIn/X"
+              >
+                {copiedClean ? (
+                  <Check className="w-3.5 h-3.5 text-white" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {copiedClean
+                    ? 'Copied Clean Text!'
+                    : run.config.format === 'twitter_thread'
+                      ? 'Copy Clean Thread'
+                      : run.config.format === 'linkedin_post'
+                        ? 'Copy Clean Post (Ready for LinkedIn)'
+                        : 'Copy Clean Text'}
+                </span>
+              </button>
+
+              <button
+                onClick={handleCopyRaw}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 transition"
+                title="Copies raw Markdown draft with [n1] citations"
+              >
+                {copiedRaw ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5" />
+                )}
+                <span>{copiedRaw ? 'Copied Raw!' : 'Copy Markdown'}</span>
+              </button>
+            </div>
           )}
 
           {['pending', 'running'].includes(run.status) && (

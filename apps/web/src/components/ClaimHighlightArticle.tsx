@@ -19,6 +19,23 @@ interface ClaimHighlightArticleProps {
   notes: Note[];
 }
 
+function renderFormattedText(text: string): React.ReactNode {
+  if (!text) return text;
+  if (!text.includes('**')) return text;
+
+  const segments = text.split(/(\*\*.*?\*\*)/g);
+  return segments.map((seg, i) => {
+    if (seg.startsWith('**') && seg.endsWith('**') && seg.length >= 4) {
+      return (
+        <strong key={i} className="font-sans font-bold text-neutral-900 dark:text-neutral-100">
+          {seg.slice(2, -2)}
+        </strong>
+      );
+    }
+    return seg;
+  });
+}
+
 export function ClaimHighlightArticle({
   draft,
   claims,
@@ -92,7 +109,7 @@ export function ClaimHighlightArticle({
 
           // Search for claims present in this paragraph
           return (
-            <p key={pIdx} className="leading-relaxed">
+            <p key={pIdx} className="leading-relaxed whitespace-pre-line">
               {renderParagraphWithClaims(p)}
             </p>
           );
@@ -108,7 +125,7 @@ export function ClaimHighlightArticle({
       .filter((c) => paragraphText.includes(c.claim.trim()));
 
     if (matchingClaims.length === 0) {
-      return paragraphText;
+      return renderFormattedText(paragraphText);
     }
 
     // Replace claim occurrences with interactive highlighted spans
@@ -128,12 +145,12 @@ export function ClaimHighlightArticle({
       }
 
       if (!earliestMatch) {
-        parts.push(remaining);
+        parts.push(renderFormattedText(remaining));
         break;
       }
 
       if (earliestMatch.pos > 0) {
-        parts.push(remaining.slice(0, earliestMatch.pos));
+        parts.push(renderFormattedText(remaining.slice(0, earliestMatch.pos)));
       }
 
       const cl = earliestMatch.claim;
@@ -162,10 +179,32 @@ export function ClaimHighlightArticle({
           }`}
           title="Click to inspect citation and factual verification"
         >
-          {cl.claim}
-          <sup className="font-sans font-bold text-[11px] ml-1 text-blue-600 dark:text-blue-400 select-none">
-            {cl.noteIds.map((id) => `[${id}]`).join('')}
-          </sup>
+          {renderFormattedText(cl.claim)}
+          <span className="inline-flex items-center space-x-1 ml-1.5 align-baseline select-none">
+            {cl.noteIds.map((id) => {
+              const note = notesMap.get(id);
+              return (
+                <a
+                  key={id}
+                  href={note?.sourceUrl || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  title={
+                    note
+                      ? `Verified Source: ${note.sourceUrl}\n"${note.quote}"`
+                      : `Citation Note [${id}]`
+                  }
+                  className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/90 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-sans font-bold text-[10px] border border-blue-200 dark:border-blue-800 transition hover:underline"
+                >
+                  <span>[{id}]</span>
+                  <ExternalLink className="w-2.5 h-2.5 opacity-75" />
+                </a>
+              );
+            })}
+          </span>
         </mark>,
       );
 
