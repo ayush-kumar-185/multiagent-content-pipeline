@@ -44,6 +44,7 @@ export async function runEditorAgent(
     budgetLimits,
     runId: state.runId,
     agentRole: 'editor',
+    maxTokens: 800,
     tracer,
   });
 

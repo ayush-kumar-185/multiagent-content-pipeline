@@ -119,3 +119,19 @@ This document records real bugs, edge-case failures, and architectural issues di
   2. Configured multi-path `dotenv` resolution in `client.ts`, `factory.ts`, and `start.ts` to search parent workspace root `.env` files (`../../.env`, `../.env`), and copied `.env` into `apps/api` and `apps/web`.
   3. Reordered `apps/web/src/app/runs/[id]/page.tsx` so `ClaimHighlightArticle` renders prominently at the top with interactive claim highlighting and source drawer, followed by `HumanReviewActions`.
 
+---
+
+### [2026-11-05] OpenRouter HTTP 402 Credit Reservation Failure on High `max_tokens` Default
+
+- **Phase:** Multi-Format Social Media & Twitter Threads
+- **Symptom:** Run status failed immediately during Writer execution on topic `"5 mind-bending facts about black holes confirmed by the Event Horizon Telescope and gravitational wave detections"`. In `run_events`, the logged error was: `402 This request requires more credits, or fewer max_tokens. You requested up to 2000 tokens, but can only afford 1831.` (and in a subsequent retry, afford 1882).
+- **Cause:**
+  1. In `packages/core/src/llm/structuredOutput.ts`, every LLM request defaulted to `max_tokens: 2000` when unspecified.
+  2. In `.env`, `WRITER_MODEL` and `EDITOR_MODEL` were configured with `openai/gpt-4o` ($10.00 / 1M output tokens).
+  3. OpenRouter calculates credit pre-authorization based on `prompt_tokens * prompt_price + max_tokens * completion_price`. When an account or key balance is low, requesting 2,000 completion tokens on `gpt-4o` ($0.02 reserved) exceeded the available credit reservation, causing OpenRouter to reject with HTTP 402. Because the structured output retry loop did not catch 402 errors, the exception terminated the worker job.
+- **Fix:**
+  1. Implemented **Adaptive Token Clamping** in `packages/core/src/llm/structuredOutput.ts`: caught HTTP 402 / credit limit errors matching `can only afford (\d+)`. If affordable tokens are sufficient (>= 150), the system dynamically clamps `max_tokens = Math.floor(affordable * 0.95)` and immediately retries the chat completion without failing the pipeline.
+  2. Implemented role-based and format-aware default `maxTokens`: Editor defaults to 800 tokens, Fact-Checker to 1200, Social Writer (LinkedIn/Twitter) to 1000, and Researcher/Article Writer to 1500, avoiding unnecessary credit reservations.
+  3. Updated `.env` and `apps/api/.env` agent model configurations to `openai/gpt-4o-mini` ($0.60 / 1M tokens — over 16x cheaper than `gpt-4o`), enabling low-cost accounts to execute dozens of runs smoothly for fractions of a cent per run ($0.0059 verified on live black holes topic).
+
+

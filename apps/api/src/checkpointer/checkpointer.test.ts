@@ -45,6 +45,7 @@ describe('Postgres Checkpointer for LangGraph', () => {
         audience: 'engineers',
         tone: 'technical',
         targetWords: 300,
+        format: 'article',
       },
     };
 

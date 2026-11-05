@@ -411,3 +411,30 @@ To deploy CiteWriter into production environments (Docker Compose, Railway, Rend
 - _Next.js custom server inside Fastify:_ Rejected because Next.js App Router standalone server provides optimal caching, streaming SSR, and edge compatibility.
 
 ---
+
+## ADR 013: Adaptive Token Clamping & Credit Limit Resiliency in Structured Output
+
+- **Date:** 2026-11-05
+- **Status:** Accepted
+
+### Context
+
+When executing runs using multi-agent LLM pipelines, providers like OpenRouter pre-authorize credit costs based on `prompt_tokens * prompt_price + max_tokens * completion_price`. When an account's credit balance is low, or when using higher-tier models such as `gpt-4o` with a high hardcoded `max_tokens: 2000` limit, requests trigger HTTP 402 rejection (`"This request requires more credits, or fewer max_tokens. You requested up to 2000 tokens, but can only afford X"`), causing the background worker to fail the run.
+
+### Decision
+
+1. **Adaptive Token Clamping in `generateStructuredOutput`:**
+   - Intercept provider 402 errors containing affordability directives (`can only afford (\d+)`).
+   - If affordable tokens exceed a reasonable minimum (150 tokens), clamp `max_tokens` dynamically to `Math.floor(affordable * 0.95)` and immediately retry the request.
+   - If balance is completely depleted or below threshold, throw a descriptive, human-actionable error explaining the key's state.
+2. **Context-Aware Token Limits:**
+   - Instead of a blunt 2000-token default across all agents, configure role-appropriate defaults: 800 tokens for Editor verdicts, 1000 tokens for social writers, 1200 for Fact-checker, and 1500 for Researcher / Articles.
+3. **Cost-Effective Default Models in `.env`:**
+   - Default `WRITER_MODEL` and `EDITOR_MODEL` to `openai/gpt-4o-mini` in `.env`. At $0.60/1M tokens (vs $10.00/1M for `gpt-4o`), complete multi-agent runs execute reliably for <$0.01 per run while preserving strict adherence to prompt constraints and schemas.
+
+### Alternatives Considered
+
+- _Failing immediately on 402:_ Rejected because OpenRouter explicitly signals the exact token count that would succeed; discarding the run when a slight reduction in completion headroom succeeds wastes user time and credits.
+- _Static 500 token limit everywhere:_ Rejected because long technical articles require at least 1200-1500 tokens to provide adequate technical depth.
+
+---

@@ -52,6 +52,9 @@ export async function runWriterAgent(
     : buildWriterInitialPrompt(state.topic, state.notes);
 
   const budgetLimits = resolveBudgetLimits(state.config);
+  const isSocial = state.config?.format === 'linkedin_post' || state.config?.format === 'twitter_thread';
+  const defaultWriterTokens = isSocial ? 1000 : 1500;
+
   const result = await generateStructuredOutput({
     client,
     model,
@@ -63,6 +66,7 @@ export async function runWriterAgent(
     budgetLimits,
     runId: state.runId,
     agentRole: 'writer',
+    maxTokens: defaultWriterTokens,
     tracer,
   });
 

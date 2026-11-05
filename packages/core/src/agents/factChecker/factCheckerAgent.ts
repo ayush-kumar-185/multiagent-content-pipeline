@@ -133,6 +133,7 @@ export async function runFactCheckerAgent(
       budgetLimits,
       runId: state.runId,
       agentRole: 'factChecker',
+      maxTokens: 1200,
       tracer,
     });
 

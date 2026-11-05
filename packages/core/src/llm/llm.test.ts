@@ -186,4 +186,82 @@ describe('LLM Layer: Structured Output with Zod Validation and Retries', () => {
       }),
     ).rejects.toThrow(/Output failed Zod schema validation after 2 retries/);
   });
+
+  it('dynamically clamps max_tokens and retries when OpenRouter returns 402 affordability error', async () => {
+    let callCount = 0;
+    const requestedMaxTokens: number[] = [];
+
+    const mockClient = {
+      chat: {
+        completions: {
+          create: vi.fn().mockImplementation((params: { max_tokens: number }) => {
+            callCount++;
+            requestedMaxTokens.push(params.max_tokens);
+            if (callCount === 1) {
+              const err = new Error(
+                '402 This request requires more credits, or fewer max_tokens. You requested up to 2000 tokens, but can only afford 1831.',
+              );
+              (err as unknown as { status: number }).status = 402;
+              return Promise.reject(err);
+            }
+            return Promise.resolve({
+              usage: { prompt_tokens: 100, completion_tokens: 50 },
+              choices: [
+                {
+                  message: {
+                    content: JSON.stringify({
+                      summary: 'Recovered after token clamp',
+                      tags: ['recovery', 'clamping'],
+                    }),
+                  },
+                },
+              ],
+            });
+          }),
+        },
+      },
+    } as unknown as OpenAI;
+
+    const result = await generateStructuredOutput({
+      client: mockClient,
+      model: 'openai/gpt-4o',
+      schema: TestSchema,
+      systemPrompt: 'System',
+      userPrompt: 'User',
+      maxTokens: 2000,
+    });
+
+    expect(callCount).toBe(2);
+    expect(requestedMaxTokens[0]).toBe(2000);
+    // 1831 * 0.95 = 1739
+    expect(requestedMaxTokens[1]).toBe(1739);
+    expect(result.data.summary).toBe('Recovered after token clamp');
+  });
+
+  it('throws clear actionable error when OpenRouter credits are completely insufficient', async () => {
+    const mockClient = {
+      chat: {
+        completions: {
+          create: vi.fn().mockImplementation(() => {
+            const err = new Error(
+              '402 This request requires more credits, or fewer max_tokens. You requested up to 2000 tokens, but can only afford 50.',
+            );
+            (err as unknown as { status: number }).status = 402;
+            return Promise.reject(err);
+          }),
+        },
+      },
+    } as unknown as OpenAI;
+
+    await expect(
+      generateStructuredOutput({
+        client: mockClient,
+        model: 'openai/gpt-4o',
+        schema: TestSchema,
+        systemPrompt: 'System',
+        userPrompt: 'User',
+        maxTokens: 2000,
+      }),
+    ).rejects.toThrow(/OpenRouter credit limit exceeded for model "openai\/gpt-4o"/);
+  });
 });

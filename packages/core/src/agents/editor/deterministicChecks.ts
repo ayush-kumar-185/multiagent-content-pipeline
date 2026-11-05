@@ -91,10 +91,10 @@ export function calculateReadability(text: string): {
 export function runDeterministicEditorChecks(
   draft: string,
   claims: Claim[],
-  config: RunConfig,
+  config: Partial<RunConfig> = {},
 ): DeterministicEditorReport {
   const words = countWords(draft);
-  const target = config.targetWords;
+  const target = config.targetWords ?? 800;
   // Tolerance: 60% to 140% of target word count
   const minWords = Math.floor(target * 0.6);
   const maxWords = Math.ceil(target * 1.4);

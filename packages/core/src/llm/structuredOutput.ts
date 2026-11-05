@@ -40,6 +40,20 @@ function extractJson(raw: string): string {
   return trimmed;
 }
 
+function getDefaultMaxTokens(role?: AgentRole): number {
+  switch (role) {
+    case 'editor':
+      return 800;
+    case 'factChecker':
+      return 1200;
+    case 'researcher':
+      return 1500;
+    case 'writer':
+    default:
+      return 1500;
+  }
+}
+
 export async function generateStructuredOutput<T>(
   options: StructuredOutputOptions<T>,
 ): Promise<StructuredOutputResult<T>> {
@@ -63,6 +77,8 @@ export async function generateStructuredOutput<T>(
   let totalCompletionTokens = 0;
   let accumulatedCostUsd = 0;
 
+  let effectiveMaxTokens = options.maxTokens ?? getDefaultMaxTokens(agentRole);
+
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     {
       role: 'system',
@@ -82,13 +98,52 @@ export async function generateStructuredOutput<T>(
     );
 
     const callStart = Date.now();
-    const completion = await client.chat.completions.create({
-      model,
-      messages,
-      temperature,
-      max_tokens: options.maxTokens ?? 2000,
-      response_format: { type: 'json_object' },
-    });
+    let completion: OpenAI.Chat.ChatCompletion;
+
+    try {
+      completion = await client.chat.completions.create({
+        model,
+        messages,
+        temperature,
+        max_tokens: effectiveMaxTokens,
+        response_format: { type: 'json_object' },
+      });
+    } catch (apiErr: unknown) {
+      const errMsg = apiErr instanceof Error ? apiErr.message : String(apiErr);
+      const is402 = (apiErr as { status?: number })?.status === 402 || errMsg.includes('402');
+      const affordMatch = errMsg.match(/can only afford (\d+)/i);
+
+      if (is402 && affordMatch && affordMatch[1]) {
+        const affordable = parseInt(affordMatch[1], 10);
+        if (affordable >= 150 && effectiveMaxTokens > affordable) {
+          effectiveMaxTokens = Math.max(100, Math.floor(affordable * 0.95));
+          console.warn(
+            `[AdaptiveTokenClamping] OpenRouter credit limit reached for model "${model}". Dynamically clamping max_tokens to ${effectiveMaxTokens} affordable tokens and retrying.`,
+          );
+          try {
+            completion = await client.chat.completions.create({
+              model,
+              messages,
+              temperature,
+              max_tokens: effectiveMaxTokens,
+              response_format: { type: 'json_object' },
+            });
+          } catch (retryErr: unknown) {
+            const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+            throw new Error(
+              `OpenRouter credit limit exceeded for model "${model}". Key can only afford ${affordable} tokens. Please add credits or switch to a lighter model like openai/gpt-4o-mini in .env. Details: ${retryMsg}`,
+            );
+          }
+        } else {
+          throw new Error(
+            `OpenRouter credit limit exceeded for model "${model}". Key can only afford ${affordable} tokens (minimum required: 150). Please add credits to your OpenRouter account or switch to a lighter model like openai/gpt-4o-mini in .env.`,
+          );
+        }
+      } else {
+        throw apiErr;
+      }
+    }
+
     const latencyMs = Date.now() - callStart;
 
     const usage = completion.usage;
