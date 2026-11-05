@@ -198,7 +198,7 @@ export async function runResearcherAgent(
     budgetLimits,
     runId: state.runId,
     agentRole: 'researcher',
-    maxTokens: 1500,
+    maxTokens: 3500,
     tracer,
   });
 

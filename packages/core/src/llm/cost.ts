@@ -23,6 +23,14 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
   // OpenRouter generic routing
   'openai/gpt-4o': { inputPer1M: 2.5, outputPer1M: 10.0 },
   'openai/gpt-4o-mini': { inputPer1M: 0.15, outputPer1M: 0.6 },
+
+  // Models from photo matrix (Groq/Gemini Flash, Llama 3.3 70B, Mistral Large/Small)
+  'google/gemini-2.5-flash': { inputPer1M: 0.3, outputPer1M: 2.5 },
+  'google/gemini-2.5-flash-lite': { inputPer1M: 0.1, outputPer1M: 0.4 },
+  'meta-llama/llama-3.3-70b-instruct': { inputPer1M: 0.2, outputPer1M: 0.52 },
+  'mistralai/mistral-large-2407': { inputPer1M: 2.0, outputPer1M: 6.0 },
+  'mistralai/mistral-large': { inputPer1M: 2.0, outputPer1M: 6.0 },
+  'mistralai/mistral-small-24b-instruct-2501': { inputPer1M: 0.05, outputPer1M: 0.08 },
 };
 
 const DEFAULT_PRICING: ModelPricing = {

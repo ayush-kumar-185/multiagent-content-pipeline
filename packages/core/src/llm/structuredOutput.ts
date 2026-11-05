@@ -43,14 +43,14 @@ function extractJson(raw: string): string {
 function getDefaultMaxTokens(role?: AgentRole): number {
   switch (role) {
     case 'editor':
-      return 800;
+      return 1000;
     case 'factChecker':
-      return 1200;
+      return 2000;
     case 'researcher':
-      return 1500;
+      return 3500;
     case 'writer':
     default:
-      return 1500;
+      return 2500;
   }
 }
 
@@ -250,11 +250,20 @@ export async function generateStructuredOutput<T>(
       }
 
       const parseError = err instanceof Error ? err.message : 'Invalid JSON';
-      messages.push({ role: 'assistant', content });
-      messages.push({
-        role: 'user',
-        content: `Your response was not valid JSON: ${parseError}. Please output valid JSON only.`,
-      });
+      if (completion.choices[0]?.finish_reason === 'length') {
+        effectiveMaxTokens = Math.min(8000, Math.floor(effectiveMaxTokens * 1.5));
+        messages.push({ role: 'assistant', content });
+        messages.push({
+          role: 'user',
+          content: `Your previous response was truncated because it exceeded the output token limit. Please output concise, complete, valid JSON only.`,
+        });
+      } else {
+        messages.push({ role: 'assistant', content });
+        messages.push({
+          role: 'user',
+          content: `Your response was not valid JSON: ${parseError}. Please output valid JSON only.`,
+        });
+      }
     }
   }
 
