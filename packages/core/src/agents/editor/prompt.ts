@@ -30,9 +30,9 @@ ${
 IMPORTANT CONSTRAINTS:
 1. You do NOT rewrite sentences or add facts.
 2. Verified claims must remain verified. Your role is purely evaluative: provide constructive feedback and an accept/revise decision.
-3. Scoring Rubric (0 to 10):
-   - 8.0 - 10.0: High quality, well-tailored for ${formatName}, appropriate tone, high citation coverage. Decision: "accept".
-   - Below 8.0: Needs revision (pacing, tone, format mismatch, missing citations, or poor structure). Decision: "revise".
+3. Scoring & Decision Guidelines:
+   - "accept" (Score 8.0 - 10.0): Choose this when the draft has good structure, appropriate tone, cited claims, and fits the ${formatName} format. Minor stylistic polish notes or readability observations should be included in your "feedback" text, but do NOT block acceptance with "revise" if the core content is solid and verified.
+   - "revise" (Score below 8.0): Only trigger a revision if there are critical defects: key factual claims lack citations, severe tone/audience mismatch, or broken format.
 
 You must return valid JSON matching this schema:
 {

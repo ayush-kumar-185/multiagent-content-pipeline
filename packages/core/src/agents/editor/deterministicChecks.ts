@@ -48,9 +48,10 @@ export function calculateReadability(text: string): {
   totalSentences: number;
 } {
   const clean = text.replace(/#+\s.*/g, ''); // strip headings
+  // Split on sentence-ending punctuation OR line breaks / bullet points
   const sentences = clean
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
+    .split(/(?:(?<=[.!?])\s+|\r?\n+)/)
+    .map((s) => s.replace(/^[-*•\d.)\s]+/, '').trim())
     .filter((s) => s.length > 5);
 
   const numSentences = Math.max(1, sentences.length);
