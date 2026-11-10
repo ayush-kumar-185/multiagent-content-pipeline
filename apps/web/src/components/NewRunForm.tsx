@@ -17,6 +17,70 @@ import {
   MessageSquare,
 } from 'lucide-react';
 
+export const AUDIENCE_GROUPS = [
+  {
+    group: 'Engineering & Software Architecture',
+    options: [
+      { value: 'software engineers and architects', label: 'Software Engineers & Architects' },
+      { value: 'engineering leadership, CTOs, and founders', label: 'Tech Leadership & CTOs' },
+      { value: 'computer science students and learners', label: 'CS Students & Learners' },
+      { value: 'open-source developers and builders', label: 'Open-Source & Web3 Builders' },
+      { value: 'devops, SRE, and cloud infrastructure engineers', label: 'DevOps & Cloud SREs' },
+    ],
+  },
+  {
+    group: 'Science & Deep Tech',
+    options: [
+      { value: 'science and curiosity enthusiasts', label: 'Science & Curiosity Enthusiasts' },
+      { value: 'researchers, scientists, and academics', label: 'Researchers & Academics' },
+      { value: 'biotech and life sciences researchers', label: 'Biotech & Life Sciences' },
+    ],
+  },
+  {
+    group: 'Product & Business Leadership',
+    options: [
+      { value: 'tech founders and startup investors', label: 'Tech Founders & Investors' },
+      { value: 'product managers and tech strategists', label: 'Product Managers & Strategists' },
+      { value: 'business & technology executives', label: 'Business & Tech Executives' },
+    ],
+  },
+  {
+    group: 'General & Explainers',
+    options: [
+      { value: 'general tech readers', label: 'General Tech Readers' },
+      { value: 'curious non-technical audience looking for clear explanations', label: 'Curious Non-Technical Readers' },
+    ],
+  },
+];
+
+export const TONE_GROUPS = [
+  {
+    group: 'Technical & Authoritative',
+    options: [
+      { value: 'technical, precise, and practical', label: 'Technical & Precise (Authoritative)' },
+      { value: 'formal, analytical, and rigorous', label: 'Deep & Academic (Rigorous, Whitepaper)' },
+      { value: 'critical, balanced, and analytical evaluating tradeoffs', label: 'Critical & Analytical (Evaluating Tradeoffs)' },
+    ],
+  },
+  {
+    group: 'Engaging & Social Media',
+    options: [
+      { value: 'engaging, insightful, and professional', label: 'Engaging & Professional (LinkedIn / Leadership)' },
+      { value: 'punchy, technical, and compelling', label: 'Punchy & High-Hook (Fast-Paced, X / Threads)' },
+      { value: 'conversational, clear, and engaging', label: 'Conversational & Clear (Friendly Explainer)' },
+    ],
+  },
+  {
+    group: 'Visionary & Narrative',
+    options: [
+      { value: 'inspiring, forward-looking, and visionary', label: 'Inspiring & Visionary (Future Tech)' },
+      { value: 'story-driven, inquisitive, and narrative-focused', label: 'Story-Driven & Inquisitive (Narrative Science)' },
+      { value: 'crisp, direct, and concise', label: 'Crisp & Concise (Skimmable, Bullet-Rich)' },
+      { value: 'balanced, objective, and skeptical', label: 'Balanced & Skeptical (Myth-Busting)' },
+    ],
+  },
+];
+
 export function NewRunForm() {
   const router = useRouter();
   const { user } = useAuth();
@@ -25,7 +89,13 @@ export function NewRunForm() {
   const [topic, setTopic] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [audience, setAudience] = useState('software engineers and architects');
+  const [isCustomAudience, setIsCustomAudience] = useState(false);
+  const [customAudience, setCustomAudience] = useState('');
+
   const [tone, setTone] = useState('technical, precise, and practical');
+  const [isCustomTone, setIsCustomTone] = useState(false);
+  const [customTone, setCustomTone] = useState('');
+
   const [targetWords, setTargetWords] = useState(400);
   const [maxTokens, setMaxTokens] = useState(100000);
   const [maxCostUsd, setMaxCostUsd] = useState(1.5);
@@ -35,15 +105,40 @@ export function NewRunForm() {
 
   const handleFormatSelect = (selectedFormat: 'article' | 'linkedin_post' | 'twitter_thread') => {
     setFormat(selectedFormat);
+    setIsCustomAudience(false);
+    setIsCustomTone(false);
     if (selectedFormat === 'linkedin_post') {
+      setAudience('engineering leadership, CTOs, and founders');
       setTargetWords(200);
       setTone('engaging, insightful, and professional');
     } else if (selectedFormat === 'twitter_thread') {
+      setAudience('science and curiosity enthusiasts');
       setTargetWords(250);
       setTone('punchy, technical, and compelling');
     } else {
+      setAudience('software engineers and architects');
       setTargetWords(400);
       setTone('technical, precise, and practical');
+    }
+  };
+
+  const handleAudienceChange = (val: string) => {
+    if (val === '__custom__') {
+      setIsCustomAudience(true);
+      setAudience('__custom__');
+    } else {
+      setIsCustomAudience(false);
+      setAudience(val);
+    }
+  };
+
+  const handleToneChange = (val: string) => {
+    if (val === '__custom__') {
+      setIsCustomTone(true);
+      setTone('__custom__');
+    } else {
+      setIsCustomTone(false);
+      setTone(val);
     }
   };
 
@@ -53,6 +148,9 @@ export function NewRunForm() {
       setError('Please enter a research topic or technical subject.');
       return;
     }
+
+    const finalAudience = isCustomAudience ? customAudience.trim() || 'general tech audience' : audience;
+    const finalTone = isCustomTone ? customTone.trim() || 'balanced, clear, and objective' : tone;
 
     setIsSubmitting(true);
     setError(null);
@@ -64,8 +162,8 @@ export function NewRunForm() {
           sourceUrl: sourceUrl.trim() || undefined,
           config: {
             format,
-            audience,
-            tone,
+            audience: finalAudience,
+            tone: finalTone,
             targetWords: Number(targetWords),
             maxTokens: Number(maxTokens),
             maxCostUsd: Number(maxCostUsd),
@@ -237,15 +335,34 @@ export function NewRunForm() {
               </label>
               <select
                 id="audience"
-                value={audience}
-                onChange={(e) => setAudience(e.target.value)}
+                value={isCustomAudience ? '__custom__' : audience}
+                onChange={(e) => handleAudienceChange(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="software engineers and architects">Software Engineers</option>
-                <option value="engineering leadership and CTOs">Leadership & CTOs</option>
-                <option value="computer science students">CS Students</option>
-                <option value="general tech readers">General Tech Audience</option>
+                {AUDIENCE_GROUPS.map((group) => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+                <optgroup label="Custom">
+                  <option value="__custom__">Custom Target Audience...</option>
+                </optgroup>
               </select>
+
+              {isCustomAudience && (
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Astrophysics students, Web3 developers..."
+                  value={customAudience}
+                  onChange={(e) => setCustomAudience(e.target.value)}
+                  className="mt-2 w-full px-3 py-1.5 rounded-lg border border-blue-400 dark:border-blue-600 bg-blue-50/30 dark:bg-blue-950/20 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-neutral-400 animate-fadeIn"
+                />
+              )}
             </div>
 
             <div>
@@ -257,16 +374,34 @@ export function NewRunForm() {
               </label>
               <select
                 id="tone"
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
+                value={isCustomTone ? '__custom__' : tone}
+                onChange={(e) => handleToneChange(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="technical, precise, and practical">Technical & Precise</option>
-                <option value="engaging, insightful, and professional">Engaging & Professional</option>
-                <option value="punchy, technical, and compelling">Punchy & Compelling</option>
-                <option value="conversational, clear, and engaging">Conversational & Clear</option>
-                <option value="formal, analytical, and rigorous">Formal & Rigorous</option>
+                {TONE_GROUPS.map((group) => (
+                  <optgroup key={group.group} label={group.group}>
+                    {group.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+                <optgroup label="Custom">
+                  <option value="__custom__">Custom Editorial Tone...</option>
+                </optgroup>
               </select>
+
+              {isCustomTone && (
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Provocative, Socratic, Whimsical..."
+                  value={customTone}
+                  onChange={(e) => setCustomTone(e.target.value)}
+                  className="mt-2 w-full px-3 py-1.5 rounded-lg border border-blue-400 dark:border-blue-600 bg-blue-50/30 dark:bg-blue-950/20 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-neutral-400 animate-fadeIn"
+                />
+              )}
             </div>
 
             <div>
@@ -315,7 +450,7 @@ export function NewRunForm() {
                 type="number"
                 min="1000"
                 max="500000"
-                step="any"
+                step="1"
                 value={maxTokens}
                 onChange={(e) => setMaxTokens(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -337,7 +472,7 @@ export function NewRunForm() {
                 type="number"
                 min="0.01"
                 max="20"
-                step="any"
+                step="0.01"
                 value={maxCostUsd}
                 onChange={(e) => setMaxCostUsd(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
