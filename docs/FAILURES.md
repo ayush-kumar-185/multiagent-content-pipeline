@@ -134,4 +134,18 @@ This document records real bugs, edge-case failures, and architectural issues di
   2. Implemented role-based and format-aware default `maxTokens`: Editor defaults to 800 tokens, Fact-Checker to 1200, Social Writer (LinkedIn/Twitter) to 1000, and Researcher/Article Writer to 1500, avoiding unnecessary credit reservations.
   3. Updated `.env` and `apps/api/.env` agent model configurations to `openai/gpt-4o-mini` ($0.60 / 1M tokens — over 16x cheaper than `gpt-4o`), enabling low-cost accounts to execute dozens of runs smoothly for fractions of a cent per run ($0.0059 verified on live black holes topic).
 
+---
+
+### [2026-11-11] False Positive Numeric Pre-Check Failures on Twitter/List Enumeration
+
+- **Phase:** Multi-Agent Pipeline & Formatting (Writer & Fact-Checker)
+- **Symptom:** In a Twitter thread generation, all 8 tweets were marked `unsupported` before calling the LLM Fact-Checker (`calls: 0`). The Writer underwent 3 desperate revision cycles trying to eliminate numbers, degrading the final draft to generic fluff (`"1/ Turritopsis dohrnii has a unique biological process [n1]"`), hitting the write cap (3/3), and skipping the Editor entirely (`calls: 0`).
+- **Cause:** When formatting threads (e.g. `1/`, `2/`, `1/8`), `citationParser.ts` left the leading `1/` inside the claim text. `runDeterministicFactPreChecks` extracted `"1"` from `"1/ Turritopsis..."` via regex and failed the claim because the number `"1"` did not appear in the marine biology source quote. Because all claims failed deterministically, 0 claims were sent to the LLM Fact-Checker. The graph looped 3 times back to the Writer with errors stating that the numbers `1`, `2`, `3` were hallucinated, until the write cap of 3 was reached and routed straight to human review, bypassing the Editor.
+- **Fix:** 
+  1. Updated `citationParser.ts` to strip leading structural thread numbering (e.g. `1/`, `1/8`), numbered list prefixes (`1.`, `2)`), and bullet markers from parsed claim strings.
+  2. Updated `extractNumbers()` in `deterministicPreChecks.ts` to ignore leading thread/list numbering and thread counter fractions (`1/7`, `2/7`).
+  3. Updated `prompt.ts` to instruct the Writer not to attach citation brackets to non-factual closing calls-to-action (e.g. bookmarking or sharing).
+  4. Verified with new unit tests and an end-to-end live run on the immortal jellyfish topic, resulting in rich biological details, 7/7 claims verified by the LLM Fact-Checker, and an 8.5/10 ACCEPT verdict by the Editor in a single cycle.
+
+
 
