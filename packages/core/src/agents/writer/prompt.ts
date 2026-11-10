@@ -22,7 +22,7 @@ FORMAT SPECIFICATION: X / TWITTER THREAD (~5-8 tweets)
 - Tweet 1: A punchy hook tweet that introduces the technical problem or revelation.
 - Body Tweets (2 to N-1): Each tweet must be a standalone, bite-sized technical insight under 280 characters.
 - Citations: EVERY factual sentence or claim in every tweet MUST carry its source note identifier, e.g. [n1].
-- Final Tweet: A concise wrap-up summarizing the key lessons and encouraging readers to bookmark or share.
+- Final Tweet: A concise wrap-up summarizing the key lessons and encouraging readers to bookmark or share. Do NOT attach citation brackets to non-factual closing calls to action.
 - Separate each tweet with two blank lines.`;
   } else {
     formatInstructions = `
@@ -42,7 +42,7 @@ ${formatInstructions}
 CORE CITATION RULES:
 1. You may state ONLY facts directly supported by the provided notes. Do NOT extrapolate, hallucinate, or invent unverified facts.
 2. EVERY factual sentence MUST end with its source note identifier in brackets, such as [n1], [n2][n3], or [n1, n2].
-3. If a sentence contains non-factual transitional language, greetings, or formatting hooks, it does not need a citation, but any claim of fact, number, date, or feature MUST carry a citation.
+3. If a sentence contains non-factual transitional language, greetings, formatting hooks, or calls to action (e.g. "Bookmark this thread", "What are your thoughts?"), do NOT attach a citation to it. Any claim of fact, number, date, or feature MUST carry a citation.
 4. Target Audience: ${config.audience}
 5. Target Tone: ${config.tone}
 

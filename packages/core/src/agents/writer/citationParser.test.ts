@@ -49,6 +49,27 @@ Let us conclude our findings.
     expect(claims[0]?.noteIds).toEqual(['n1']);
   });
 
+  it('strips leading thread and list numbers from claims', () => {
+    const threadDraft = `
+1/ Turritopsis dohrnii can revert its lifecycle back to polyp stage [n1].
+
+2/ Marine biologists discovered this transdifferentiation process [n2].
+
+3. Specialized muscle cells can reprogram directly [n3].
+`;
+    const claims = parseCitationsFromDraft(threadDraft);
+    expect(claims).toHaveLength(3);
+    expect(claims[0]?.claim).toBe(
+      'Turritopsis dohrnii can revert its lifecycle back to polyp stage.',
+    );
+    expect(claims[1]?.claim).toBe(
+      'Marine biologists discovered this transdifferentiation process.',
+    );
+    expect(claims[2]?.claim).toBe(
+      'Specialized muscle cells can reprogram directly.',
+    );
+  });
+
   it('handles empty or blank drafts gracefully', () => {
     expect(parseCitationsFromDraft('')).toEqual([]);
     expect(parseCitationsFromDraft('   \n\n  ')).toEqual([]);

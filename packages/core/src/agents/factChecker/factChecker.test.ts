@@ -64,6 +64,17 @@ describe('Fact-Checker: Deterministic Pre-Checks & Seeded Error Detection', () =
         'Number "80%" in claim does not appear in cited note quote(s)',
       );
     });
+
+    it('ignores leading thread indices and counters (e.g. "1/", "2/7") in numeric verification', () => {
+      const threadClaim = {
+        id: 'c4',
+        claim: '1/ Package size dropped by 37%.',
+        noteIds: ['n1'],
+      };
+      const result = runDeterministicFactPreChecks(threadClaim, notes);
+      expect(result.passed).toBe(true);
+      expect(result.claimCheck).toBeUndefined();
+    });
   });
 
   describe('LLM Fact-Checker & Overstated Qualifier Detection', () => {

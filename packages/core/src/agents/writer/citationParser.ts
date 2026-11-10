@@ -52,17 +52,27 @@ export function parseCitationsFromDraft(draft: string): Claim[] {
 
         if (noteIdsSet.size > 0) {
           // Remove the citation markers from the claim text for clean factual statement
-          const cleanClaim = candidate
+          let cleanClaim = candidate
             .replace(/\[(?:n\d+(?:\s*,\s*n\d+)*)\]/g, '')
             .replace(/\s+([.,!?;:])/g, '$1')
             .replace(/\s{2,}/g, ' ')
             .trim();
 
-          claims.push({
-            id: `c${claimIndex++}`,
-            claim: cleanClaim,
-            noteIds: Array.from(noteIdsSet),
-          });
+          // Strip leading structural thread numbers (e.g. "1/", "1/8", "1/8:"), list numbers (e.g. "1.", "1)"),
+          // bullet markers (e.g. "•", "-", "*"), or prefixes like "Fact 1:", "Tip 1:"
+          cleanClaim = cleanClaim
+            .replace(/^(?:(?:Fact|Tip|Step|Item|Point)\s+)?\d+[\/\.)\]:]\s*/i, '')
+            .replace(/^\(\d+\)\s*/, '')
+            .replace(/^[-*•]\s+/, '')
+            .trim();
+
+          if (cleanClaim.length > 0) {
+            claims.push({
+              id: `c${claimIndex++}`,
+              claim: cleanClaim,
+              noteIds: Array.from(noteIdsSet),
+            });
+          }
         }
       }
     }

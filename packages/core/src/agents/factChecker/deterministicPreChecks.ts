@@ -10,9 +10,16 @@ export interface PreCheckResult {
  * Extracts numeric literals (integers, decimals, percentages, currency, year dates) from text.
  */
 export function extractNumbers(text: string): string[] {
+  // 1. Strip leading structural thread numbers (e.g. "1/", "1/8", "1."), list numbers, or prefixes
+  const sanitized = text
+    .replace(/^(?:(?:Fact|Tip|Step|Item|Point)\s+)?\d+[\/\.)\]:]\s*/i, '')
+    .replace(/^\(\d+\)\s*/, '')
+    .replace(/\b\d+\/\d+\b/g, '') // ignore tweet counter fractions like 1/7, 2/7
+    .trim();
+
   // Matches patterns like: 37%, 5.0, 100, 2023, $50, 1,000, 0.25
   const regex = /(?:[$€£])?\b\d+(?:,\d{3})*(?:\.\d+)?%?(?!\w)/g;
-  const matches = text.match(regex);
+  const matches = sanitized.match(regex);
   if (!matches) return [];
 
   // Normalize: remove currency symbols and commas for comparison
