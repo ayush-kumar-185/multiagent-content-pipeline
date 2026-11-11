@@ -5,6 +5,7 @@ import { GraphState } from './schemas/state.js';
 import { Note } from './schemas/note.js';
 import { runDeterministicEditorChecks } from './agents/editor/deterministicChecks.js';
 import { runDeterministicFactPreChecks } from './agents/factChecker/deterministicPreChecks.js';
+import { hasConfiguredLLM, resolveProvider } from './llm/client.js';
 
 // Load environment variables (.env)
 dotenv.config();
@@ -44,9 +45,19 @@ async function runCLI() {
   const topicArg = args[0] ?? 'Advances in TypeScript 5.0 Type Inference';
   const actionArg = (args[1] ?? 'approve').toLowerCase() as 'approve' | 'edit' | 'reject';
 
-  const hasApiKey = Boolean(process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY);
+  const hasApiKey = hasConfiguredLLM();
   const hasSearchKey = Boolean(process.env.TAVILY_API_KEY || process.env.BRAVE_SEARCH_API_KEY);
-  const providerName = process.env.OPENROUTER_API_KEY ? 'OpenRouter' : 'OpenAI';
+  const activeProvider = resolveProvider();
+  const providerName =
+    activeProvider === 'gemini'
+      ? 'Google AI Studio (Gemini)'
+      : activeProvider === 'groq'
+        ? 'Groq'
+        : activeProvider === 'cerebras'
+          ? 'Cerebras'
+          : activeProvider === 'ollama'
+            ? 'Ollama (Local)'
+            : 'OpenAI';
   const useRealResearcher = hasApiKey && hasSearchKey;
 
   console.log('='.repeat(70));

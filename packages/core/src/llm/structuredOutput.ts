@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { TokenUsage, BudgetLimits } from './types.js';
+import { TokenUsage, BudgetLimits, AgentRole } from './types.js';
 import { estimateCostUsd } from './cost.js';
 import { assertWithinBudget } from './budget.js';
-import { AgentRole } from './client.js';
+import { resolveProvider, normalizeModelForProvider } from './client.js';
 import { Tracer } from '../observability/types.js';
 
 export interface StructuredOutputOptions<T> {
@@ -17,6 +17,7 @@ export interface StructuredOutputOptions<T> {
   budgetLimits?: BudgetLimits;
   runId?: string;
   agentRole?: AgentRole;
+  provider?: import('./types.js').LLMProvider;
   tracer?: Tracer;
   maxRetries?: number;
   temperature?: number;
@@ -59,7 +60,7 @@ export async function generateStructuredOutput<T>(
 ): Promise<StructuredOutputResult<T>> {
   const {
     client,
-    model,
+    model: rawModel,
     schema,
     systemPrompt,
     userPrompt,
@@ -67,11 +68,21 @@ export async function generateStructuredOutput<T>(
     currentCostUsd = 0,
     budgetLimits,
     runId,
-    agentRole = 'writer',
+    agentRole,
+    provider: explicitProvider,
     tracer,
     maxRetries = 2,
     temperature = 0.2,
   } = options;
+
+  const provider =
+    explicitProvider ??
+    resolveProvider({
+      provider: explicitProvider,
+      role: agentRole,
+      model: rawModel,
+    });
+  const model = normalizeModelForProvider(rawModel, provider);
 
   let totalPromptTokens = 0;
   let totalCompletionTokens = 0;
@@ -110,38 +121,37 @@ export async function generateStructuredOutput<T>(
       });
     } catch (apiErr: unknown) {
       const errMsg = apiErr instanceof Error ? apiErr.message : String(apiErr);
-      const is402 = (apiErr as { status?: number })?.status === 402 || errMsg.includes('402');
-      const affordMatch = errMsg.match(/can only afford (\d+)/i);
+      const status = (apiErr as { status?: number })?.status;
 
-      if (is402 && affordMatch && affordMatch[1]) {
-        const affordable = parseInt(affordMatch[1], 10);
-        if (affordable >= 150 && effectiveMaxTokens > affordable) {
-          effectiveMaxTokens = Math.max(100, Math.floor(affordable * 0.95));
-          console.warn(
-            `[AdaptiveTokenClamping] OpenRouter credit limit reached for model "${model}". Dynamically clamping max_tokens to ${effectiveMaxTokens} affordable tokens and retrying.`,
-          );
-          try {
-            completion = await client.chat.completions.create({
-              model,
-              messages,
-              temperature,
-              max_tokens: effectiveMaxTokens,
-              response_format: { type: 'json_object' },
-            });
-          } catch (retryErr: unknown) {
-            const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
-            throw new Error(
-              `OpenRouter credit limit exceeded for model "${model}". Key can only afford ${affordable} tokens. Please add credits or switch to a lighter model like openai/gpt-4o-mini in .env. Details: ${retryMsg}`,
-            );
-          }
-        } else {
-          throw new Error(
-            `OpenRouter credit limit exceeded for model "${model}". Key can only afford ${affordable} tokens (minimum required: 150). Please add credits to your OpenRouter account or switch to a lighter model like openai/gpt-4o-mini in .env.`,
-          );
-        }
-      } else {
-        throw apiErr;
+      if (
+        status === 401 ||
+        errMsg.toLowerCase().includes('unauthorized') ||
+        errMsg.toLowerCase().includes('invalid api key') ||
+        errMsg.toLowerCase().includes('api_key_invalid')
+      ) {
+        throw new Error(
+          `Authentication failed for provider "${provider.toUpperCase()}" with model "${model}". Please verify that your API key is correctly set in .env. Details: ${errMsg}`,
+        );
       }
+
+      if (
+        status === 429 ||
+        errMsg.toLowerCase().includes('rate limit') ||
+        errMsg.toLowerCase().includes('resource_exhausted') ||
+        errMsg.toLowerCase().includes('quota')
+      ) {
+        throw new Error(
+          `Rate limit or quota exceeded for provider "${provider.toUpperCase()}" with model "${model}". Please check your platform quota or wait before retrying. Details: ${errMsg}`,
+        );
+      }
+
+      if (errMsg.includes('ECONNREFUSED')) {
+        throw new Error(
+          `Connection refused while contacting provider "${provider.toUpperCase()}". If using Ollama, make sure the Ollama daemon is running ('ollama serve'). Details: ${errMsg}`,
+        );
+      }
+
+      throw apiErr;
     }
 
     const latencyMs = Date.now() - callStart;

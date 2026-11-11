@@ -4,9 +4,13 @@ This document provides a complete reference for all key-value pairs in the CiteW
 
 ---
 
-## 1. Quick-Start Configuration (Recommended Stack)
+## 1. Quick-Start Configuration (Multi-Platform Architecture)
 
-If you are using **OpenRouter** (for unified LLM access) and **Tavily** (for web research), your `.env` should look like this:
+CiteWriter supports multi-platform AI APIs, allowing you to route each agent to its optimal platform:
+- **Researcher:** Google AI Studio (Gemini Flash) or Groq for fast, reliable tool calling
+- **Writer:** Cerebras (Llama 3.3 70B) or Groq for highest prose quality
+- **Fact-checker:** Google AI Studio (Gemini Flash) for deep reading and massive context window
+- **Editor:** Google AI Studio (Gemini Flash-Lite) or Ollama (local Llama 3.2) for fast rubric evaluation
 
 ```env
 # ==============================================================================
@@ -25,21 +29,34 @@ WEB_URL=http://localhost:3000
 NODE_ENV=development
 
 # ==============================================================================
-# Agent Models (OpenRouter Model Identifiers)
+# Agent Models & Platform Providers
 # ==============================================================================
-RESEARCHER_MODEL=openai/gpt-4o-mini
-WRITER_MODEL=openai/gpt-4o
-FACT_CHECKER_MODEL=openai/gpt-4o-mini
-EDITOR_MODEL=openai/gpt-4o
+RESEARCHER_PROVIDER=gemini
+RESEARCHER_MODEL=gemini-2.5-flash
+
+WRITER_PROVIDER=cerebras
+WRITER_MODEL=llama3.3-70b
+
+FACT_CHECKER_PROVIDER=gemini
+FACT_CHECKER_MODEL=gemini-2.5-flash
+
+EDITOR_PROVIDER=gemini
+EDITOR_MODEL=gemini-2.5-flash-lite
 
 # ==============================================================================
-# LLM Provider API Keys & Base URLs
+# LLM Platform API Keys & Endpoints
 # ==============================================================================
-OPENROUTER_API_KEY=sk-or-v1-your-actual-openrouter-key-here
-OPENAI_API_KEY=
-OPENAI_BASE_URL=
-ANTHROPIC_API_KEY=
-GEMINI_API_KEY=
+# 1. Google AI Studio (Gemini API)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# 2. Groq Cloud
+GROQ_API_KEY=your_groq_api_key_here
+
+# 3. Cerebras Cloud
+CEREBRAS_API_KEY=your_cerebras_api_key_here
+
+# 4. Ollama (Local Free Inference)
+OLLAMA_BASE_URL=http://localhost:11434/v1
 
 # ==============================================================================
 # Search Tool (Tavily Search API)
@@ -93,103 +110,62 @@ NEXTAUTH_URL=http://localhost:3000
 
 ---
 
-### C. Agent Model Selection
+### C. Agent Provider & Model Selection
 
-CiteWriter uses a provider-agnostic LLM client. Models are configured per agent role, allowing you to use fast/cheap models for extraction and capable frontier models for writing and editorial review.
+CiteWriter uses a provider-agnostic LLM client with direct, native integration for **Google AI Studio (Gemini)**, **Groq**, **Cerebras**, and **Ollama**.
 
-| Variable             | Recommended Value    | Role Description                                                                    |
-| :------------------- | :------------------- | :---------------------------------------------------------------------------------- |
-| `RESEARCHER_MODEL`   | `openai/gpt-4o-mini` | Summarizes fetched web pages and extracts verbatim quote notes.                     |
-| `WRITER_MODEL`       | `openai/gpt-4o`      | Drafts and revises the article, ensuring every sentence cites note IDs like `[n1]`. |
-| `FACT_CHECKER_MODEL` | `openai/gpt-4o-mini` | Verifies claims against source notes and checks numbers/dates.                      |
-| `EDITOR_MODEL`       | `openai/gpt-4o`      | Scores article quality against the rubric and requests targeted revisions.          |
+You can specify a provider per agent (`RESEARCHER_PROVIDER`, `WRITER_PROVIDER`, `FACT_CHECKER_PROVIDER`, `EDITOR_PROVIDER`), or set a global default using `LLM_PROVIDER`.
 
-_Note: If using direct OpenAI instead of OpenRouter, omit the `openai/` prefix (e.g. `gpt-4o` and `gpt-4o-mini`)._
-
----
-
-### D. LLM Provider Credentials
-
-_You only need **ONE** provider configured:_
-
-| Variable             | Provider                       | Where to Get API Keys                                                                                                                                                  |
-| :------------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPENROUTER_API_KEY` | **OpenRouter** _(Recommended)_ | 1. Sign up at [https://openrouter.ai](https://openrouter.ai)<br>2. Navigate to **Keys** $\rightarrow$ **Create Key**<br>3. Copy the token starting with `sk-or-v1-...` |
-| `OPENAI_API_KEY`     | **OpenAI** _(Alternative)_     | 1. Sign up at [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)<br>2. Create secret key starting with `sk-proj-...`                         |
-| `OPENAI_BASE_URL`    | Custom Endpoint                | Optional. Leave empty unless using a local vLLM, Ollama, or proxy gateway.                                                                                             |
-| `ANTHROPIC_API_KEY`  | Anthropic                      | Optional. Only needed if calling Anthropic directly without OpenRouter.                                                                                                |
-| `GEMINI_API_KEY`     | Google Gemini                  | Optional. Only needed if calling Gemini directly.                                                                                                                      |
+| Role | Provider Variable | Model Variable | Recommended Model | Best-fit Reason |
+| :--- | :--- | :--- | :--- | :--- |
+| **Researcher** | `RESEARCHER_PROVIDER` | `RESEARCHER_MODEL` | `gemini-2.5-flash` or `llama-3.3-70b-versatile` | Fast tool execution, reliable note quote extraction |
+| **Writer** | `WRITER_PROVIDER` | `WRITER_MODEL` | `llama3.3-70b` | Highest prose quality and stylistic instruction adherence |
+| **Fact-checker** | `FACT_CHECKER_PROVIDER` | `FACT_CHECKER_MODEL` | `gemini-2.5-flash` | Large context window, careful reading & verification |
+| **Editor** | `EDITOR_PROVIDER` | `EDITOR_MODEL` | `gemini-2.5-flash-lite` or `llama3.2` | Fast, cost-efficient rubric evaluation and feedback |
 
 ---
 
-### E. Web Search Provider (Researcher Agent)
+### D. LLM Platform Credentials & Where to Get Keys
 
-The Researcher agent requires access to a search engine to discover primary sources.
-
-| Variable               | Value               | Where to Get API Keys                                                                                                                                              |
-| :--------------------- | :------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SEARCH_PROVIDER`      | `tavily` or `brave` | Choose `tavily` (default) or `brave`.                                                                                                                              |
-| `TAVILY_API_KEY`       | `tvly-...`          | 1. Sign up at [https://app.tavily.com](https://app.tavily.com)<br>2. Free tier provides **1,000 search queries per month**.<br>3. Copy API key from the dashboard. |
-| `BRAVE_SEARCH_API_KEY` | `BSA...`            | 1. Sign up at [https://brave.com/search/api/](https://brave.com/search/api/)<br>2. Choose the Data API free tier.<br>3. Copy your API key.                         |
-
----
-
-### F. Budget Guard Limits (Cost Control)
-
-CiteWriter enforces deterministic token and cost limits before every LLM call to prevent accidental budget overruns:
-
-| Variable           | Default Value | Description                                                                                                                                                 |
-| :----------------- | :------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MAX_RUN_TOKENS`   | `100000`      | Maximum accumulated tokens allowed across all 4 agents in a single article run.                                                                             |
-| `MAX_RUN_COST_USD` | `1.50`        | Maximum estimated USD cost allowed per run. If exceeded, the run halts gracefully and routes partial drafts to Human Review with `status: budget_exceeded`. |
+| Platform | Environment Variable | Where to Get API Keys / Setup |
+| :--- | :--- | :--- |
+| **Google AI Studio (Gemini API)** | `GEMINI_API_KEY` | 1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)<br>2. Sign in with your Google account<br>3. Click **Create API Key** and copy it into `GEMINI_API_KEY` |
+| **Groq Cloud** | `GROQ_API_KEY` | 1. Sign up at [Groq Console](https://console.groq.com/keys)<br>2. Navigate to **API Keys** $\rightarrow$ **Create API Key**<br>3. Copy the token into `GROQ_API_KEY` |
+| **Cerebras Cloud** | `CEREBRAS_API_KEY` | 1. Visit [Cerebras Cloud](https://cloud.cerebras.ai/)<br>2. Sign up and navigate to **API Keys**<br>3. Generate key and copy into `CEREBRAS_API_KEY` |
+| **Ollama (Local)** | `OLLAMA_BASE_URL` | 1. Install Ollama from [ollama.com](https://ollama.com)<br>2. Run `ollama run llama3.2` or `ollama run mistral`<br>3. Set `OLLAMA_BASE_URL=http://localhost:11434/v1` |
 
 ---
 
-### G. Observability & Telemetry (Langfuse - Optional)
+### E. Search Provider Credentials
 
-CiteWriter instruments every LLM generation, tool execution (`web_search`, `fetch_page`), and agent span with Langfuse tracing.
-
-| Variable              | Default Value                | Where to Get API Keys                                                                                                                                                                                        |
-| :-------------------- | :--------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LANGFUSE_PUBLIC_KEY` | _(Optional)_                 | 1. Sign up at [https://cloud.langfuse.com](https://cloud.langfuse.com) (free cloud tier).<br>2. Create a project $\rightarrow$ **Settings** $\rightarrow$ **API Keys**.<br>3. Copy Public Key (`pk-lf-...`). |
-| `LANGFUSE_SECRET_KEY` | _(Optional)_                 | Copy Secret Key (`sk-lf-...`) from the same page.                                                                                                                                                            |
-| `LANGFUSE_BASEURL`    | `https://cloud.langfuse.com` | Langfuse host URL (`https://us.cloud.langfuse.com` or self-hosted endpoint).                                                                                                                                 |
-
-> [!NOTE]
-> If `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are left blank, CiteWriter operates in **offline-safe in-memory fallback mode**. Traces, agent token breakdowns, and cost accounting will still work locally and display on the frontend without throwing network errors.
+| Variable | Provider | Instructions |
+| :--- | :--- | :--- |
+| `SEARCH_PROVIDER` | Choice: `tavily` or `brave` | Default: `tavily`. |
+| `TAVILY_API_KEY` | **Tavily Search** | 1. Sign up at [https://tavily.com](https://tavily.com)<br>2. Copy key starting with `tvly-...` |
+| `BRAVE_SEARCH_API_KEY` | **Brave Search** | Optional alternative to Tavily. Sign up at [https://brave.com/search/api/](https://brave.com/search/api/) |
 
 ---
 
-### H. Authentication (Auth.js)
+### F. Budget Guard Limits (Per Run)
 
-| Variable       | Recommended Value           | Description                                                                                                            |
-| :------------- | :-------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_SECRET`  | 32+ character random string | Secret key used to encrypt Auth.js session cookies and JWTs. For production, generate with: `openssl rand -base64 32`. |
-| `NEXTAUTH_URL` | `http://localhost:3000`     | Canonical base URL of the frontend web application.                                                                    |
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `MAX_RUN_TOKENS` | `100000` | Hard cap on total tokens accumulated across all 4 agents. Prevents runaway loops. |
+| `MAX_RUN_COST_USD` | `1.50` | Hard cap on financial cost per generation. Enforced pre-call before every LLM request. |
 
 ---
 
 ## 3. Verifying Your Configuration
 
-Once your `.env` is populated:
+Run the test suite to verify connectivity and multi-platform client creation:
 
-1. **Verify Local Databases:**
-   ```powershell
-   docker compose up -d
-   ```
-2. **Run Monorepo Tests (Works without live keys via mock stubs):**
-   ```powershell
-   pnpm test
-   ```
-3. **Run Live Evaluation (With real OpenRouter/OpenAI and Tavily keys):**
-   ```powershell
-   pnpm --filter @citewriter/evals run eval
-   ```
-4. **Start Local Development Servers:**
-   ```powershell
-   # Terminal 1: Start Fastify API & BullMQ Worker
-   pnpm --filter @citewriter/api run dev
+```bash
+# 1. Run LLM client and unit tests
+pnpm --filter @citewriter/core run test src/llm/llm.test.ts
 
-   # Terminal 2: Start Next.js Frontend
-   pnpm --filter @citewriter/web run dev
-   ```
+# 2. Run full monorepo test suite
+pnpm test
+
+# 3. Run interactive CLI test with your configured models
+pnpm --filter @citewriter/core run cli
+```

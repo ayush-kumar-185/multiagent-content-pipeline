@@ -23,7 +23,7 @@ export async function runEditorAgent(
   costUsd: number;
   agentMetrics: RunAgentMetrics;
 }> {
-  const client = options.client ?? createLLMClient();
+  const client = options.client ?? createLLMClient({ role: 'editor' });
   const model = options.model ?? getAgentModel('editor');
   const tracer = options.tracer;
 

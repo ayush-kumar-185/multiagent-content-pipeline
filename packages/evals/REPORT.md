@@ -2,7 +2,7 @@
 
 **Generated:** 2026-11-03T13:03:13.178Z  
 **Total Evaluation Topics:** 16  
-**Architecture:** Multi-Agent Verifiable Citation Pipeline (LangGraph.js + OpenAI / OpenRouter)
+**Architecture:** Multi-Agent Verifiable Citation Pipeline (LangGraph.js + Multi-Platform LLMs: Google Gemini, Groq, Cerebras, Ollama)
 
 ---
 

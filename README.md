@@ -48,7 +48,7 @@ flowchart LR
     Worker --> Checkpointer["Postgres Checkpointer<br/>(Durable Thread State)"]
     Worker --> Tracing["Langfuse Tracing<br/>(Token & Cost Accounting)"]
     Core --> Search["Tavily Search API"]
-    Core --> LLM["OpenRouter / OpenAI Gateway<br/>(gpt-4o, gpt-4o-mini)"]
+    Core --> LLM["Multi-Platform LLM Engine<br/>(Google Gemini, Groq, Cerebras, Ollama)"]
 ```
 
 ---
@@ -148,7 +148,11 @@ Edit `.env` to configure your API keys (see [docs/ENV_SETUP.md](file:///c:/Users
 ```env
 DATABASE_URL=postgresql://citewriter:citewriter_dev_password@localhost:5433/citewriter
 REDIS_URL=redis://localhost:6379
-OPENROUTER_API_KEY=sk-or-v1-your-api-key
+# Configure keys for your chosen platforms:
+GEMINI_API_KEY=your-gemini-key
+GROQ_API_KEY=your-groq-key
+CEREBRAS_API_KEY=your-cerebras-key
+# Or use local Ollama: OLLAMA_BASE_URL=http://localhost:11434/v1
 TAVILY_API_KEY=tvly-your-api-key
 ```
 

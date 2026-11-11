@@ -14,7 +14,7 @@ export function generateMarkdownReport(summary: EvalSuiteSummary): string {
 
 **Generated:** ${timestamp}  
 **Total Evaluation Topics:** ${totalTopics}  
-**Architecture:** Multi-Agent Verifiable Citation Pipeline (LangGraph.js + OpenAI / OpenRouter)
+**Architecture:** Multi-Agent Verifiable Citation Pipeline (LangGraph.js + Multi-Platform LLMs: Google Gemini, Groq, Cerebras, Ollama)
 
 ---
 

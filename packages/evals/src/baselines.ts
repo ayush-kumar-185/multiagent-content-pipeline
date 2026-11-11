@@ -9,6 +9,7 @@ import {
   createLLMClient,
   getAgentModel,
   estimateCostUsd,
+  hasConfiguredLLM,
 } from '@citewriter/core';
 import { Topic, VariantEvalResult } from './types.js';
 import { computeRunMetrics } from './metrics.js';
@@ -29,7 +30,7 @@ export async function runBaselineA(
   const startTime = Date.now();
   const label = 'Baseline A (Single-Prompt Zero-Shot)';
 
-  if (options.stub || (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY)) {
+  if (options.stub || !hasConfiguredLLM()) {
     // Deterministic stub simulation of a zero-shot ungrounded draft
     const draft = `# ${topic.title}
 
@@ -142,7 +143,7 @@ export async function runBaselineB(
   const startTime = Date.now();
   const label = 'Baseline B (Single-Prompt + Retrieved Notes)';
 
-  if (options.stub || (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY)) {
+  if (options.stub || !hasConfiguredLLM()) {
     // Generate draft using provided notes, but introducing 1 ungrounded/hallucinated claim
     const n1 = notes[0] ?? { id: 'n1', claim: 'Primary claim note', quote: 'Primary quote' };
     const n2 = notes[1] ?? { id: 'n2', claim: 'Secondary claim note', quote: 'Secondary quote' };
@@ -306,7 +307,7 @@ export async function runCiteWriterPipeline(
   const startTime = Date.now();
   const label = 'CiteWriter (Multi-Agent Verifiable Pipeline)';
 
-  if (options.stub || (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY)) {
+  if (options.stub || !hasConfiguredLLM()) {
     // Deterministic simulation of CiteWriter:
     // Revision loop catches the ungrounded detail and corrects it to match exact notes
     const sentences = notes.map((n) => {

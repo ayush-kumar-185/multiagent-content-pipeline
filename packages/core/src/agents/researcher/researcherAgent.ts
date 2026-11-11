@@ -43,7 +43,7 @@ export async function runResearcherAgent(
   costUsd: number;
   agentMetrics: RunAgentMetrics;
 }> {
-  const client = options.client ?? createLLMClient();
+  const client = options.client ?? createLLMClient({ role: 'researcher' });
   const model = options.model ?? getAgentModel('researcher');
   const searchProvider = options.searchProvider ?? createSearchProvider();
   const maxFetches = options.maxFetchesPerRound ?? MAX_FETCHES_PER_ROUND;

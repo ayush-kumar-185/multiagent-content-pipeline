@@ -1,10 +1,10 @@
 import 'dotenv/config';
+import { hasConfiguredLLM } from '@citewriter/core';
 import { runEvalSuite } from './runner.js';
 
 async function main() {
   const args = process.argv.slice(2);
-  const isStub =
-    args.includes('--stub') || (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY);
+  const isStub = args.includes('--stub') || !hasConfiguredLLM();
   const topicsArg = args.find((a) => a.startsWith('--topics='));
   const topicIds = topicsArg ? topicsArg.replace('--topics=', '').split(',') : undefined;
 

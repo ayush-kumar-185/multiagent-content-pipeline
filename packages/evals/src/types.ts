@@ -19,11 +19,13 @@ export const TopicSchema = z.object({
       audience: z.string().default('software engineers'),
       tone: z.string().default('technical and precise'),
       targetWords: z.number().int().positive().default(500),
+      format: z.enum(['article', 'linkedin_post', 'twitter_thread']).default('article'),
     })
     .default(() => ({
       audience: 'software engineers',
       tone: 'technical and precise',
       targetWords: 500,
+      format: 'article' as const,
     })),
   rubric: TopicRubricSchema,
   mockNotes: z.array(NoteSchema).optional(),

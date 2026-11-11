@@ -7,51 +7,262 @@ dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
+import { LLMProvider, AgentRole } from './types.js';
+
+export const PROVIDER_DEFAULT_BASE_URLS: Record<LLMProvider, string> = {
+  gemini: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+  groq: 'https://api.groq.com/openai/v1',
+  cerebras: 'https://api.cerebras.ai/v1',
+  ollama: 'http://localhost:11434/v1',
+  openai: 'https://api.openai.com/v1',
+};
+
+export const SUPPORTED_PROVIDERS: LLMProvider[] = ['gemini', 'groq', 'cerebras', 'ollama', 'openai'];
+
+function isValidProvider(val: string): val is LLMProvider {
+  return SUPPORTED_PROVIDERS.includes(val.toLowerCase() as LLMProvider);
+}
+
+function roleToEnvPrefix(role: AgentRole): string {
+  switch (role) {
+    case 'researcher':
+      return 'RESEARCHER';
+    case 'writer':
+      return 'WRITER';
+    case 'factChecker':
+      return 'FACT_CHECKER';
+    case 'editor':
+      return 'EDITOR';
+  }
+}
+
+/**
+ * Checks whether at least one LLM provider (Google AI Studio, Groq, Cerebras, Ollama, or OpenAI)
+ * is configured in the environment.
+ */
+export function hasConfiguredLLM(): boolean {
+  return Boolean(
+    process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.GOOGLE_AI_STUDIO_API_KEY ||
+      process.env.GROQ_API_KEY ||
+      process.env.CEREBRAS_API_KEY ||
+      process.env.OLLAMA_BASE_URL ||
+      process.env.OPENAI_API_KEY,
+  );
+}
+
+/**
+ * Resolves the appropriate LLM provider based on explicit config, agent role,
+ * model name heuristics, or available API keys.
+ */
+export function resolveProvider(options?: {
+  provider?: string;
+  role?: AgentRole;
+  model?: string;
+}): LLMProvider {
+  // 1. Explicit provider passed in options
+  if (options?.provider && isValidProvider(options.provider)) {
+    return options.provider.toLowerCase() as LLMProvider;
+  }
+
+  // 2. Unambiguous model name heuristics
+  // Models that can only belong to a specific provider
+  const modelStr = (options?.model || '').toLowerCase();
+  if (modelStr.includes('gemini')) return 'gemini';
+  if (
+    modelStr.includes('groq') ||
+    modelStr.includes('versatile') ||
+    modelStr.includes('instant') ||
+    modelStr.includes('mixtral') ||
+    modelStr.includes('gemma2')
+  ) {
+    return 'groq';
+  }
+  if (modelStr.includes('cerebras')) return 'cerebras';
+  if (modelStr.includes('ollama')) return 'ollama';
+
+  // 3. Role-specific environment override (e.g. WRITER_PROVIDER=cerebras)
+  if (options?.role) {
+    const rolePrefix = roleToEnvPrefix(options.role);
+    const envRoleProvider = process.env[`${rolePrefix}_PROVIDER`]?.trim().toLowerCase();
+    if (envRoleProvider && isValidProvider(envRoleProvider)) {
+      return envRoleProvider;
+    }
+  }
+
+  // 4. Global default provider override
+  const globalProvider = (process.env.LLM_PROVIDER || process.env.DEFAULT_LLM_PROVIDER)?.trim().toLowerCase();
+  if (globalProvider && isValidProvider(globalProvider)) {
+    return globalProvider;
+  }
+
+  // 5. Ambiguous model heuristics (e.g. llama3.3 which could be Cerebras or Groq)
+  if (
+    modelStr.startsWith('llama3.3') ||
+    modelStr.startsWith('llama-3.3') ||
+    modelStr.startsWith('llama3.1') ||
+    modelStr.startsWith('llama-3.1')
+  ) {
+    if (process.env.CEREBRAS_API_KEY) return 'cerebras';
+    if (process.env.GROQ_API_KEY) return 'groq';
+    return 'cerebras';
+  }
+
+  // 6. Credential availability fallback
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_AI_STUDIO_API_KEY) {
+    return 'gemini';
+  }
+  if (process.env.GROQ_API_KEY) {
+    return 'groq';
+  }
+  if (process.env.CEREBRAS_API_KEY) {
+    return 'cerebras';
+  }
+  if (process.env.OLLAMA_BASE_URL) {
+    return 'ollama';
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return 'openai';
+  }
+
+  // Default to gemini (Google AI Studio)
+  return 'gemini';
+}
+
+/**
+ * Retrieves the API key for a given provider.
+ */
+export function getProviderApiKey(provider: LLMProvider): string {
+  switch (provider) {
+    case 'gemini':
+      return (
+        process.env.GEMINI_API_KEY ||
+        process.env.GOOGLE_API_KEY ||
+        process.env.GOOGLE_AI_STUDIO_API_KEY ||
+        'dummy-gemini-key'
+      );
+    case 'groq':
+      return process.env.GROQ_API_KEY || 'dummy-groq-key';
+    case 'cerebras':
+      return process.env.CEREBRAS_API_KEY || 'dummy-cerebras-key';
+    case 'ollama':
+      return process.env.OLLAMA_API_KEY || 'ollama';
+    case 'openai':
+      return process.env.OPENAI_API_KEY || 'dummy-openai-key';
+  }
+}
+
+/**
+ * Retrieves the base URL for a given provider, respecting custom base URL overrides.
+ */
+export function getProviderBaseUrl(provider: LLMProvider): string {
+  switch (provider) {
+    case 'gemini':
+      return process.env.GEMINI_BASE_URL || PROVIDER_DEFAULT_BASE_URLS.gemini;
+    case 'groq':
+      return process.env.GROQ_BASE_URL || PROVIDER_DEFAULT_BASE_URLS.groq;
+    case 'cerebras':
+      return process.env.CEREBRAS_BASE_URL || PROVIDER_DEFAULT_BASE_URLS.cerebras;
+    case 'ollama':
+      return process.env.OLLAMA_BASE_URL || PROVIDER_DEFAULT_BASE_URLS.ollama;
+    case 'openai':
+      return process.env.OPENAI_BASE_URL || PROVIDER_DEFAULT_BASE_URLS.openai;
+  }
+}
+
+/**
+ * Normalizes model names for the provider (e.g. strips external prefixes like "google/" or "groq/").
+ */
+export function normalizeModelForProvider(model: string, provider: LLMProvider): string {
+  let cleaned = model.trim();
+
+  switch (provider) {
+    case 'gemini':
+      if (cleaned.toLowerCase().startsWith('google/')) {
+        cleaned = cleaned.slice('google/'.length);
+      }
+      return cleaned;
+
+    case 'groq':
+      if (cleaned.toLowerCase().startsWith('groq/')) {
+        cleaned = cleaned.slice('groq/'.length);
+      }
+      return cleaned;
+
+    case 'cerebras':
+      if (cleaned.toLowerCase().startsWith('cerebras/')) {
+        cleaned = cleaned.slice('cerebras/'.length);
+      }
+      if (cleaned === 'meta-llama/llama-3.3-70b-instruct') {
+        return 'llama3.3-70b';
+      }
+      if (cleaned === 'meta-llama/llama-3.1-8b-instruct') {
+        return 'llama3.1-8b';
+      }
+      return cleaned;
+
+    case 'ollama':
+      if (cleaned.toLowerCase().startsWith('ollama/')) {
+        cleaned = cleaned.slice('ollama/'.length);
+      }
+      return cleaned;
+
+    case 'openai':
+      if (cleaned.toLowerCase().startsWith('openai/')) {
+        cleaned = cleaned.slice('openai/'.length);
+      }
+      return cleaned;
+  }
+}
+
+export function getAgentProvider(role: AgentRole): LLMProvider {
+  return resolveProvider({ role, model: getAgentModel(role) });
+}
+
+export function getAgentModel(role: AgentRole): string {
+  switch (role) {
+    case 'researcher':
+      return process.env.RESEARCHER_MODEL ?? 'gemini-2.5-flash';
+    case 'writer':
+      return process.env.WRITER_MODEL ?? 'llama3.3-70b';
+    case 'factChecker':
+      return process.env.FACT_CHECKER_MODEL ?? 'gemini-2.5-flash';
+    case 'editor':
+      return process.env.EDITOR_MODEL ?? 'gemini-2.5-flash-lite';
+  }
+}
+
 export interface LLMClientConfig {
   apiKey?: string;
   baseURL?: string;
+  provider?: LLMProvider;
+  role?: AgentRole;
+  model?: string;
   timeout?: number;
   maxRetries?: number;
+  defaultHeaders?: Record<string, string>;
 }
 
 export function createLLMClient(config: LLMClientConfig = {}): OpenAI {
-  const envKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
-  const apiKey = config.apiKey || envKey || 'dummy-key-for-stubs-and-tests';
+  const provider = resolveProvider({
+    provider: config.provider,
+    role: config.role,
+    model: config.model,
+  });
 
-  const isUsingOpenRouter = Boolean(process.env.OPENROUTER_API_KEY && !process.env.OPENAI_BASE_URL);
-
-  const baseURL =
-    config.baseURL ||
-    process.env.OPENAI_BASE_URL ||
-    (isUsingOpenRouter ? 'https://openrouter.ai/api/v1' : undefined);
-
-  const defaultHeaders = isUsingOpenRouter
-    ? {
-        'HTTP-Referer': 'https://citewriter.local',
-        'X-Title': 'CiteWriter Multi-Agent Engine',
-      }
-    : undefined;
+  const apiKey = config.apiKey || getProviderApiKey(provider);
+  const baseURL = config.baseURL || getProviderBaseUrl(provider);
 
   return new OpenAI({
     apiKey,
     baseURL,
-    defaultHeaders,
+    defaultHeaders: config.defaultHeaders,
     timeout: config.timeout ?? 30_000,
     maxRetries: config.maxRetries ?? 3,
   });
 }
 
-export type AgentRole = 'researcher' | 'writer' | 'factChecker' | 'editor';
-
-export function getAgentModel(role: AgentRole): string {
-  switch (role) {
-    case 'researcher':
-      return process.env.RESEARCHER_MODEL ?? 'gpt-4o-mini';
-    case 'writer':
-      return process.env.WRITER_MODEL ?? 'gpt-4o';
-    case 'factChecker':
-      return process.env.FACT_CHECKER_MODEL ?? 'gpt-4o-mini';
-    case 'editor':
-      return process.env.EDITOR_MODEL ?? 'gpt-4o';
-  }
+export function createLLMClientForAgent(role: AgentRole): OpenAI {
+  return createLLMClient({ role, model: getAgentModel(role) });
 }

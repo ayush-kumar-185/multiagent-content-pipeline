@@ -51,11 +51,18 @@ services:
       API_URL: http://localhost:3001
       NEXT_PUBLIC_API_URL: http://localhost:3001
       WEB_URL: http://localhost:3000
-      RESEARCHER_MODEL: ${RESEARCHER_MODEL:-openai/gpt-4o-mini}
-      WRITER_MODEL: ${WRITER_MODEL:-openai/gpt-4o}
-      FACT_CHECKER_MODEL: ${FACT_CHECKER_MODEL:-openai/gpt-4o-mini}
-      EDITOR_MODEL: ${EDITOR_MODEL:-openai/gpt-4o}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      RESEARCHER_PROVIDER: ${RESEARCHER_PROVIDER:-gemini}
+      RESEARCHER_MODEL: ${RESEARCHER_MODEL:-gemini-2.5-flash}
+      WRITER_PROVIDER: ${WRITER_PROVIDER:-cerebras}
+      WRITER_MODEL: ${WRITER_MODEL:-llama3.3-70b}
+      FACT_CHECKER_PROVIDER: ${FACT_CHECKER_PROVIDER:-gemini}
+      FACT_CHECKER_MODEL: ${FACT_CHECKER_MODEL:-gemini-2.5-flash}
+      EDITOR_PROVIDER: ${EDITOR_PROVIDER:-gemini}
+      EDITOR_MODEL: ${EDITOR_MODEL:-gemini-2.5-flash-lite}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       SEARCH_PROVIDER: ${SEARCH_PROVIDER:-tavily}

@@ -4,6 +4,12 @@ import OpenAI from 'openai';
 import { checkBudget, assertWithinBudget, BudgetExceededError } from './budget.js';
 import { estimateCostUsd } from './cost.js';
 import { generateStructuredOutput } from './structuredOutput.js';
+import {
+  createLLMClient,
+  resolveProvider,
+  normalizeModelForProvider,
+  PROVIDER_DEFAULT_BASE_URLS,
+} from './client.js';
 
 describe('LLM Layer: Budget Guard and Cost Accounting', () => {
   it('allows execution when usage is within limits', () => {
@@ -187,66 +193,13 @@ describe('LLM Layer: Structured Output with Zod Validation and Retries', () => {
     ).rejects.toThrow(/Output failed Zod schema validation after 2 retries/);
   });
 
-  it('dynamically clamps max_tokens and retries when OpenRouter returns 402 affordability error', async () => {
-    let callCount = 0;
-    const requestedMaxTokens: number[] = [];
-
-    const mockClient = {
-      chat: {
-        completions: {
-          create: vi.fn().mockImplementation((params: { max_tokens: number }) => {
-            callCount++;
-            requestedMaxTokens.push(params.max_tokens);
-            if (callCount === 1) {
-              const err = new Error(
-                '402 This request requires more credits, or fewer max_tokens. You requested up to 2000 tokens, but can only afford 1831.',
-              );
-              (err as unknown as { status: number }).status = 402;
-              return Promise.reject(err);
-            }
-            return Promise.resolve({
-              usage: { prompt_tokens: 100, completion_tokens: 50 },
-              choices: [
-                {
-                  message: {
-                    content: JSON.stringify({
-                      summary: 'Recovered after token clamp',
-                      tags: ['recovery', 'clamping'],
-                    }),
-                  },
-                },
-              ],
-            });
-          }),
-        },
-      },
-    } as unknown as OpenAI;
-
-    const result = await generateStructuredOutput({
-      client: mockClient,
-      model: 'openai/gpt-4o',
-      schema: TestSchema,
-      systemPrompt: 'System',
-      userPrompt: 'User',
-      maxTokens: 2000,
-    });
-
-    expect(callCount).toBe(2);
-    expect(requestedMaxTokens[0]).toBe(2000);
-    // 1831 * 0.95 = 1739
-    expect(requestedMaxTokens[1]).toBe(1739);
-    expect(result.data.summary).toBe('Recovered after token clamp');
-  });
-
-  it('throws clear actionable error when OpenRouter credits are completely insufficient', async () => {
+  it('throws clear actionable error on 401 unauthorized', async () => {
     const mockClient = {
       chat: {
         completions: {
           create: vi.fn().mockImplementation(() => {
-            const err = new Error(
-              '402 This request requires more credits, or fewer max_tokens. You requested up to 2000 tokens, but can only afford 50.',
-            );
-            (err as unknown as { status: number }).status = 402;
+            const err = new Error('401 Invalid API Key');
+            (err as unknown as { status: number }).status = 401;
             return Promise.reject(err);
           }),
         },
@@ -256,12 +209,96 @@ describe('LLM Layer: Structured Output with Zod Validation and Retries', () => {
     await expect(
       generateStructuredOutput({
         client: mockClient,
-        model: 'openai/gpt-4o',
+        model: 'gemini-2.5-flash',
         schema: TestSchema,
         systemPrompt: 'System',
         userPrompt: 'User',
-        maxTokens: 2000,
       }),
-    ).rejects.toThrow(/OpenRouter credit limit exceeded for model "openai\/gpt-4o"/);
+    ).rejects.toThrow(/Authentication failed for provider "GEMINI"/);
+  });
+
+  it('throws clear actionable error on 429 rate limit or quota exceeded', async () => {
+    const mockClient = {
+      chat: {
+        completions: {
+          create: vi.fn().mockImplementation(() => {
+            const err = new Error('429 Resource has been exhausted (e.g. check quota)');
+            (err as unknown as { status: number }).status = 429;
+            return Promise.reject(err);
+          }),
+        },
+      },
+    } as unknown as OpenAI;
+
+    await expect(
+      generateStructuredOutput({
+        client: mockClient,
+        model: 'llama-3.3-70b-versatile',
+        schema: TestSchema,
+        systemPrompt: 'System',
+        userPrompt: 'User',
+      }),
+    ).rejects.toThrow(/Rate limit or quota exceeded for provider "GROQ"/);
+  });
+});
+
+describe('LLM Layer: Multi-Platform Provider Routing & Client Creation', () => {
+  it('resolves providers correctly from explicit config and model names', () => {
+    expect(resolveProvider({ provider: 'gemini' })).toBe('gemini');
+    expect(resolveProvider({ provider: 'groq' })).toBe('groq');
+    expect(resolveProvider({ provider: 'cerebras' })).toBe('cerebras');
+    expect(resolveProvider({ provider: 'ollama' })).toBe('ollama');
+    expect(resolveProvider({ model: 'gemini-2.5-flash' })).toBe('gemini');
+    expect(resolveProvider({ model: 'llama-3.3-70b-versatile' })).toBe('groq');
+  });
+
+  it('correctly creates client with Google AI Studio (Gemini) endpoint', () => {
+    const client = createLLMClient({ provider: 'gemini', apiKey: 'test-gemini-key' });
+    expect(client.baseURL).toBe(PROVIDER_DEFAULT_BASE_URLS.gemini);
+    expect(client.apiKey).toBe('test-gemini-key');
+  });
+
+  it('correctly creates client with Groq endpoint', () => {
+    const client = createLLMClient({ provider: 'groq', apiKey: 'test-groq-key' });
+    expect(client.baseURL).toBe(PROVIDER_DEFAULT_BASE_URLS.groq);
+    expect(client.apiKey).toBe('test-groq-key');
+  });
+
+  it('correctly creates client with Cerebras endpoint', () => {
+    const client = createLLMClient({ provider: 'cerebras', apiKey: 'test-cerebras-key' });
+    expect(client.baseURL).toBe(PROVIDER_DEFAULT_BASE_URLS.cerebras);
+    expect(client.apiKey).toBe('test-cerebras-key');
+  });
+
+  it('correctly creates client with Ollama local endpoint', () => {
+    const client = createLLMClient({ provider: 'ollama' });
+    expect(client.baseURL).toBe(PROVIDER_DEFAULT_BASE_URLS.ollama);
+    expect(client.apiKey).toBe('ollama');
+  });
+
+  it('normalizes model names for different providers', () => {
+    expect(normalizeModelForProvider('google/gemini-2.5-flash', 'gemini')).toBe('gemini-2.5-flash');
+    expect(normalizeModelForProvider('groq/llama-3.3-70b-versatile', 'groq')).toBe(
+      'llama-3.3-70b-versatile',
+    );
+    expect(normalizeModelForProvider('cerebras/llama3.3-70b', 'cerebras')).toBe('llama3.3-70b');
+    expect(normalizeModelForProvider('meta-llama/llama-3.3-70b-instruct', 'cerebras')).toBe(
+      'llama3.3-70b',
+    );
+    expect(normalizeModelForProvider('ollama/llama3.2', 'ollama')).toBe('llama3.2');
+  });
+
+  it('estimates costs correctly for Gemini, Groq, Cerebras, and Ollama', () => {
+    // Gemini 2.5 Flash: $0.15/1M input, $0.60/1M output
+    const geminiCost = estimateCostUsd('gemini-2.5-flash', 1000, 1000);
+    expect(geminiCost).toBeCloseTo(0.00075, 5);
+
+    // Cerebras Llama 3.3 70B: $0.60/1M input, $0.60/1M output
+    const cerebrasCost = estimateCostUsd('llama3.3-70b', 1000, 1000);
+    expect(cerebrasCost).toBeCloseTo(0.0012, 4);
+
+    // Ollama: $0.00 (Local Free)
+    const ollamaCost = estimateCostUsd('llama3.2', 10000, 5000);
+    expect(ollamaCost).toBe(0);
   });
 });

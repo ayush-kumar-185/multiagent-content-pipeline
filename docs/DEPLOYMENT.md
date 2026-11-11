@@ -74,7 +74,9 @@ The easiest way to run CiteWriter in production on an Ubuntu/Debian VPS, AWS EC2
    Edit `.env` and set secure credentials:
    - `DATABASE_URL`: `postgresql://citewriter:STRONG_POSTGRES_PASSWORD@postgres:5432/citewriter`
    - `REDIS_URL`: `redis://redis:6379`
-   - `OPENROUTER_API_KEY`: Your OpenRouter API key (`sk-or-v1-...`)
+   - `GEMINI_API_KEY`: Your Google AI Studio API key
+   - `GROQ_API_KEY`: Your Groq Cloud API key (optional)
+   - `CEREBRAS_API_KEY`: Your Cerebras Cloud API key (optional)
    - `TAVILY_API_KEY`: Your Tavily API key (`tvly-...`)
    - `AUTH_SECRET`: Generate a random 32-character secret (`openssl rand -hex 32`)
    - `NEXT_PUBLIC_API_URL`: Your public API domain (`https://api.yourdomain.com`)
@@ -127,7 +129,7 @@ The easiest way to run CiteWriter in production on an Ubuntu/Debian VPS, AWS EC2
    - Add Environment Variables:
      - `DATABASE_URL`: `${{Postgres.DATABASE_URL}}`
      - `REDIS_URL`: `${{Redis.REDIS_URL}}`
-     - `OPENROUTER_API_KEY`: Your OpenRouter key
+     - `GEMINI_API_KEY: Your Google AI Studio key
      - `TAVILY_API_KEY`: Your Tavily key
      - `RESEARCHER_MODEL`: `openai/gpt-4o-mini`
      - `WRITER_MODEL`: `openai/gpt-4o`

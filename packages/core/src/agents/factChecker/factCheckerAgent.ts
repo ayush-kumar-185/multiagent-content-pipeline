@@ -33,7 +33,7 @@ export async function runFactCheckerAgent(
   costUsd: number;
   agentMetrics: RunAgentMetrics;
 }> {
-  const client = options.client ?? createLLMClient();
+  const client = options.client ?? createLLMClient({ role: 'factChecker' });
   const model = options.model ?? getAgentModel('factChecker');
   const tracer = options.tracer;
 

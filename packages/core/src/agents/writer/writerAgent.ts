@@ -36,7 +36,7 @@ export async function runWriterAgent(
   costUsd: number;
   agentMetrics: RunAgentMetrics;
 }> {
-  const client = options.client ?? createLLMClient();
+  const client = options.client ?? createLLMClient({ role: 'writer' });
   const model = options.model ?? getAgentModel('writer');
   const tracer = options.tracer;
 

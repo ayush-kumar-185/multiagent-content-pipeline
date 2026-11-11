@@ -438,3 +438,46 @@ When executing runs using multi-agent LLM pipelines, providers like OpenRouter p
 - _Static 500 token limit everywhere:_ Rejected because long technical articles require at least 1200-1500 tokens to provide adequate technical depth.
 
 ---
+
+## ADR 014: Direct Multi-Platform LLM Integration (Google AI Studio, Groq, Cerebras, Ollama) and OpenRouter Removal
+
+- **Date:** 2026-11-11
+- **Status:** Accepted
+
+### Context
+
+Previously, CiteWriter routed LLM requests primarily through OpenRouter or direct OpenAI. Relying on a third-party aggregator introduced unnecessary friction: pre-authorization credit holds causing HTTP 402 errors on low balances, credit markups, and inability to directly leverage separate platform rate limits or local privacy-first inference.
+
+Each agent in the CiteWriter system has distinct requirements:
+- **Researcher:** Fast tool-calling, rapid query iteration (Google AI Studio Gemini Flash or Groq).
+- **Writer:** Top-tier prose synthesis and instruction adherence (Cerebras Llama 3.3 70B or Groq).
+- **Fact-checker:** Long-context window and meticulous source verification (Google AI Studio Gemini Flash).
+- **Editor:** Fast, low-cost rubric evaluation (Google AI Studio Gemini Flash-Lite or local Ollama Llama 3.2).
+
+### Decision
+
+1. **Remove OpenRouter Integration:**
+   - Stripped all OpenRouter-specific headers (`HTTP-Referer`, `X-Title`), proxy routing (`openrouter.ai/api/v1`), and OpenRouter credit-reservation workarounds from `@citewriter/core`, Fastify API, BullMQ worker, and CLI.
+
+2. **Native Multi-Platform Architecture:**
+   - Supported platforms directly using OpenAI-compatible wire protocols:
+     - **Google AI Studio (Gemini API):** `https://generativelanguage.googleapis.com/v1beta/openai/` via `GEMINI_API_KEY`.
+     - **Groq Cloud:** `https://api.groq.com/openai/v1` via `GROQ_API_KEY`.
+     - **Cerebras Cloud:** `https://api.cerebras.ai/v1` via `CEREBRAS_API_KEY`.
+     - **Ollama (Local):** `http://localhost:11434/v1` via `OLLAMA_BASE_URL`.
+     - **OpenAI:** Direct fallback via `OPENAI_API_KEY`.
+
+3. **Per-Agent Provider & Model Granularity:**
+   - Introduced role-specific provider resolution (`RESEARCHER_PROVIDER`, `WRITER_PROVIDER`, `FACT_CHECKER_PROVIDER`, `EDITOR_PROVIDER`).
+   - Allowed developers to assign each agent to a different provider platform while sharing a unified, typed execution interface.
+
+4. **Model Name Normalization & Actionable Diagnostics:**
+   - Automatically sanitized model prefixes across providers (`google/`, `groq/`, `cerebras/`, `ollama/`).
+   - Replaced credit-clamping logic with clear, actionable diagnostics for 401 (Authentication failure), 429 (Rate/quota exhaustion), and local socket connection failures (Ollama offline).
+
+### Alternatives Considered
+
+- _Requiring a single global provider for all agents:_ Rejected because different providers excel at different tasks (e.g. Cerebras offers unmatched inference speed and prose on Llama 3.3 70B, while Gemini offers generous context windows for fact checking).
+- _Installing separate heavy SDKs (`@google/genai`, `groq-sdk`, etc.):_ Rejected because all four platforms officially implement the standard OpenAI `/chat/completions` REST specification, enabling zero-overhead provider switching with the existing lightweight, battle-tested client.
+
+---

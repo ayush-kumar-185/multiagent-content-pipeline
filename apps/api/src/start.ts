@@ -6,6 +6,7 @@ dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
+import { hasConfiguredLLM } from '@citewriter/core';
 import { createDatabase } from './db/index.js';
 import { createPostgresCheckpointer } from './checkpointer/index.js';
 import { RunEventBus } from './events/eventBus.js';
@@ -22,7 +23,7 @@ async function startServer(): Promise<void> {
   // Initialize Postgres checkpointer tables
   await cpCtx.setup();
 
-  const hasLLMKey = Boolean(process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY);
+  const hasLLMKey = hasConfiguredLLM();
 
   // Initialize background worker with real agents when LLM credentials are present
   const worker = createRunWorker({
