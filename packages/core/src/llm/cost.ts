@@ -9,6 +9,12 @@ interface ModelPricing {
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
   // Google AI Studio (Gemini API)
+  'gemini-3.8-flash': { inputPer1M: 0.15, outputPer1M: 0.6 },
+  'gemini-3.5-flash': { inputPer1M: 0.15, outputPer1M: 0.6 },
+  'gemini-3.5-flash-lite': { inputPer1M: 0.075, outputPer1M: 0.3 },
+  'gemini-3.1-flash-lite': { inputPer1M: 0.075, outputPer1M: 0.3 },
+  'gemini-flash-latest': { inputPer1M: 0.15, outputPer1M: 0.6 },
+  'gemini-flash-lite-latest': { inputPer1M: 0.075, outputPer1M: 0.3 },
   'gemini-2.5-flash': { inputPer1M: 0.15, outputPer1M: 0.6 },
   'gemini-2.5-flash-lite': { inputPer1M: 0.075, outputPer1M: 0.3 },
   'gemini-1.5-flash': { inputPer1M: 0.075, outputPer1M: 0.3 },
@@ -17,6 +23,10 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
   'gemini-2.0-flash-lite': { inputPer1M: 0.075, outputPer1M: 0.3 },
 
   // Groq
+  'openai/gpt-oss-120b': { inputPer1M: 0.59, outputPer1M: 0.79 },
+  'openai/gpt-oss-20b': { inputPer1M: 0.2, outputPer1M: 0.2 },
+  'qwen/qwen3.8-27b': { inputPer1M: 0.3, outputPer1M: 0.3 },
+  'allam-2-7b': { inputPer1M: 0.1, outputPer1M: 0.1 },
   'llama-3.3-70b-versatile': { inputPer1M: 0.59, outputPer1M: 0.79 },
   'llama-3.1-8b-instant': { inputPer1M: 0.05, outputPer1M: 0.08 },
   'mixtral-8x7b-32768': { inputPer1M: 0.24, outputPer1M: 0.24 },

@@ -23,7 +23,7 @@ function isValidProvider(val: string): val is LLMProvider {
   return SUPPORTED_PROVIDERS.includes(val.toLowerCase() as LLMProvider);
 }
 
-function roleToEnvPrefix(role: AgentRole): string {
+export function roleToEnvPrefix(role: AgentRole): string {
   switch (role) {
     case 'researcher':
       return 'RESEARCHER';
@@ -177,10 +177,16 @@ export function getProviderBaseUrl(provider: LLMProvider): string {
 export function normalizeModelForProvider(model: string, provider: LLMProvider): string {
   let cleaned = model.trim();
 
+  // Strip explicit provider prefix if formatted with space delimiter as "provider / model"
+  const spaceMatch = cleaned.match(/^([a-z0-9_-]+)\s+\/\s+(.*)$/i);
+  if (spaceMatch && spaceMatch[1] && spaceMatch[2] && isValidProvider(spaceMatch[1])) {
+    cleaned = spaceMatch[2].trim();
+  }
+
   switch (provider) {
     case 'gemini':
-      if (cleaned.toLowerCase().startsWith('google/')) {
-        cleaned = cleaned.slice('google/'.length);
+      if (cleaned.toLowerCase().startsWith('gemini/') || cleaned.toLowerCase().startsWith('google/')) {
+        cleaned = cleaned.replace(/^(gemini|google)\//i, '');
       }
       return cleaned;
 
@@ -217,20 +223,92 @@ export function normalizeModelForProvider(model: string, provider: LLMProvider):
 }
 
 export function getAgentProvider(role: AgentRole): LLMProvider {
+  const rolePrefix = roleToEnvPrefix(role);
+  const envProvider =
+    process.env[`${rolePrefix}_PROVIDER`] ??
+    (role === 'factChecker' ? process.env.FACTCHECKER_PROVIDER : undefined);
+  if (envProvider && isValidProvider(envProvider)) {
+    return envProvider.trim().toLowerCase() as LLMProvider;
+  }
+
+  // Check if model string starts with provider prefix e.g. "groq / ..."
+  const rawModel =
+    process.env[`${rolePrefix}_MODEL`] ??
+    (role === 'factChecker' ? process.env.FACTCHECKER_MODEL : undefined);
+  if (rawModel && rawModel.includes('/')) {
+    const parts = rawModel.split(/\s*\/\s*/);
+    const providerPart = parts[0];
+    if (providerPart && isValidProvider(providerPart)) {
+      return providerPart.trim().toLowerCase() as LLMProvider;
+    }
+  }
+
   return resolveProvider({ role, model: getAgentModel(role) });
 }
 
 export function getAgentModel(role: AgentRole): string {
+  const rolePrefix = roleToEnvPrefix(role);
+  let raw =
+    process.env[`${rolePrefix}_MODEL`] ??
+    (role === 'factChecker' ? process.env.FACTCHECKER_MODEL : undefined);
+
+  if (!raw) {
+    switch (role) {
+      case 'researcher':
+        return 'openai/gpt-oss-20b';
+      case 'writer':
+        return 'qwen/qwen3.8-27b';
+      case 'factChecker':
+        return 'openai/gpt-oss-120b';
+      case 'editor':
+        return 'gemini-3.1-flash-lite';
+    }
+  }
+
+  raw = raw.trim();
+  // If format is spaced "provider / model", e.g. "groq / openai/gpt-oss-20b"
+  const spaceMatch = raw.match(/^([a-z0-9_-]+)\s+\/\s+(.*)$/i);
+  if (spaceMatch && spaceMatch[1] && spaceMatch[2] && isValidProvider(spaceMatch[1])) {
+    return spaceMatch[2].trim();
+  }
+
+  // If format is prefixed with this role's configured provider, e.g. "groq/openai/gpt-oss-20b"
+  const roleProvider =
+    process.env[`${rolePrefix}_PROVIDER`] ??
+    (role === 'factChecker' ? process.env.FACTCHECKER_PROVIDER : undefined);
+  if (roleProvider && raw.toLowerCase().startsWith(`${roleProvider.toLowerCase()}/`)) {
+    return raw.slice(roleProvider.length + 1).trim();
+  }
+
+  return raw;
+}
+
+export function getAgentMaxTokens(role: AgentRole): number {
+  const rolePrefix = roleToEnvPrefix(role);
+  const raw =
+    process.env[`${rolePrefix}_MAX_TOKENS`] ??
+    (role === 'factChecker' ? process.env.FACTCHECKER_MAX_TOKENS : undefined);
+  if (raw && !isNaN(Number(raw))) {
+    return Number(raw);
+  }
   switch (role) {
     case 'researcher':
-      return process.env.RESEARCHER_MODEL ?? 'gemini-2.5-flash';
+      return 2000;
     case 'writer':
-      return process.env.WRITER_MODEL ?? 'llama3.3-70b';
+      return 2500;
     case 'factChecker':
-      return process.env.FACT_CHECKER_MODEL ?? 'gemini-2.5-flash';
+      return 2500;
     case 'editor':
-      return process.env.EDITOR_MODEL ?? 'gemini-2.5-flash-lite';
+      return 600;
   }
+}
+
+export function getAgentReasoningEffort(role: AgentRole): string | undefined {
+  const rolePrefix = roleToEnvPrefix(role);
+  const raw =
+    process.env[`${rolePrefix}_REASONING_EFFORT`] ??
+    (role === 'factChecker' ? process.env.FACTCHECKER_REASONING_EFFORT : undefined);
+  return raw ? raw.trim().toLowerCase() : undefined;
 }
 
 export interface LLMClientConfig {

@@ -61,7 +61,7 @@ export const GraphStateSchema = z.object({
   config: RunConfigSchema.default(() => ({
     audience: 'software engineers',
     tone: 'technical and precise',
-    targetWords: 800,
+    targetWords: 500,
   })),
   notes: z.array(NoteSchema).default([]),
   researchRounds: z.number().int().nonnegative().default(0),
@@ -95,7 +95,7 @@ export const StateAnnotation = Annotation.Root({
     default: () => ({
       audience: 'software engineers',
       tone: 'technical and precise',
-      targetWords: 800,
+      targetWords: 500,
       format: 'article',
     }),
   }),

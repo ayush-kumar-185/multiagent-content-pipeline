@@ -139,7 +139,7 @@ describe('Zod Contracts and Schemas', () => {
       const config = RunConfigSchema.parse({});
       expect(config.audience).toBe('software engineers');
       expect(config.tone).toBe('technical and precise');
-      expect(config.targetWords).toBe(800);
+      expect(config.targetWords).toBe(500);
       expect(config.format).toBe('article');
     });
   });

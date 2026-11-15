@@ -3,3 +3,7 @@ export * from './cost.js';
 export * from './budget.js';
 export * from './client.js';
 export * from './structuredOutput.js';
+export * from './audit.js';
+export * from './errors.js';
+export * from './pacing.js';
+export * from './ledger.js';

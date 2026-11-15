@@ -233,7 +233,8 @@ describe('Phase 9 Security Hardening: SSRF, Prompt Injection, and Fetch Defense'
           id: 'n1',
           claim: 'PostgreSQL provides MVCC',
           sourceUrl: 'https://example.com/postgres',
-          quote: 'multi-version concurrency control (MVCC) to ensure ACID consistency',
+          quote:
+            'PostgreSQL uses multi-version concurrency control (MVCC) to ensure ACID consistency without read locks.',
           retrievedAt: new Date().toISOString(),
         },
         {
@@ -264,7 +265,7 @@ describe('Phase 9 Security Hardening: SSRF, Prompt Injection, and Fetch Defense'
       expect(verified.verifiedNotes).toHaveLength(1);
       expect(verified.verifiedNotes[0]?.id).toBe('n1');
       expect(verified.verifiedNotes[0]?.quote).toBe(
-        'multi-version concurrency control (MVCC) to ensure ACID consistency',
+        'PostgreSQL uses multi-version concurrency control (MVCC) to ensure ACID consistency without read locks.',
       );
       expect(verified.droppedCount).toBe(2);
     });

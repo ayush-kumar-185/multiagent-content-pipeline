@@ -48,3 +48,11 @@ Thumbs.db
 postgres_data
 redis_data
 
+# Token audit logs
+token-audit/
+
+
+# others
+scan.md
+workPerform.md
+wrd.md

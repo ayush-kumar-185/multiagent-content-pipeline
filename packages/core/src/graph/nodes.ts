@@ -77,6 +77,8 @@ export function createGraphNodes(options: NodeOptions = {}) {
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
+            tokensUsed: err.tokensUsed,
+            costUsd: err.costUsd,
             openIssues: [...state.openIssues, `Budget guard breach in Researcher: ${err.message}`],
           };
         }
@@ -133,6 +135,8 @@ export function createGraphNodes(options: NodeOptions = {}) {
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
+            tokensUsed: err.tokensUsed,
+            costUsd: err.costUsd,
             openIssues: [...state.openIssues, `Budget guard breach in Writer: ${err.message}`],
           };
         }
@@ -188,6 +192,8 @@ export function createGraphNodes(options: NodeOptions = {}) {
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
+            tokensUsed: err.tokensUsed,
+            costUsd: err.costUsd,
             openIssues: [
               ...state.openIssues,
               `Budget guard breach in Fact-Checker: ${err.message}`,
@@ -241,6 +247,8 @@ export function createGraphNodes(options: NodeOptions = {}) {
         if (err instanceof BudgetExceededError) {
           return {
             status: 'budget_exceeded',
+            tokensUsed: err.tokensUsed,
+            costUsd: err.costUsd,
             openIssues: [...state.openIssues, `Budget guard breach in Editor: ${err.message}`],
           };
         }

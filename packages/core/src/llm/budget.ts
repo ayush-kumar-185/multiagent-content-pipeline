@@ -16,7 +16,7 @@ export class BudgetExceededError extends Error {
 }
 
 export function getBudgetLimitsFromEnv(): BudgetLimits {
-  const maxRunTokens = process.env.MAX_RUN_TOKENS ? Number(process.env.MAX_RUN_TOKENS) : 100_000;
+  const maxRunTokens = process.env.MAX_RUN_TOKENS ? Number(process.env.MAX_RUN_TOKENS) : 40_000;
 
   const maxRunCostUsd = process.env.MAX_RUN_COST_USD ? Number(process.env.MAX_RUN_COST_USD) : 1.5;
 
