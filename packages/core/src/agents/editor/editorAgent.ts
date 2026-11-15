@@ -1,12 +1,13 @@
 import OpenAI from 'openai';
 import { GraphState, RunAgentMetrics } from '../../schemas/state.js';
-import { EditorVerdict, EditorVerdictSchema } from '../../schemas/editor.js';
+import { EditorVerdict, EditorVerdictSchema, QualityScores } from '../../schemas/editor.js';
 import { createLLMClient, getAgentModel, getAgentMaxTokens, getAgentReasoningEffort } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
 import { resolveBudgetLimits } from '../../llm/budget.js';
 import { Tracer } from '../../observability/types.js';
 import { runDeterministicEditorChecks } from './deterministicChecks.js';
 import { buildEditorSystemPrompt, buildEditorUserPrompt } from './prompt.js';
+import { calculateWeightedScore, evaluateHardGates, resolveEditorDecision } from './scoring.js';
 
 export interface EditorAgentOptions {
   client?: OpenAI;
@@ -58,9 +59,71 @@ export async function runEditorAgent(
 
   const tokensDelta = result.tokens.totalTokens;
   const costDelta = result.costUsd;
+  const verdict: EditorVerdict = {
+    strengths: [],
+    weaknesses: [],
+    missingInformation: [],
+    redundantSections: [],
+    revisionInstructions: [],
+    repetitionFindings: [],
+    ...result.data,
+  };
+
+  // Combine deterministic repetition findings with LLM findings
+  const allRepetitionFindings = [
+    ...(deterministicReport.repetitionFindings || []),
+    ...(verdict.repetitionFindings || []),
+  ];
+  const seenFindings = new Set<string>();
+  const deduplicatedRepetitionFindings = allRepetitionFindings.filter((rf) => {
+    const key = `${rf.sectionIds.join(',')}:${rf.repeatedIdea}`;
+    if (seenFindings.has(key)) return false;
+    seenFindings.add(key);
+    return true;
+  });
+  verdict.repetitionFindings = deduplicatedRepetitionFindings;
+
+  // Compute or validate quality scores
+  let overallScore = verdict.score;
+  if (verdict.scores) {
+    overallScore = calculateWeightedScore(verdict.scores);
+    verdict.overallScore = overallScore;
+    verdict.score = overallScore;
+  } else {
+    const s = verdict.score;
+    const scores: QualityScores = {
+      factualReliability: s,
+      relevance: s,
+      depth: s,
+      logicalFlow: s,
+      originality: s,
+      engagement: s,
+      repetitionControl: deduplicatedRepetitionFindings.some((r) => r.severity === 'high') ? 4 : s,
+      readability: deterministicReport.fleschScore >= 50 ? s : Math.min(s, 6),
+      conclusionQuality: s,
+    };
+    verdict.scores = scores;
+    verdict.overallScore = s;
+    verdict.score = s;
+  }
+
+  // Evaluate hard quality gates
+  const hardGates = evaluateHardGates(verdict.scores, {
+    claimChecks: state.claimChecks,
+    repetitionFindings: deduplicatedRepetitionFindings,
+    formatPassed: deterministicReport.lengthPassed,
+  });
+
+  // Resolve final decision (enforces gates regardless of what LLM guessed)
+  const finalDecision = resolveEditorDecision(overallScore, hardGates, verdict.decision);
+  verdict.decision = finalDecision;
+
+  if (!hardGates.passed && finalDecision !== 'accept') {
+    verdict.feedback = `${verdict.feedback}\n\n[Quality Gate Violations]:\n${hardGates.failedGates.map((g) => `- ${g}`).join('\n')}`;
+  }
 
   return {
-    editorVerdict: result.data,
+    editorVerdict: verdict,
     tokensUsed: state.tokensUsed + tokensDelta,
     costUsd: Number((state.costUsd + costDelta).toFixed(4)),
     agentMetrics: {

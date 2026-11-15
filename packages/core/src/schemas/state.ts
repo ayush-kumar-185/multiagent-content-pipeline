@@ -3,6 +3,7 @@ import { Annotation } from '@langchain/langgraph';
 import { NoteSchema, type Note } from './note.js';
 import { ClaimSchema, ClaimCheckSchema, type Claim, type ClaimCheck } from './claim.js';
 import { EditorVerdictSchema, type EditorVerdict } from './editor.js';
+import { ContentPlanSchema, type ContentPlan } from './contentPlan.js';
 import { RunConfigSchema, type RunConfig } from './config.js';
 
 export const RunStatusSchema = z.enum([
@@ -70,6 +71,7 @@ export const GraphStateSchema = z.object({
   writeCycles: z.number().int().nonnegative().default(0),
   claimChecks: z.array(ClaimCheckSchema).default([]),
   editorVerdict: EditorVerdictSchema.optional(),
+  contentPlan: ContentPlanSchema.optional(),
   tokensUsed: z.number().int().nonnegative().default(0),
   costUsd: z.number().nonnegative().default(0),
   agentMetrics: RunAgentMetricsSchema.default({}),
@@ -124,6 +126,9 @@ export const StateAnnotation = Annotation.Root({
     default: () => [],
   }),
   editorVerdict: Annotation<EditorVerdict | undefined>({
+    reducer: (x, y) => y ?? x,
+  }),
+  contentPlan: Annotation<ContentPlan | undefined>({
     reducer: (x, y) => y ?? x,
   }),
   tokensUsed: Annotation<number>({

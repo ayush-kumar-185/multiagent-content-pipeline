@@ -6,6 +6,7 @@ export const MAX_WRITE_CYCLES = 3;
 
 export const ROUTE_TARGETS = {
   RESEARCHER: 'researcher',
+  PLANNER: 'planner',
   WRITER: 'writer',
   FACT_CHECKER: 'factChecker',
   EDITOR: 'editor',
@@ -37,7 +38,9 @@ export function routeAfterFactChecker(state: GraphState): RouteADestination {
   const { claimChecks, researchRounds, writeCycles } = state;
 
   const hasNeedsMoreResearch = claimChecks.some((c) => c.status === 'needs_more_research');
-  const hasUnsupported = claimChecks.some((c) => c.status === 'unsupported');
+  const hasUnsupported = claimChecks.some(
+    (c) => c.status === 'unsupported' || c.status === 'partially_supported' || c.status === 'contradicted',
+  );
 
   if (hasNeedsMoreResearch) {
     if (researchRounds < MAX_RESEARCH_ROUNDS) {

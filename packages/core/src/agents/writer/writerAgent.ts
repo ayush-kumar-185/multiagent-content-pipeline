@@ -52,8 +52,9 @@ export async function runWriterAgent(
         state.draft,
         state.claimChecks.filter((c) => c.status !== 'supported'),
         state.editorVerdict,
+        state.contentPlan,
       )
-    : buildWriterInitialPrompt(state.topic, state.notes);
+    : buildWriterInitialPrompt(state.topic, state.notes, state.contentPlan);
 
   const budgetLimits = resolveBudgetLimits(state.config);
 

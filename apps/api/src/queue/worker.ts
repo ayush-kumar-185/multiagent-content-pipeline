@@ -81,6 +81,7 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
 
       const app = createCiteWriterGraph({
         useRealResearcher: graphOptions.useRealResearcher ?? defaultUseReal,
+        useRealPlanner: graphOptions.useRealPlanner ?? defaultUseReal,
         useRealWriter: graphOptions.useRealWriter ?? defaultUseReal,
         useRealFactChecker: graphOptions.useRealFactChecker ?? defaultUseReal,
         useRealEditor: graphOptions.useRealEditor ?? defaultUseReal,
@@ -138,8 +139,15 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
               await eventBus.recordEvent({
                 runId,
                 type: 'node_start',
+                node: 'planner',
+                data: { summary: 'Synthesizing research & creating content plan...' },
+              });
+            } else if (nodeName === 'planner') {
+              await eventBus.recordEvent({
+                runId,
+                type: 'node_start',
                 node: 'writer',
-                data: { summary: 'Starting writer...' },
+                data: { summary: 'Drafting content from plan & notes...' },
               });
             } else if (nodeName === 'writer') {
               await eventBus.recordEvent({
@@ -301,7 +309,11 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
         const errorMsg = error instanceof Error ? error.message : String(error);
         await dbCtx.db
           .update(runs)
-          .set({ status: 'failed', updatedAt: new Date() })
+          .set({
+            status: 'failed',
+            openIssues: [errorMsg],
+            updatedAt: new Date(),
+          })
           .where(eq(runs.id, runId));
 
         await eventBus.recordEvent({

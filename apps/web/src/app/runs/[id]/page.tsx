@@ -302,12 +302,18 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
               <div className="font-bold uppercase tracking-wider">
                 Run Status: {run.status.replace('_', ' ')}
               </div>
-              {run.openIssues.length > 0 && (
+              {run.openIssues.length > 0 ? (
                 <ul className="list-disc list-inside mt-1 space-y-0.5">
                   {run.openIssues.map((issue, idx) => (
                     <li key={idx}>{issue}</li>
                   ))}
                 </ul>
+              ) : (
+                <p className="mt-1 text-rose-700 dark:text-rose-300">
+                  {run.status === 'failed'
+                    ? 'The pipeline encountered an unexpected error during execution. Check server logs or event history for details.'
+                    : 'Run stopped with no open issues recorded.'}
+                </p>
               )}
             </div>
           </div>

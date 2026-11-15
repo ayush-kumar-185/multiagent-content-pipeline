@@ -8,7 +8,13 @@ export const ClaimSchema = z.object({
 
 export type Claim = z.infer<typeof ClaimSchema>;
 
-export const ClaimCheckStatusSchema = z.enum(['supported', 'unsupported', 'needs_more_research']);
+export const ClaimCheckStatusSchema = z.enum([
+  'supported',
+  'partially_supported',
+  'unsupported',
+  'contradicted',
+  'needs_more_research',
+]);
 
 export type ClaimCheckStatus = z.infer<typeof ClaimCheckStatusSchema>;
 

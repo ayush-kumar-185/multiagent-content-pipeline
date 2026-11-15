@@ -13,6 +13,7 @@ export function createCiteWriterGraph(options: GraphBuilderOptions = {}) {
 
   const workflow = new StateGraph(StateAnnotation)
     .addNode(ROUTE_TARGETS.RESEARCHER, nodes.researcherNode)
+    .addNode(ROUTE_TARGETS.PLANNER, nodes.contentPlannerNode)
     .addNode(ROUTE_TARGETS.WRITER, nodes.writerNode)
     .addNode(ROUTE_TARGETS.FACT_CHECKER, nodes.factCheckerNode)
     .addNode(ROUTE_TARGETS.EDITOR, nodes.editorNode)
@@ -20,7 +21,8 @@ export function createCiteWriterGraph(options: GraphBuilderOptions = {}) {
     .addNode(ROUTE_TARGETS.HUMAN_REVIEW, nodes.humanReviewNode)
     // Edges
     .addEdge(START, ROUTE_TARGETS.RESEARCHER)
-    .addEdge(ROUTE_TARGETS.RESEARCHER, ROUTE_TARGETS.WRITER)
+    .addEdge(ROUTE_TARGETS.RESEARCHER, ROUTE_TARGETS.PLANNER)
+    .addEdge(ROUTE_TARGETS.PLANNER, ROUTE_TARGETS.WRITER)
     .addEdge(ROUTE_TARGETS.WRITER, ROUTE_TARGETS.FACT_CHECKER)
     // Route A conditional edge
     .addConditionalEdges(

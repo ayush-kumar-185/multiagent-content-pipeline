@@ -28,6 +28,7 @@ interface AgentStage {
 
 const AGENT_STAGES: AgentStage[] = [
   { id: 'researcher', name: 'Researcher', role: 'Fact Gathering & Verification', icon: Search },
+  { id: 'planner', name: 'Planner', role: 'Synthesis & Structural Blueprint', icon: Sparkles },
   { id: 'writer', name: 'Writer', role: 'Drafting with Inline Citations', icon: PenTool },
   {
     id: 'factChecker',

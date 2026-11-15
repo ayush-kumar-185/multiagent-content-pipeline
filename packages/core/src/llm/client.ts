@@ -27,6 +27,8 @@ export function roleToEnvPrefix(role: AgentRole): string {
   switch (role) {
     case 'researcher':
       return 'RESEARCHER';
+    case 'planner':
+      return 'PLANNER';
     case 'writer':
       return 'WRITER';
     case 'factChecker':
@@ -256,6 +258,8 @@ export function getAgentModel(role: AgentRole): string {
     switch (role) {
       case 'researcher':
         return 'openai/gpt-oss-20b';
+      case 'planner':
+        return 'qwen/qwen3.8-27b';
       case 'writer':
         return 'qwen/qwen3.8-27b';
       case 'factChecker':
@@ -294,6 +298,8 @@ export function getAgentMaxTokens(role: AgentRole): number {
   switch (role) {
     case 'researcher':
       return 2000;
+    case 'planner':
+      return 1500;
     case 'writer':
       return 2500;
     case 'factChecker':

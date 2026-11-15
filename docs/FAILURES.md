@@ -136,16 +136,25 @@ This document records real bugs, edge-case failures, and architectural issues di
 
 ---
 
-### [2026-11-11] False Positive Numeric Pre-Check Failures on Twitter/List Enumeration
+### [2026-11-15] Worker Failure Reason Omission & Blank Red Failed Status Banner
 
-- **Phase:** Multi-Agent Pipeline & Formatting (Writer & Fact-Checker)
-- **Symptom:** In a Twitter thread generation, all 8 tweets were marked `unsupported` before calling the LLM Fact-Checker (`calls: 0`). The Writer underwent 3 desperate revision cycles trying to eliminate numbers, degrading the final draft to generic fluff (`"1/ Turritopsis dohrnii has a unique biological process [n1]"`), hitting the write cap (3/3), and skipping the Editor entirely (`calls: 0`).
-- **Cause:** When formatting threads (e.g. `1/`, `2/`, `1/8`), `citationParser.ts` left the leading `1/` inside the claim text. `runDeterministicFactPreChecks` extracted `"1"` from `"1/ Turritopsis..."` via regex and failed the claim because the number `"1"` did not appear in the marine biology source quote. Because all claims failed deterministically, 0 claims were sent to the LLM Fact-Checker. The graph looped 3 times back to the Writer with errors stating that the numbers `1`, `2`, `3` were hallucinated, until the write cap of 3 was reached and routed straight to human review, bypassing the Editor.
+- **Phase:** Production Worker & Web UI
+- **Symptom:** UI displayed `RUN STATUS: FAILED` in a red alert banner with no explanation, leaving the user with no context on why the pipeline failed.
+- **Cause:** When an unexpected worker error occurred (such as an invalid Gemini model identifier `gemini-2.5-flash`), `worker.ts` recorded a `run_failed` event and marked `status: 'failed'` in PostgreSQL, but omitted persisting `errorMsg` into `openIssues`. Because the frontend only rendered items inside `openIssues`, the error banner was left completely empty.
 - **Fix:** 
-  1. Updated `citationParser.ts` to strip leading structural thread numbering (e.g. `1/`, `1/8`), numbered list prefixes (`1.`, `2)`), and bullet markers from parsed claim strings.
-  2. Updated `extractNumbers()` in `deterministicPreChecks.ts` to ignore leading thread/list numbering and thread counter fractions (`1/7`, `2/7`).
-  3. Updated `prompt.ts` to instruct the Writer not to attach citation brackets to non-factual closing calls-to-action (e.g. bookmarking or sharing).
-  4. Verified with new unit tests and an end-to-end live run on the immortal jellyfish topic, resulting in rich biological details, 7/7 claims verified by the LLM Fact-Checker, and an 8.5/10 ACCEPT verdict by the Editor in a single cycle.
+  1. Updated `apps/api/src/queue/worker.ts` catch block to persist `openIssues: [errorMsg]` in the database on worker crash.
+  2. Updated `apps/web/src/app/runs/[id]/page.tsx` to display a helpful fallback error message if `openIssues` is empty.
+  3. Corrected model identifier configurations in `.env`.
+
+---
+
+### [2026-11-15] Test Directory Prefix Collision in Token Audit Safety Guard
+
+- **Phase:** LLM Pacing & Audit Infrastructure
+- **Symptom:** Unit tests for `audit.test.ts` and `pacing.test.ts` threw `Safety violation: Test attempted to write to production token-audit directory: .../token-audit-ledger-test-tmp/ledger.json`.
+- **Cause:** `getAuditFilePath()` and `getLedgerFilePath()` checked `customPath.startsWith(prodDir)`. Because `prodDir` was `.../token-audit`, string prefix comparison matched `.../token-audit-ledger-test-tmp` as a substring despite it being an entirely separate temporary directory.
+- **Fix:** Switched directory containment check to `path.relative(prodDir, customPath)` checking `!rel.startsWith('..') && !path.isAbsolute(rel)`.
+
 
 
 

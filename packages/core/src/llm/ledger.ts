@@ -63,7 +63,8 @@ export function getLedgerFilePath(): string {
     const customPath = path.join(path.resolve(process.env.AUDIT_DIR), 'ledger.json');
     if (isTestEnv()) {
       const prodDir = path.resolve(findRepoRoot(), 'token-audit');
-      if (path.resolve(customPath).startsWith(prodDir)) {
+      const rel = path.relative(prodDir, path.resolve(customPath));
+      if (!rel.startsWith('..') && !path.isAbsolute(rel)) {
         throw new Error(
           `Safety violation: Test attempted to write to production token-audit directory: ${customPath}`,
         );

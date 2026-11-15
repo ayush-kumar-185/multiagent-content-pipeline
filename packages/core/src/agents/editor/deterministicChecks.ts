@@ -1,5 +1,7 @@
 import { Claim, ClaimCheck } from '../../schemas/claim.js';
 import { RunConfig } from '../../schemas/config.js';
+import { RepetitionFinding } from '../../schemas/editor.js';
+import { detectSemanticRepetition } from './repetitionDetector.js';
 
 export interface DeterministicEditorReport {
   wordCount: number;
@@ -13,6 +15,9 @@ export interface DeterministicEditorReport {
   citationCoverageRatio: number;
   citationPassed: boolean;
   citationMessage: string;
+  repetitionFindings: RepetitionFinding[];
+  repetitionPassed: boolean;
+  repetitionMessage: string;
   summary: string;
 }
 
@@ -138,11 +143,19 @@ export function runDeterministicEditorChecks(
     ? `Citation coverage PASSED (${citedSentencesCount} cited claims across ${totalSentences} sentences, ${Math.round(ratio * 100)}% coverage).`
     : `Citation coverage FLAGGED (${citedSentencesCount} cited claims; expected higher density for technical claims).`;
 
+  // Semantic repetition analysis
+  const repetitionFindings = detectSemanticRepetition(draft);
+  const repetitionPassed = !repetitionFindings.some((r) => r.severity === 'high');
+  const repetitionMessage = repetitionFindings.length === 0
+    ? 'Semantic Repetition: PASSED (no duplicate statistics or redundant sections detected).'
+    : `Semantic Repetition: FLAGGED (${repetitionFindings.length} repetition finding${repetitionFindings.length === 1 ? '' : 's'} detected).`;
+
   const summary = [
     `Deterministic Editorial Audit:`,
     `- ${lengthMessage}`,
     `- Readability: Flesch Score ${readability.fleschScore}/100, Grade Level ${readability.gradeLevel} (${readability.readingEaseLabel})`,
     `- ${citationMessage}`,
+    `- ${repetitionMessage}`,
   ].join('\n');
 
   return {
@@ -157,6 +170,9 @@ export function runDeterministicEditorChecks(
     citationCoverageRatio: ratio,
     citationPassed,
     citationMessage,
+    repetitionFindings,
+    repetitionPassed,
+    repetitionMessage,
     summary,
   };
 }

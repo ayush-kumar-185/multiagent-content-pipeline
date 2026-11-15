@@ -13,6 +13,8 @@ import { MAX_RESEARCH_ROUNDS, MAX_WRITE_CYCLES } from './routes.js';
 import { evaluateCoverageGate } from './coverageGate.js';
 import { runResearcherAgent } from '../agents/researcher/researcherAgent.js';
 import { deduplicateNotes } from '../agents/researcher/noteDeduplication.js';
+import { runPlannerAgent } from '../agents/planner/plannerAgent.js';
+import { ContentPlan } from '../schemas/contentPlan.js';
 import { runWriterAgent } from '../agents/writer/writerAgent.js';
 import { runFactCheckerAgent } from '../agents/factChecker/factCheckerAgent.js';
 import { runEditorAgent } from '../agents/editor/editorAgent.js';
@@ -24,11 +26,13 @@ import { Tracer } from '../observability/types.js';
 export interface NodeOptions {
   fakeAgentOptions?: FakeAgentOptions;
   useRealResearcher?: boolean;
+  useRealPlanner?: boolean;
   useRealWriter?: boolean;
   useRealFactChecker?: boolean;
   useRealEditor?: boolean;
   llmClient?: OpenAI;
   researcherModel?: string;
+  plannerModel?: string;
   writerModel?: string;
   factCheckerModel?: string;
   editorModel?: string;
@@ -41,11 +45,13 @@ export function createGraphNodes(options: NodeOptions = {}) {
   const {
     fakeAgentOptions = {},
     useRealResearcher = false,
+    useRealPlanner = false,
     useRealWriter = false,
     useRealFactChecker = false,
     useRealEditor = false,
     llmClient,
     researcherModel,
+    plannerModel,
     writerModel,
     factCheckerModel,
     editorModel,
@@ -107,6 +113,82 @@ export function createGraphNodes(options: NodeOptions = {}) {
         researcher: {
           tokensUsed: 500,
           costUsd: 0.005,
+          calls: 1,
+        },
+      },
+    };
+  };
+
+  const contentPlannerNode = async (state: GraphState): Promise<Partial<GraphState>> => {
+    if (state.status === 'budget_exceeded') {
+      return {};
+    }
+
+    tracer?.startAgentSpan(state.runId, 'planner');
+
+    if (useRealPlanner) {
+      try {
+        const res = await runPlannerAgent(state, {
+          client: llmClient,
+          model: plannerModel ?? writerModel,
+          tracer,
+        });
+        tracer?.endAgentSpan(state.runId, 'planner', {
+          sectionsCount: res.contentPlan.narrativeFlow.length,
+        });
+        return res;
+      } catch (err: unknown) {
+        tracer?.endAgentSpan(state.runId, 'planner', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        if (err instanceof BudgetExceededError) {
+          return {
+            status: 'budget_exceeded',
+            tokensUsed: err.tokensUsed,
+            costUsd: err.costUsd,
+            openIssues: [...state.openIssues, `Budget guard breach in Content Planner: ${err.message}`],
+          };
+        }
+        throw err;
+      }
+    }
+
+    // Default / Stub content planner
+    const defaultPlan: ContentPlan = {
+      centralAngle: `Evidence-grounded analysis of ${state.topic}.`,
+      intendedTakeaway: `Understand the mechanisms, impacts, and solutions for ${state.topic}.`,
+      keyInsights: state.notes.slice(0, 3).map((n) => `${n.claim} [${n.id}]`),
+      narrativeFlow: [
+        {
+          id: 'section-1',
+          heading: 'Core Overview & Mechanism',
+          keyPoint: 'Primary mechanism driving the phenomenon',
+          assignedNoteIds: state.notes.slice(0, 2).map((n) => n.id),
+          targetWords: 150,
+        },
+        {
+          id: 'section-2',
+          heading: 'Impacts & Practical Solutions',
+          keyPoint: 'Key takeaways and solutions',
+          assignedNoteIds: state.notes.slice(2, 4).map((n) => n.id),
+          targetWords: 150,
+        },
+      ],
+      redundantInformation: [],
+      missingInformation: [],
+      avoid: ['Repeating the same statistic across multiple sections.'],
+    };
+
+    tracer?.endAgentSpan(state.runId, 'planner', { sectionsCount: defaultPlan.narrativeFlow.length });
+
+    return {
+      contentPlan: defaultPlan,
+      tokensUsed: state.tokensUsed + 300,
+      costUsd: Number((state.costUsd + 0.003).toFixed(4)),
+      agentMetrics: {
+        planner: {
+          tokensUsed: 300,
+          costUsd: 0.003,
           calls: 1,
         },
       },
@@ -365,6 +447,7 @@ export function createGraphNodes(options: NodeOptions = {}) {
 
   return {
     researcherNode,
+    contentPlannerNode,
     writerNode,
     factCheckerNode,
     editorNode,

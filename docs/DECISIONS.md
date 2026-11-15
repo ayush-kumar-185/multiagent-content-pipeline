@@ -621,3 +621,33 @@ On 2026-11-15, the complete compiled LangGraph (`createCiteWriterGraph`) was eva
 
 - _Keeping Writer reasoning enabled (`reasoning_effort=low`):_ Rejected because `low` reasoning still generated 300–600 reasoning tokens, pushing total output close to or over the 1,000 OTPM ceiling and triggering 429 rejections on burst runs.
 - _Truncating page text with head slice at 1,800 chars:_ Rejected because fixed head slices discard critical technical content located in the body or conclusion of documents, reducing note quality. BM25 passage selection ensures only high-relevance paragraphs are ingested.
+
+---
+
+## ADR 016: Content Planner Agent, 9-Dimension Editorial Scoring, and Semantic Repetition Engine
+
+- **Date:** 2026-11-15
+- **Status:** Accepted
+
+### Context
+
+Following real-world trials on social media threads (e.g. Twitter/LinkedIn), drafts occasionally suffered from statistic repetition (e.g. reciting the same "30%" metric across 3 consecutive tweets) and note-cramming (forcing every retrieved note into the draft regardless of narrative progression). Furthermore, editorial evaluation relied on a single scalar score rather than structured, actionable feedback with quality dimensions and hard failure gates.
+
+### Decision
+
+1. **Content Planner Agent:** Inserted a dedicated `planner` node between `researcher` and `writer` (`START -> researcher -> planner -> writer -> factChecker`). The planner outputs a `ContentPlan` with `centralAngle`, `intendedTakeaway`, non-overlapping `keyInsights`, `narrativeFlow`, `redundantInformation`, and `avoid`.
+2. **Deterministic Semantic Repetition Engine (`repetitionDetector.ts`):** 
+   - Extracts numeric statistics (e.g. percentages, monetary values, physical metrics) across numbered thread sections and paragraphs.
+   - Computes pairwise Jaccard token overlap across non-adjacent sections.
+   - Deterministically flags repeated statistics and redundant sections without extra LLM token cost.
+3. **9-Dimension Weighted Scoring & Hard Quality Gates (`scoring.ts`):**
+   - Weighted dimensions: Factual Reliability (20%), Relevance (15%), Depth (15%), Logical Flow (10%), Originality (10%), Engagement (10%), Repetition Control (10%), Readability (5%), Conclusion Quality (5%).
+   - Enforces hard quality gates: Factual Reliability < 7.0, Repetition Control < 6.0, Relevance < 6.0, or format failure forces automatic revision regardless of other sub-scores.
+4. **Actionable Revision Directives:** Writer receives structured `{ section, issue, action }` instructions on revision cycles to target exact flaws rather than generic critiques.
+5. **Verified with Regression Test:** `airplaneFoodRegression.test.ts` validates that the airplane food topic at 35,000 feet generates a progressive thread where the "30%" sensory reduction stat appears strictly once, all hard gates pass, and all claims remain grounded.
+
+### Alternatives Considered
+
+- _LLM-based repetition detection:_ Rejected because deterministic regex statistical tracking and Jaccard token set intersection achieve 100% precision with 0ms latency and 0 token cost.
+- _Combining Planner into Writer Agent:_ Rejected because separation of concerns gives the Writer a frozen structural plan to follow, preventing narrative wandering and note-cramming.
+

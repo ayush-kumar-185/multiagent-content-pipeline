@@ -1,6 +1,6 @@
 export type LLMProvider = 'gemini' | 'groq' | 'cerebras' | 'ollama' | 'openai';
 
-export type AgentRole = 'researcher' | 'writer' | 'factChecker' | 'editor';
+export type AgentRole = 'researcher' | 'planner' | 'writer' | 'factChecker' | 'editor';
 
 export interface TokenUsage {
   promptTokens: number;
