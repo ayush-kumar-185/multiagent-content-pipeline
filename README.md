@@ -2,7 +2,7 @@
 
 > **A multi-agent editorial system that turns complex technical topics into rigorous articles where every factual sentence is verified and cited against primary web sources.**
 
-CiteWriter orchestrates four specialized LangGraph.js agents—**Researcher**, **Writer**, **Fact-checker**, and **Editor**—governed by deterministic routing, verifiable quote extraction, pre-call budget guards, and durable PostgreSQL checkpointing. Unlike single-prompt generation that frequently hallucinates statistics or omits attribution, CiteWriter enforces mathematical termination, verbatim substring validation in code, and human-in-the-loop review before publication.
+CiteWriter orchestrates five specialized LangGraph.js agents—**Researcher**, **Content Planner**, **Writer**, **Fact-checker**, and **Editor**—governed by deterministic routing, verifiable quote extraction, pre-call budget guards, and durable PostgreSQL checkpointing. Unlike single-prompt generation that frequently hallucinates statistics or omits attribution, CiteWriter enforces mathematical termination, verbatim substring validation in code, sentence-level causal auditing, and human-in-the-loop review before publication.
 
 ---
 
@@ -15,14 +15,15 @@ CiteWriter executes a cyclic state graph in LangGraph.js with deterministic cond
 ```mermaid
 flowchart TD
     START([START]) --> Researcher["Researcher Agent<br/>(web_search, fetch_page, exact quote extraction)"]
-    Researcher --> Writer["Writer Agent<br/>(synthesizes notes, embeds [n*] citations)"]
-    Writer --> FactChecker["Fact-checker Agent<br/>(deterministic number pre-check + LLM verification)"]
+    Researcher --> Planner["Content Planner Agent<br/>(structural blueprint, narrative flow, repetition prevention)"]
+    Planner --> Writer["Writer Agent<br/>(synthesizes notes, embeds [n*] citations, 0 uncited sentences)"]
+    Writer --> FactChecker["Fact-checker Agent<br/>(deterministic number pre-check + sentence-level evidence audit)"]
 
     FactChecker --> RouteA{"Route A<br/>Fact-check Verdict?"}
 
     RouteA -- "needs_more_research & rounds < 2" --> Researcher
     RouteA -- "unsupported & writeCycles < 3" --> Writer
-    RouteA -- "all supported" --> Editor["Editor Agent<br/>(rubric audit, readability, flow)"]
+    RouteA -- "all supported" --> Editor["Editor Agent<br/>(9-dimension weighted rubric, hard quality gates)"]
     RouteA -- "caps reached with flags" --> PrepReview["prepareReview<br/>(open flags logged)"]
 
     Editor --> RouteB{"Route B<br/>Editor Verdict?"}
@@ -40,11 +41,11 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    User["Developer / Editor"] --> Web["Next.js Web UI<br/>(App Router, Tailwind, SSE client)"]
+    User["Developer / Editor"] --> Web["Next.js Web UI<br/>(App Router, Tailwind, SSE client, citation stripper)"]
     Web --> API["Fastify API Server<br/>(Auth, Rate Limit, SSE Reconnection)"]
     API --> Queue["BullMQ Job Queue<br/>(Redis 7)"]
     Queue --> Worker["BullMQ Background Worker<br/>(LangGraph Runner)"]
-    Worker --> Core["@citewriter/core<br/>(Researcher, Writer, Fact-checker, Editor)"]
+    Worker --> Core["@citewriter/core<br/>(Researcher, Planner, Writer, Fact-checker, Editor)"]
     Worker --> Checkpointer["Postgres Checkpointer<br/>(Durable Thread State)"]
     Worker --> Tracing["Langfuse Tracing<br/>(Token & Cost Accounting)"]
     Core --> Search["Tavily Search API"]
@@ -86,19 +87,35 @@ Five generated articles were independently audited by human manual inspection to
 
 ## Core Engineering Innovations
 
-1. **Deterministic Number & Verbatim Substring Auditing:**
-   - LLMs are notoriously prone to slight numeric hallucinations (e.g. changing "up to 80%" to "over 80%"). CiteWriter enforces a code-level pre-check: every number present in a generated claim must appear verbatim in the cited note quote before any LLM fact-checking occurs.
-   - Proposed notes undergo strict substring checking (`quoteVerifier.ts`); notes where the quote is not an exact substring of the fetched source are discarded in code.
+1. **Exact Verbatim Substring Auditing (Zero-Hallucination Gate):**
+   - Proposed research notes undergo strict programmatic substring validation (`quoteVerifier.ts`); notes where the extracted quote is not an exact verbatim substring of the fetched source text (`pageText.includes(quote)`) are discarded in code before reaching downstream agents.
+   - Every number in a generated claim must appear in cited note quotes before LLM verification.
 
-2. **Durable Checkpoints & Crash Resilience:**
-   - Multi-agent runs execute asynchronously on BullMQ and persist state after every node transition via PostgreSQL checkpointers. If a worker process crashes mid-generation, a replacement worker resumes execution seamlessly from the last committed checkpoint.
+2. **Autonomous Content Planner & Narrative Blueprint Engine:**
+   - Synthesizes raw research notes into a structured `ContentPlan` before the Writer begins.
+   - Enforces progressive narrative flow (Mechanism $\rightarrow$ Context $\rightarrow$ Solutions $\rightarrow$ Takeaways) and proactively isolates redundant statistics across notes so numbers appear exactly once.
 
-3. **Pre-Call Budget & Cost Guard:**
-   - To prevent runaway LLM costs, every node enforces strict token and financial caps (`MAX_RUN_TOKENS`, `MAX_RUN_COST_USD`). On breach, execution transitions to `budget_exceeded` and routes partial drafts to human review without dropping progress.
+3. **Sentence-Level Evidence Auditor & Causal Grounding:**
+   - Evaluates every single body sentence producing a structured `EvidenceAuditRecord`.
+   - Detects and flags unsupported causal conjunctions (*"leads to"*, *"this is why"*), guards experimental qualifications (*e.g. simulated 8,000-ft altitude, sweet/salty specificity*), and strictly prevents attributing corporate motives to businesses without direct documentary proof.
 
-4. **Defense-in-Depth Security:**
-   - Search result URLs pass through static SSRF filters (blocking cloud metadata `169.254.169.254`, `metadata.google.internal`, and private CIDR ranges) before network DNS resolution.
-   - External web text is delimited with clear boundary tags and models are instructed never to follow untrusted instructions embedded inside retrieved articles.
+4. **9-Dimension Weighted Quality Scoring & 5 Hard Quality Gates:**
+   - Evaluates drafts mathematically across 9 weighted dimensions: Factual Reliability (20%), Relevance (15%), Depth (15%), Logical Flow (10%), Originality (10%), Engagement (10%), Repetition Control (10%), Readability (5%), and Conclusion Quality (5%).
+   - Enforces 5 deterministic hard quality gates (Factual Reliability $< 7.0$, Repetition $< 6.0$, Evidence Precision $< 7.0$, Causal Reasoning $< 6.0$) that trigger mandatory revision cycles.
+
+5. **Semantic Repetition Engine & Multi-Format Specialization:**
+   - Normalizes statistical variations (`30%`, `30 percent`) and analyzes cross-section Jaccard word-overlap to eliminate redundant insights.
+   - Natively supports 3 distinct publication channels: Technical Articles (~500–1000 words), LinkedIn Posts (~150–300 words), and X/Twitter Threads (5–8 numbered tweets with logical bridges).
+
+6. **Durable Checkpoints & Crash Resilience:**
+   - Multi-agent runs execute asynchronously on BullMQ and persist state after every node transition via PostgreSQL checkpointers. If a worker process crashes mid-generation, a replacement worker resumes execution seamlessly from the last committed checkpoint without re-running completed research.
+
+7. **Pre-Call Budget Guard & Rate-Limit Pacing:**
+   - Enforces daily token limits and sliding-window pacing (`waitForPacing`) based on model TPM quotas, eliminating 429 rate-limit spikes. Rejects runs with HTTP 429 when daily headroom falls below 20%.
+
+8. **Defense-in-Depth Security:**
+   - Search result URLs pass through static SSRF filters and DNS resolution pre-checks (blocking cloud metadata `169.254.169.254`, `metadata.google.internal`, and private RFC1918 CIDR ranges) before network calls, with a strict 3-hop redirect limit and 2 MB download cap.
+   - External web text is delimited with clear boundary tags (`<<<START_UNTRUSTED_EXTERNAL_WEB_CONTENT>>>`), instructing models never to follow prompt injections embedded inside retrieved pages.
 
 ---
 
@@ -107,16 +124,19 @@ Five generated articles were independently audited by human manual inspection to
 ```
 apps/
   api/          # Fastify API, BullMQ worker, Drizzle ORM, Postgres checkpointer, SSE
-  web/          # Next.js 15 (App Router), Tailwind CSS, shadcn/ui, interactive review UI
+  web/          # Next.js 15 (App Router), Tailwind CSS, live agent visualizer, review UI
 packages/
-  core/         # Decoupled LangGraph pipeline, 4 agents, Zod schemas, security tools
+  core/         # Decoupled LangGraph pipeline, 5 agents, Zod schemas, security tools
   evals/        # 16 benchmark topics, single-prompt baselines, scoring engine, reports
 docs/
-  architecture.md   # Architectural specifications and flowcharts
-  DECISIONS.md      # 12 Architecture Decision Records (ADRs) with rationale & alternatives
-  ENV_SETUP.md      # Comprehensive environment variable configuration guide
-  FAILURES.md       # Real incident log: root causes, symptoms, and permanent fixes
-  DEPLOYMENT.md     # Production deployment instructions (Docker Compose, Railway, Vercel)
+  PROJECT_IMPROVEMENTS.md # Comprehensive system evolution, metrics delta, & resume highlights
+  architecture.md         # Architectural specifications and flowcharts
+  API.md                  # REST & Server-Sent Events API specification
+  DECISIONS.md            # 12+ Architecture Decision Records (ADRs) with rationale & alternatives
+  ENV_SETUP.md            # Comprehensive environment variable configuration guide
+  FAILURES.md             # Real incident log: root causes, symptoms, and permanent fixes
+  DEPLOYMENT.md           # Production deployment instructions (Docker Compose, Railway, Vercel)
+  TOKEN_REPORT.md         # Empirical token optimization and cost accounting report
 ```
 
 ---
@@ -170,7 +190,7 @@ Starts PostgreSQL on port `5433` and Redis on port `6379`.
 pnpm test
 ```
 
-Executes all 30 test files and 140+ unit/integration tests across the entire monorepo.
+Executes all 46 test files and 265 unit, integration, and E2E tests across the entire monorepo with 100% pass rate.
 
 ### 5. Run Evaluations & Generate Benchmark Report
 
@@ -198,24 +218,27 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 1. **Trigger a Run:**
    - Navigate to `http://localhost:3000`.
-   - Enter topic: `"Raft consensus algorithm leader election and log replication"`.
-   - Select Audience: `Engineers`, Tone: `Technical`, Length: `Medium (~500 words)`.
-   - Click **Generate Article**.
+   - Enter topic: `"Why Airplane Food Tastes Different and Bland at 35,000 Feet"`.
+   - Select Format: `X / Twitter Thread`, `LinkedIn Post`, or `Technical Article`.
+   - Select Audience: `Curious general audience`, Tone: `Engaging and science-backed`.
+   - Click **Generate**.
 
 2. **Observe Real-Time Multi-Agent Collaboration:**
    - Watch the live SSE progress cards:
      - **Researcher:** Fetches primary literature from verified domains, extracts exact quotes, and builds `Note[]`.
-     - **Writer:** Generates draft sentences strictly citing note references (`[n1]`, `[n2]`).
-     - **Fact-checker:** Pre-checks numbers in TypeScript, queries notes, and verifies claim support.
-     - **Editor:** Audits reading ease score, length bounds, and sentence citation density.
+     - **Content Planner:** Synthesizes blueprint outline, allocates notes, and enforces non-repetitive narrative progression.
+     - **Writer:** Generates draft sentences strictly citing note references (`[n1]`, `[n2]`) with 0 uncited sentences.
+     - **Fact-checker:** Pre-checks numbers in TypeScript, runs sentence-level evidence audits, and verifies causal grounding.
+     - **Editor:** Evaluates 9-dimension weighted quality scores, checks semantic repetition, and enforces hard quality gates.
 
 3. **Inspect Interactive Claim Verification:**
-   - Hover over or click on any highlighted sentence in the draft review interface.
+   - Hover over or click on any highlighted claim in the draft review interface.
    - Inspect the verified badge (`supported`), the primary source quote, and the original source URL.
+   - Published copy cleanly strips raw citation markers (`[n1]`) while preserving full hyperlinked verification.
 
 4. **Human Review & Action:**
-   - Review open issues or editor notes.
-   - Choose to **Approve**, make inline edits (**Edit**), or **Reject** the article.
+   - Review open issues, repetition alerts, or editor quality scores.
+   - Choose to **Approve**, make inline edits (**Edit**), or **Reject** the content.
    - Notice the checkpoint transition to terminal state `approved` with full token and cost telemetry.
 
 ---
@@ -238,9 +261,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Documentation Links
 
-- [Architecture Design & Flow](docs/architecture.md)
+- [System Evolution & Quantifiable Improvements (Resume Highlights)](docs/PROJECT_IMPROVEMENTS.md)
+- [Architecture Design & Multi-Agent Flow](docs/architecture.md)
+- [REST & Server-Sent Events API Specification](docs/API.md)
 - [Architecture Decision Records (ADRs 001–012)](docs/DECISIONS.md)
+- [Real Failures & Incident Postmortem Log](docs/FAILURES.md)
 - [Environment Configuration Guide](docs/ENV_SETUP.md)
-- [Real Failures & Incident Log](docs/FAILURES.md)
 - [Production Deployment Guide](docs/DEPLOYMENT.md)
-- [Evaluation Report & Baseline Study](packages/evals/REPORT.md)
+- [Token Usage & Cost Optimization Audit](docs/TOKEN_REPORT.md)
+- [Evaluation Benchmark Report](packages/evals/REPORT.md)
