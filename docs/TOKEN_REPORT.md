@@ -172,49 +172,64 @@ Calculated using configured Groq free tier quotas and the measured post-optimiza
 
 ---
 
-## 9. Real End-to-End LangGraph Execution (Topic 1 Measured Results, n = 1)
+## 9. Real End-to-End LangGraph Execution with Coverage Gate (Topic 1 Measured Results, n = 1)
 
-> **Execution Run ID:** `e2e-topic1-1794735883152`  
+> **Execution Run ID:** `e2e-topic1-1794738423334`  
 > **Topic:** *"Advances in TypeScript 5.0 Type Inference"*  
-> **Configuration:** `createCiteWriterGraph` compiled LangGraph, cached fetches, `TARGET_WORDS=500`, `MAX_RUN_TOKENS=40000`, `FACT_CHECKER_MAX_TOKENS=2500`, `WRITER_REASONING_EFFORT=none`.  
-> **Wall Time [measured, n = 1]:** **14.18 seconds**  
-> **Final Status [measured, n = 1]:** `awaiting_review` (paused cleanly at `humanReview` interrupt with 0 open issues)
+> **Configuration:** `createCiteWriterGraph` compiled LangGraph, cached fetches, `TARGET_WORDS=500`, `MAX_RUN_TOKENS=40000`, `FACT_CHECKER_MAX_TOKENS=2500`, `WRITER_REASONING_EFFORT=none`, `RESEARCHER_PAGE_TOKEN_BUDGET=900`, `MIN_NOTES=5`, `MIN_WORDS=250`.  
+> **Wall Time [measured, n = 1]:** **33.76 seconds** (includes 22.8s token-aware pacing delay prior to Round 2 research)  
+> **Final Status [measured, n = 1]:** `awaiting_review` (routed to `prepareReview` -> `humanReview` due to coverage cap with open issues)
 
 ### Full Node Execution Sequence [measured, n = 1]:
-$$\text{START} \rightarrow \text{researcher} \rightarrow \text{writer} \rightarrow \text{factChecker} \rightarrow \text{writer} \rightarrow \text{factChecker} \rightarrow \text{editor} \rightarrow \text{prepareReview} \rightarrow \text{humanReview}$$
+$$\text{START} \rightarrow \text{researcher} \rightarrow \text{writer} \rightarrow \text{factChecker} \rightarrow \text{writer} \rightarrow \text{factChecker} \rightarrow \text{researcher} \rightarrow \text{writer} \rightarrow \text{factChecker} \rightarrow \text{prepareReview} \rightarrow \text{humanReview}$$
 
-1. **Cycle 1 (Initial Draft):**
-   - **Researcher:** 1 round, retrieved 3 verified notes from cache [measured, n = 1].
-   - **Writer:** Cycle 1 drafted 5 claims (115 words) [measured, n = 1].
-   - **Fact-Checker Pass #1:** 5 claims evaluated $\rightarrow$ **4 supported, 1 unsupported (factual flag), 0 uncited sentences, 0 needs_more_research** (sum: 4 + 1 + 0 = 5) [measured, n = 1].
-   - **Route A Edge:** 1 unsupported claim $\rightarrow$ routes to **Writer (Cycle 2)** with flagged claim.
-2. **Cycle 2 (Fact-Check Revision & Editorial Acceptance):**
-   - **Writer:** Cycle 2 resolved the single unsupported claim $\rightarrow$ 4 claims drafted (97 words) [measured, n = 1].
-   - **Fact-Checker Pass #2:** 4 claims evaluated $\rightarrow$ **4 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research** (sum: 4 + 0 + 0 = 4) [measured, n = 1].
-   - **Route A Edge:** 100% supported $\rightarrow$ routes to **Editor (Pass 1)**.
-   - **Editor Pass 1:** Score **9.5/10**, Decision: **`accept`** [measured, n = 1]. (Feedback: *"The draft is technically precise, well-structured, and adheres strictly to the provided notes. The section headings accurately reflect the content, and the tone is appropriate for a software engineering audience. While the word count is below the target, it is acceptable as all claims are fully supported by citations and no additional filler is required."*).
-   - **Route B Edge:** Accept decision $\rightarrow$ routes to **`prepareReview`** $\rightarrow$ pauses at **`humanReview`**.
+1. **Cycle 1 (Initial Research & Draft):**
+   - **Researcher (Round 1):** Retrieved 4 verified notes from cache [measured, n = 1].
+   - **Writer (Cycle 1):** Drafted 8 claims (155 total words) [measured, n = 1].
+   - **Fact-Checker Pass #1:** 8 statements evaluated $\rightarrow$ **4 supported, 4 unsupported (factual/number flags), 0 uncited sentences, 0 needs_more_research** (sum: 4 + 4 + 0 = 8, 100% match) [measured, n = 1].
+   - **Route A Edge:** 4 unsupported claims $\rightarrow$ routes to **Writer (Cycle 2)** with flagged claim list.
+2. **Cycle 2 (Fact-Check Revision & Coverage Gate Interception):**
+   - **Writer (Cycle 2):** Pruned unsupported sentences $\rightarrow$ 5 claims drafted (106 words) [measured, n = 1].
+   - **Fact-Checker Pass #2:** 5 statements evaluated $\rightarrow$ **5 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research** (sum: 5 + 0 + 0 = 5, 100% match) [measured, n = 1].
+   - **Coverage Gate Evaluation:** All claims supported, but state is thin (4 notes < 5 minNotes, 106 words < 250 minWords).
+   - **Route A Edge:** Thin coverage under research cap (`researchRounds = 1 < 2`) $\rightarrow$ routes to **Researcher (Round 2)** with missing subtopic instruction.
+3. **Cycle 3 (Re-Research, Expansion & Final Cap Routing):**
+   - **Researcher (Round 2):** Rate-limit pacing paused for 22.8s to replenish Groq minute window, then retrieved 3 additional notes (total 7 verified notes in state) [measured, n = 1].
+   - **Writer (Cycle 3):** Drafted 5 claims (106 words, 91 body words) [measured, n = 1].
+   - **Fact-Checker Pass #3:** 5 statements evaluated $\rightarrow$ **5 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research** (sum: 5 + 0 + 0 = 5, 100% match) [measured, n = 1].
+   - **Coverage Gate Evaluation:** 7 notes >= 5 (passed notes threshold), but body word count is 91 words (< 250 threshold) and "type inference" is absent from body paragraphs.
+   - **Route A Edge:** Thin coverage at research cap (`researchRounds = 2 >= 2`) $\rightarrow$ routes to **`prepareReview`** with open issue `"thin coverage"` $\rightarrow$ pauses at **`humanReview`**.
 
 ### Token Consumption per Agent [measured, n = 1]:
 | Agent | Calls [measured, n = 1] | Prompt Tokens [measured, n = 1] | Completion Tokens [measured, n = 1] | Reasoning Tokens [measured, n = 1] | Total Tokens [measured, n = 1] | Share of E2E Run [measured, n = 1] |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Researcher** (`openai/gpt-oss-20b`) | 1 | 2,258 | 604 | 19 | 2,862 | 31.3% |
-| **Writer** (`qwen/qwen3.8-27b`) | 2 | 1,976 | 353 | 0 | 2,329 | 25.5% |
-| **Fact-Checker** (`openai/gpt-oss-120b`) | 2 | 1,977 | 876 | 166 | 2,853 | 31.2% |
-| **Editor** (`gemini-3.1-flash-lite`) | 1 | 906 | 195 | 0 | 1,101 | 12.0% |
-| **Total Accepted Article Run** | **6** | **7,117** | **2,028** | **185** | **9,145** | **100.0%** |
+| **Researcher** (`openai/gpt-oss-20b`) | 2 | 7,005 | 1,892 | 643 | 8,897 | 50.0% |
+| **Writer** (`qwen/qwen3.8-27b`) | 3 | 3,521 | 551 | 0 | 4,072 | 22.9% |
+| **Fact-Checker** (`openai/gpt-oss-120b`) | 3 | 3,017 | 1,828 | 553 | 4,845 | 27.2% |
+| **Editor** (`gemini-3.1-flash-lite`) | 0 | 0 | 0 | 0 | 0 | 0.0% |
+| **Total Full Run** | **8** | **13,543** | **4,271** | **1,196** | **17,814** | **100.0%** |
 
 ### Final Quality & Grounding Verification [measured, n = 1]:
-- **Body Sentences Evaluated:** 4
+- **Notes Produced & Kept:** 7 verified notes (100% exact substring match against cached pages)
+- **Body Sentences Evaluated:** 5
 - **Uncited Body Sentences:** 0
-- **Supported Claims:** 4 (100%)
+- **Supported Claims:** 5 (100%)
 - **Unsupported Claims:** 0 (0%)
 - **Needs More Research:** 0 (0%)
-- **Editor Score:** 9.5 / 10 (`accept`)
-- **Total Financial Cost:** \$0.0033
+- **Total Financial Cost:** \$0.0063
+- **Budget Compliance:** 17,814 tokens used of 40,000 token limit (44.5% consumed, zero budget breaches)
+- **Open Issues:** 1 (`"thin coverage: Draft body word count (91 words) is below MIN_WORDS threshold of 250 words.; Topic key terms missing from draft body: \"type inference\"."`)
 
-### Corrected Real Daily Capacity (Accepted Articles vs. Clean Passes):
+### Success Criteria Audit [measured, n = 1]:
+1. $\ge 5$ Notes: **MET** (7 notes kept in state).
+2. 0 Uncited Sentences: **MET** (0 uncited body sentences across all passes).
+3. 0 Unsupported Claims: **MET** (5/5 claims supported by cited quotes).
+4. $\ge 250$ Words: **NOT MET** (91 body words / 106 total words; writer omitted uncited filler per prompt rules).
+5. Topic Key Terms Present: **NOT MET** (present in title `# Advances in TypeScript 5.0 Type Inference`, but absent from body text).
+6. No Open Issues: **NOT MET** (correctly caught by coverage gate and marked thin at research cap).
+
+### Corrected Real Daily Capacity:
 - **Clean 1-Pass Upper Bound [estimated]:** **49 clean passes / day** (bound by Researcher at 4,080 tokens).
-- **Fully Verified & Accepted Articles [measured, n = 1]:**
-  $$\text{Real Daily Capacity} = \min\left(\frac{200,000}{2,862} \text{ [R: 69]}, \frac{200,000}{2,329} \text{ [W: 85]}, \frac{200,000}{2,853} \text{ [FC: 70]}, \text{Editor: unknown}\right) = \mathbf{69 \text{ accepted articles / day}}$$
-  In real production execution with revisions on Topic 1, the **Researcher binds capacity at ~69 accepted articles/day [measured, n = 1]**, with total token consumption of only 9,145 tokens per fully verified and accepted article.
+- **Multi-Cycle Loop Runs [measured, n = 1]:**
+  $$\text{Real Daily Capacity} = \min\left(\frac{200,000}{8,897} \text{ [R: 22]}, \frac{200,000}{4,072} \text{ [W: 49]}, \frac{200,000}{4,845} \text{ [FC: 41]}, \text{Editor: unknown}\right) = \mathbf{22 \text{ runs / day}}$$
+  In intensive 2-round research and 3-cycle writing loops with Groq token-aware pacing, the **Researcher binds capacity at ~22 multi-cycle runs/day [measured, n = 1]**, with total token consumption of 17,814 tokens.

@@ -485,7 +485,7 @@ Each agent in the CiteWriter system has distinct requirements:
 ## ADR 015: Frozen Production Environment Configuration & Token Optimization Calibration
 
 - **Date:** 2026-11-14
-- **Status:** Accepted, frozen
+- **Status:** Accepted, frozen, with limitations
 
 ### Context
 
@@ -594,19 +594,28 @@ $$\text{Pipeline Daily Capacity Upper Bound} = \min(\text{Researcher: } 49, \tex
 - **Verification of Per-Model Daily Buckets in Phase D:**
   In Phase D Experiment 2, independent per-model isolation was verified for *minute* token limits (`x-ratelimit-remaining-tokens`: calling Model A did not deduct minute tokens from Model B). However, Groq response headers **do not return daily token usage or limit headers** (only `x-ratelimit-limit-requests: 1000` for daily requests). Daily token limits (200,000 TPD) come from Groq's web console documentation and are monitored via a local client-side ledger (`token-audit/ledger.json`). Whether Groq enforces separate 200,000 TPD hardware allocations per model or aggregates them across models could not be verified from HTTP response headers.
 
-### End-to-End LangGraph Verification (Topic 1 Measured, n = 1)
+### End-to-End LangGraph Verification with Coverage Gate (Topic 1 Measured, n = 1)
 
-On 2026-11-15, the frozen configuration with deterministic uncited sentence verification, strictly grounded writer prompts, and advisory editor length checks was verified in a real end-to-end execution of `createCiteWriterGraph` on Topic 1 (*Advances in TypeScript 5.0 Type Inference*, Run ID: `e2e-topic1-1794735883152`, $n = 1$):
-- **Wall Time [measured, n = 1]:** 14.18s
-- **Full Node Sequence [measured, n = 1]:** `researcher` -> `writer` -> `factChecker` -> `writer` -> `factChecker` -> `editor` -> `prepareReview` -> `humanReview`
-- **Revision Cycles & Passes [measured, n = 1]:** 1 research round, 2 write cycles, 2 fact-checker passes, 1 editor pass.
+On 2026-11-15, the complete compiled LangGraph (`createCiteWriterGraph`) was evaluated in a real end-to-end run on Topic 1 (*Advances in TypeScript 5.0 Type Inference*, Run ID: `e2e-topic1-1794738423334`, $n = 1$) with the deterministic coverage gate, uncited sentence verification, and 900-token researcher page budget:
+- **Wall Time [measured, n = 1]:** 33.76s (including a 22.8s token-aware rate-limit pacing delay before Round 2 research).
+- **Full Node Sequence [measured, n = 1]:** `researcher` -> `writer` -> `factChecker` -> `writer` -> `factChecker` -> `researcher` -> `writer` -> `factChecker` -> `prepareReview` -> `humanReview`
+- **Revision Cycles & Passes [measured, n = 1]:** 2 research rounds (reached `MAX_RESEARCH_ROUNDS = 2`), 3 write cycles (reached `MAX_WRITE_CYCLES = 3`), 3 fact-checker passes.
+- **Notes Produced & Kept [measured, n = 1]:** 7 verified notes (100% exact substring match against cached source pages; 0 dropped notes).
 - **Fact-Checker Claim Checks [measured, n = 1]:**
-  - Pass 1: 5 evaluated statements (4 supported, 1 unsupported factual flag, 0 uncited sentences, 0 needs_more_research; sum: 4 + 1 + 0 = 5) -> routed to Writer (Cycle 2).
-  - Pass 2: 4 evaluated statements (4 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research; sum: 4 + 0 + 0 = 4) -> routed to Editor.
-- **Final Claim Statuses [measured, n = 1]:** 4 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research (100% grounded and verified).
-- **Editor Verdict [measured, n = 1]:** Score **9.5/10**, Decision: **`accept`** (Feedback: *"The draft is technically precise, well-structured, and adheres strictly to the provided notes. The section headings accurately reflect the content, and the tone is appropriate for a software engineering audience. While the word count is below the target, it is acceptable as all claims are fully supported by citations and no additional filler is required."*).
-- **Total Token Footprint [measured, n = 1]:** **9,145 tokens** (Researcher: 2,862; Writer: 2,329; Fact-Checker: 2,853; Editor: 1,101), total cost: \$0.0033.
-- **Final Status [measured, n = 1]:** `awaiting_review` (clean pause at `humanReview` interrupt with 0 open issues). Zero uncited sentences, zero unsupported claims, editor accepted, and no human review error/breach. ADR 015 is closed and marked frozen.
+  - Pass 1: 8 evaluated statements (4 supported, 4 unsupported factual/number flags, 0 uncited sentences, 0 needs_more_research; sum: 4 + 4 + 0 = 8) -> routed to Writer (Cycle 2).
+  - Pass 2: 5 evaluated statements (5 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research; sum: 5 + 0 + 0 = 5) -> 100% supported, but coverage gate flagged thinness (4 notes < 5 minNotes, 106 words < 250 minWords) -> routed to Researcher (Round 2).
+  - Pass 3: 5 evaluated statements (5 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research; sum: 5 + 0 + 0 = 5) -> 100% supported; coverage gate passed notes ($\ge 5$), but body word count (91 words < 250) and body key terms ("type inference" missing from body paragraphs) remained thin.
+- **Coverage Gate & Human Review Routing [measured, n = 1]:**
+  - Because `researchRounds` reached the maximum cap (2), the coverage gate routed the run to `prepareReview` $\rightarrow$ `humanReview` with open issue:
+    `"thin coverage: Draft body word count (91 words) is below MIN_WORDS threshold of 250 words.; Topic key terms missing from draft body: \"type inference\"."`
+  - The system safely refused to auto-accept or bypass the human review check, upholding strict quality standards.
+- **Total Token Footprint [measured, n = 1]:** **17,814 tokens** (Researcher: 8,897; Writer: 4,072; Fact-Checker: 4,845; Editor: 0), total financial cost: \$0.0063.
+- **Final Status [measured, n = 1]:** `awaiting_review` (clean pause at `humanReview` interrupt with thin coverage open issue).
+- **Limitations & Known Operational Characteristics:**
+  - *(a) Source Corpus Density & Re-research Limits:* The tested topic (*Advances in TypeScript 5.0 Type Inference*) was narrow and the cached pages provided a thin source set focused largely on general 5.0 release features (enums, bundler options, decorators). Because the source text lacked deeper paragraphs on type inference, re-research could not extract new verifiable facts beyond the cached set, resulting in duplicated proposals that were cleanly dropped by note deduplication.
+  - *(b) Strict Grounding vs. Article Length Dependency:* Strict grounding and deterministic uncited sentence penalties mean that article length depends strictly on research depth. The Writer model will not invent explanatory narrative, transitional fluff, or ungrounded claims to hit an arbitrary word count target; when research notes are concise, the draft remains concise.
+  - *(c) Deterministic Thin Coverage Escalation:* When drafts cannot reach the configured minimum depth threshold ($\ge 250$ body words) or lack essential topic key terms after the maximum research rounds are exhausted, the coverage gate strictly refuses to auto-accept. Instead, it routes the run to human review with an explicit `"thin coverage"` flag, preserving system integrity and human oversight.
+  - *Frozen Pipeline Stability:* All deterministic safety guards, note deduplication, bounded loop termination, exact-substring verification, Groq rate-limit pacing, and audit accounting are verified and frozen. ADR 015 status is Accepted, frozen, with limitations.
 
 ### Alternatives Considered
 

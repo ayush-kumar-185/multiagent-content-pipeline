@@ -5,6 +5,9 @@ process.env.TOKEN_AUDIT = '1';
 process.env.MAX_RUN_TOKENS = '40000';
 process.env.TARGET_WORDS = '500';
 process.env.FACT_CHECKER_MAX_TOKENS = '2500';
+process.env.RESEARCHER_PAGE_TOKEN_BUDGET = '900';
+process.env.MIN_NOTES = '5';
+process.env.MIN_WORDS = '250';
 
 import fs from 'fs';
 import path from 'path';
