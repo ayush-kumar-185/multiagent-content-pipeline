@@ -78,14 +78,54 @@ describe('Graph Routing Functions', () => {
       expect(routeAfterFactChecker(stateCapHit)).toBe(ROUTE_TARGETS.PREPARE_REVIEW);
     });
 
-    it('routes to editor when all claims are supported', () => {
-      const stateAllSupported = createMockState({
+    it('routes to editor when all claims are supported and coverage gate passes', () => {
+      const dummyNotes = Array.from({ length: 5 }, (_, i) => ({
+        id: `n${i + 1}`,
+        claim: `Claim ${i + 1}`,
+        sourceUrl: 'https://example.com',
+        quote: `Quote for claim ${i + 1} with sufficient length.`,
+        retrievedAt: new Date().toISOString(),
+      }));
+      const validDraft = Array(30)
+        .fill('Test topic type inference provides literal inference [n1].')
+        .join(' ');
+
+      const stateAllSupportedAndCovered = createMockState({
+        topic: 'Test topic type inference',
+        notes: dummyNotes,
+        draft: validDraft,
         claimChecks: [
           { claim: 'Claim 1', noteIds: ['n1'], status: 'supported', reason: 'verified' },
           { claim: 'Claim 2', noteIds: ['n2'], status: 'supported', reason: 'verified' },
         ],
       });
-      expect(routeAfterFactChecker(stateAllSupported)).toBe(ROUTE_TARGETS.EDITOR);
+      expect(routeAfterFactChecker(stateAllSupportedAndCovered)).toBe(ROUTE_TARGETS.EDITOR);
+    });
+
+    it('routes to researcher when claims are supported but coverage is thin and researchRounds < cap', () => {
+      const stateThinUnderCap = createMockState({
+        topic: 'Test topic type inference',
+        researchRounds: 1, // < MAX_RESEARCH_ROUNDS (2)
+        notes: [], // 0 notes < 5
+        draft: 'Short draft.', // < 250 words
+        claimChecks: [
+          { claim: 'Claim 1', noteIds: ['n1'], status: 'supported', reason: 'verified' },
+        ],
+      });
+      expect(routeAfterFactChecker(stateThinUnderCap)).toBe(ROUTE_TARGETS.RESEARCHER);
+    });
+
+    it('routes to prepareReview when claims are supported but coverage is thin and researchRounds >= cap', () => {
+      const stateThinCapReached = createMockState({
+        topic: 'Test topic type inference',
+        researchRounds: MAX_RESEARCH_ROUNDS, // 2
+        notes: [], // 0 notes < 5
+        draft: 'Short draft.', // < 250 words
+        claimChecks: [
+          { claim: 'Claim 1', noteIds: ['n1'], status: 'supported', reason: 'verified' },
+        ],
+      });
+      expect(routeAfterFactChecker(stateThinCapReached)).toBe(ROUTE_TARGETS.PREPARE_REVIEW);
     });
 
     it('prioritizes needs_more_research over unsupported when under cap', () => {

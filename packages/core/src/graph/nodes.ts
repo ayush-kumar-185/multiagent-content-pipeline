@@ -8,9 +8,12 @@ import {
   defaultFakeClaims,
   defaultFakeClaimChecks,
   defaultFakeEditorVerdict,
+  generateFakeDraft,
 } from './fakeAgents.js';
 import { MAX_RESEARCH_ROUNDS, MAX_WRITE_CYCLES } from './routes.js';
+import { evaluateCoverageGate } from './coverageGate.js';
 import { runResearcherAgent } from '../agents/researcher/researcherAgent.js';
+import { deduplicateNotes } from '../agents/researcher/noteDeduplication.js';
 import { runWriterAgent } from '../agents/writer/writerAgent.js';
 import { runFactCheckerAgent } from '../agents/factChecker/factCheckerAgent.js';
 import { runEditorAgent } from '../agents/editor/editorAgent.js';
@@ -91,9 +94,8 @@ export function createGraphNodes(options: NodeOptions = {}) {
       ? fakeAgentOptions.researcherBehavior(nextRound)
       : defaultFakeNotes;
 
-    // Deduplicate notes by ID
-    const existingIds = new Set(state.notes.map((n) => n.id));
-    const mergedNotes = [...state.notes, ...newNotes.filter((n) => !existingIds.has(n.id))];
+    // Deduplicate notes by ID, quote, and source URL overlap
+    const { mergedNotes } = deduplicateNotes(state.notes, newNotes);
 
     tracer?.endAgentSpan(state.runId, 'researcher', { notesCount: mergedNotes.length });
 
@@ -148,7 +150,7 @@ export function createGraphNodes(options: NodeOptions = {}) {
     const nextCycle = state.writeCycles + 1;
     const { draft, claims } = fakeAgentOptions.writerBehavior
       ? fakeAgentOptions.writerBehavior(nextCycle, state.notes)
-      : { draft: defaultFakeDraft, claims: defaultFakeClaims };
+      : { draft: generateFakeDraft(state.topic), claims: defaultFakeClaims };
 
     tracer?.endAgentSpan(state.runId, 'writer', { claimsCount: claims.length });
 
@@ -305,6 +307,12 @@ export function createGraphNodes(options: NodeOptions = {}) {
       issues.push(
         `Write cap reached (${state.writeCycles}/${MAX_WRITE_CYCLES}): Editor feedback unresolved: "${state.editorVerdict.feedback}"`,
       );
+    }
+
+    // Check if cap hit on coverage gate
+    const coverage = evaluateCoverageGate(state.topic, state.notes, state.draft);
+    if (coverage.isThin && state.researchRounds >= MAX_RESEARCH_ROUNDS) {
+      issues.push(`thin coverage: ${coverage.reasons.join('; ')}`);
     }
 
     // If budget was exceeded, keep status as budget_exceeded; otherwise awaiting_review

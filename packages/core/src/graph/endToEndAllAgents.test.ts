@@ -133,43 +133,53 @@ describe('Phase 4: End-to-End Cooperative Multi-Agent Execution', () => {
       },
     } as unknown as OpenAI;
 
-    const app = createCiteWriterGraph({
-      useRealResearcher: true,
-      useRealWriter: true,
-      useRealFactChecker: true,
-      useRealEditor: true,
-      llmClient: mockClient,
-      searchProvider: mockSearch,
-      fetchOptions: { customFetch: mockFetch as unknown as typeof fetch },
-    });
+    const origMinNotes = process.env.MIN_NOTES;
+    const origMinWords = process.env.MIN_WORDS;
+    process.env.MIN_NOTES = '1';
+    process.env.MIN_WORDS = '5';
 
-    const threadConfig = { configurable: { thread_id: 'e2e-all-agents-run' } };
+    try {
+      const app = createCiteWriterGraph({
+        useRealResearcher: true,
+        useRealWriter: true,
+        useRealFactChecker: true,
+        useRealEditor: true,
+        llmClient: mockClient,
+        searchProvider: mockSearch,
+        fetchOptions: { customFetch: mockFetch as unknown as typeof fetch },
+      });
 
-    // Initial run
-    await app.invoke(
-      {
-        runId: 'e2e-run-1',
-        topic: 'PostgreSQL 16',
-      },
-      threadConfig,
-    );
+      const threadConfig = { configurable: { thread_id: 'e2e-all-agents-run' } };
 
-    const snapshot = await app.getState(threadConfig);
-    expect(snapshot.next).toEqual(['humanReview']);
-    expect(snapshot.values.status).toBe('awaiting_review');
-    expect(snapshot.values.notes.length).toBeGreaterThanOrEqual(1);
-    expect(snapshot.values.claims.length).toBeGreaterThanOrEqual(1);
-    expect(snapshot.values.claimChecks.length).toBeGreaterThanOrEqual(1);
-    expect(snapshot.values.claimChecks[0]?.status).toBe('supported');
-    expect(snapshot.values.editorVerdict?.decision).toBe('accept');
+      // Initial run
+      await app.invoke(
+        {
+          runId: 'e2e-run-1',
+          topic: 'PostgreSQL 16',
+        },
+        threadConfig,
+      );
 
-    // Resume with human approval
-    const finalResult = await app.invoke(
-      new Command({ resume: { action: 'approve' } }),
-      threadConfig,
-    );
+      const snapshot = await app.getState(threadConfig);
+      expect(snapshot.next).toEqual(['humanReview']);
+      expect(snapshot.values.status).toBe('awaiting_review');
+      expect(snapshot.values.notes.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.values.claims.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.values.claimChecks.length).toBeGreaterThanOrEqual(1);
+      expect(snapshot.values.claimChecks[0]?.status).toBe('supported');
+      expect(snapshot.values.editorVerdict?.decision).toBe('accept');
 
-    expect(finalResult.status).toBe('approved');
-    expect(finalResult.humanAction?.action).toBe('approve');
+      // Resume with human approval
+      const finalResult = await app.invoke(
+        new Command({ resume: { action: 'approve' } }),
+        threadConfig,
+      );
+
+      expect(finalResult.status).toBe('approved');
+      expect(finalResult.humanAction?.action).toBe('approve');
+    } finally {
+      process.env.MIN_NOTES = origMinNotes;
+      process.env.MIN_WORDS = origMinWords;
+    }
   });
 });

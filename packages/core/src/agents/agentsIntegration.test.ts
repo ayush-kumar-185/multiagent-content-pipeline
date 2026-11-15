@@ -124,7 +124,7 @@ describe('Phase 2 Integration: Writer, Editor, Revision Loop & Budget Guard', ()
                     {
                       message: {
                         content: JSON.stringify({
-                          draft: `# PostgreSQL 16 Overview\n\nPostgres has replication [n1]. Also query improvements [n2].`,
+                          draft: `# PostgreSQL 16 Overview\n\nPostgreSQL 16 has replication [n1]. Also query improvements [n2].`,
                         }),
                       },
                     },
@@ -188,46 +188,56 @@ describe('Phase 2 Integration: Writer, Editor, Revision Loop & Budget Guard', ()
       },
     } as unknown as OpenAI;
 
-    const app = createCiteWriterGraph({
-      useRealWriter: true,
-      useRealEditor: true,
-      llmClient: mockClient,
-      fakeAgentOptions: {
-        // Fact checker confirms claims as supported
-        factCheckerBehavior: (claims) =>
-          claims.map((c) => ({
-            claim: c.claim,
-            noteIds: c.noteIds,
-            status: 'supported' as const,
-            reason: 'Verified against notes.',
-          })),
-      },
-    });
+    const origMinNotes = process.env.MIN_NOTES;
+    const origMinWords = process.env.MIN_WORDS;
+    process.env.MIN_NOTES = '2';
+    process.env.MIN_WORDS = '5';
 
-    const threadConfig = { configurable: { thread_id: 'test-revision-loop-p2' } };
+    try {
+      const app = createCiteWriterGraph({
+        useRealWriter: true,
+        useRealEditor: true,
+        llmClient: mockClient,
+        fakeAgentOptions: {
+          // Fact checker confirms claims as supported
+          factCheckerBehavior: (claims) =>
+            claims.map((c) => ({
+              claim: c.claim,
+              noteIds: c.noteIds,
+              status: 'supported' as const,
+              reason: 'Verified against notes.',
+            })),
+        },
+      });
 
-    await app.invoke(
-      {
-        runId: 'revision-p2',
-        topic: 'PostgreSQL 16',
-        notes: handWrittenNotes,
-      },
-      threadConfig,
-    );
+      const threadConfig = { configurable: { thread_id: 'test-revision-loop-p2' } };
 
-    const state = await app.getState(threadConfig);
-    expect(writerCalls).toBe(2);
-    expect(editorCalls).toBe(2);
-    expect(state.values.writeCycles).toBe(2);
-    expect(state.values.editorVerdict?.decision).toBe('accept');
-    expect(state.values.status).toBe('awaiting_review');
+      await app.invoke(
+        {
+          runId: 'revision-p2',
+          topic: 'PostgreSQL 16',
+          notes: handWrittenNotes,
+        },
+        threadConfig,
+      );
 
-    // Resume with approval
-    const finalResult = await app.invoke(
-      new Command({ resume: { action: 'approve' } }),
-      threadConfig,
-    );
-    expect(finalResult.status).toBe('approved');
+      const state = await app.getState(threadConfig);
+      expect(writerCalls).toBe(2);
+      expect(editorCalls).toBe(2);
+      expect(state.values.writeCycles).toBe(2);
+      expect(state.values.editorVerdict?.decision).toBe('accept');
+      expect(state.values.status).toBe('awaiting_review');
+
+      // Resume with approval
+      const finalResult = await app.invoke(
+        new Command({ resume: { action: 'approve' } }),
+        threadConfig,
+      );
+      expect(finalResult.status).toBe('approved');
+    } finally {
+      process.env.MIN_NOTES = origMinNotes;
+      process.env.MIN_WORDS = origMinWords;
+    }
   });
 
   it('Budget Guard: stops a run and routes to human review when limits are set very low', async () => {

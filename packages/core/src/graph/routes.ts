@@ -1,4 +1,5 @@
 import { GraphState } from '../schemas/state.js';
+import { evaluateCoverageGate } from './coverageGate.js';
 
 export const MAX_RESEARCH_ROUNDS = 2;
 export const MAX_WRITE_CYCLES = 3;
@@ -54,7 +55,17 @@ export function routeAfterFactChecker(state: GraphState): RouteADestination {
     return ROUTE_TARGETS.PREPARE_REVIEW;
   }
 
-  // All claims are supported (or no claim flags)
+  // All claims are supported -> evaluate Coverage Gate
+  const coverage = evaluateCoverageGate(state.topic, state.notes, state.draft);
+  if (coverage.isThin) {
+    if (researchRounds < MAX_RESEARCH_ROUNDS) {
+      return ROUTE_TARGETS.RESEARCHER;
+    }
+    // Cap hit on research rounds with thin coverage
+    return ROUTE_TARGETS.PREPARE_REVIEW;
+  }
+
+  // All claims supported and coverage gate passed
   return ROUTE_TARGETS.EDITOR;
 }
 
