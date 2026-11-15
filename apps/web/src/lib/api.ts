@@ -136,6 +136,10 @@ export async function cancelRun(
 
 export function getEventsStreamUrl(id: string, lastEventId?: number, userId?: string): string {
   const url = new URL(`${API_BASE_URL}/runs/${id}/events`);
+  const accessCode = getAccessCode();
+  if (accessCode) {
+    url.searchParams.set('accessCode', accessCode);
+  }
   let uid = userId;
   if (!uid && typeof window !== 'undefined') {
     try {

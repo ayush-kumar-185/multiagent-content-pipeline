@@ -32,9 +32,11 @@ export interface AuthMiddlewareOptions {
 export function createAuthMiddleware(dbCtx: DatabaseContext, options?: AuthMiddlewareOptions) {
   return async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
     const configuredAccessCode = options?.accessCode ?? process.env.ACCESS_CODE;
-    const providedAccessCode = (req.headers['x-access-code'] || req.headers['X-Access-Code']) as
-      | string
-      | undefined;
+    const queryCode = (req.query as Record<string, string | undefined>)?.accessCode ||
+                      (req.query as Record<string, string | undefined>)?.access_code;
+    const providedAccessCode = (req.headers['x-access-code'] ||
+      req.headers['X-Access-Code'] ||
+      queryCode) as string | undefined;
 
     // 1. Validate X-Access-Code with constant-time comparison
     if (!configuredAccessCode) {

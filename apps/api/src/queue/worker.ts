@@ -104,6 +104,15 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
         }
 
         // 5. Stream node updates
+        if (action !== 'resume') {
+          await eventBus.recordEvent({
+            runId,
+            type: 'node_start',
+            node: 'researcher',
+            data: { summary: 'Starting researcher...' },
+          });
+        }
+
         const stream = await app.stream(input, {
           configurable: { thread_id: runId },
           streamMode: 'updates',
@@ -123,6 +132,61 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
                 researchRounds: update.researchRounds,
               },
             });
+
+            // Determine and broadcast start of next stage
+            if (nodeName === 'researcher') {
+              await eventBus.recordEvent({
+                runId,
+                type: 'node_start',
+                node: 'writer',
+                data: { summary: 'Starting writer...' },
+              });
+            } else if (nodeName === 'writer') {
+              await eventBus.recordEvent({
+                runId,
+                type: 'node_start',
+                node: 'factChecker',
+                data: { summary: 'Starting fact-checker...' },
+              });
+            } else if (nodeName === 'factChecker') {
+              const hasNeedsMoreResearch = update.claimChecks?.some((c) => c.status === 'needs_more_research');
+              const hasUnsupported = update.claimChecks?.some((c) => c.status === 'unsupported');
+              const rRounds = update.researchRounds ?? 0;
+              const wCycles = update.writeCycles ?? 0;
+
+              if (hasNeedsMoreResearch && rRounds < 2) {
+                await eventBus.recordEvent({
+                  runId,
+                  type: 'node_start',
+                  node: 'researcher',
+                  data: { summary: 'Re-researching unverified claims...' },
+                });
+              } else if (hasUnsupported && wCycles < 3) {
+                await eventBus.recordEvent({
+                  runId,
+                  type: 'node_start',
+                  node: 'writer',
+                  data: { summary: 'Revising draft to fix unsupported claims...' },
+                });
+              } else if (!hasNeedsMoreResearch && !hasUnsupported) {
+                await eventBus.recordEvent({
+                  runId,
+                  type: 'node_start',
+                  node: 'editor',
+                  data: { summary: 'Starting editor evaluation...' },
+                });
+              }
+            } else if (nodeName === 'editor') {
+              const wCycles = update.writeCycles ?? 0;
+              if (update.editorVerdict?.decision === 'revise' && wCycles < 3) {
+                await eventBus.recordEvent({
+                  runId,
+                  type: 'node_start',
+                  node: 'writer',
+                  data: { summary: 'Revising draft based on editor feedback...' },
+                });
+              }
+            }
 
             // Persist progress to DB
             const patch: Partial<typeof runs.$inferInsert> = {

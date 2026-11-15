@@ -117,6 +117,9 @@ export function AgentProgressStream({ run, onRefreshRun }: AgentProgressStreamPr
       if (evt.node) {
         setActiveNode(evt.node);
       }
+      if (evt.type === 'review_ready') {
+        setActiveNode('humanReview');
+      }
 
       // If status changed or review ready, refresh parent run state
       if (
@@ -157,13 +160,35 @@ export function AgentProgressStream({ run, onRefreshRun }: AgentProgressStreamPr
       return 'pending';
     }
 
-    if (activeNode === stageId) {
+    if (activeNode === stageId && run.status === 'running') {
       return 'active';
+    }
+
+    // Default to researcher active if run is running and activeNode is not yet determined
+    if (run.status === 'running' && (!activeNode || activeNode === 'researcher') && stageId === 'researcher') {
+      const hasResearcherEnded = events.some((e) => e.node === 'researcher' && e.type === 'node_end');
+      if (!hasResearcherEnded && (!run.notes || run.notes.length === 0)) {
+        return 'active';
+      }
     }
 
     // Check if stage has completed events
     const hasEnded = events.some((e) => e.node === stageId && e.type === 'node_end');
     if (hasEnded) return 'completed';
+
+    // Also fallback to run data if events aren't fully populated yet
+    if (stageId === 'researcher' && (run.researchRounds > 0 || (run.notes && run.notes.length > 0))) {
+      return 'completed';
+    }
+    if (stageId === 'writer' && (run.writeCycles > 0 || (run.draft && run.draft.length > 0))) {
+      return 'completed';
+    }
+    if (stageId === 'factChecker' && run.claimChecks && run.claimChecks.length > 0) {
+      return 'completed';
+    }
+    if (stageId === 'editor' && run.editorVerdict) {
+      return 'completed';
+    }
 
     return 'pending';
   };

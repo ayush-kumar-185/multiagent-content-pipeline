@@ -4,7 +4,7 @@ import { Redis } from 'ioredis';
 import { Queue, QueueEvents, Worker } from 'bullmq';
 import crypto from 'node:crypto';
 import { buildServer } from '../server.js';
-import { createDatabase, DatabaseContext, users } from '../db/index.js';
+import { createDatabase, DatabaseContext, users, runs } from '../db/index.js';
 import { createPostgresCheckpointer } from '../checkpointer/index.js';
 import { RunEventBus } from '../events/eventBus.js';
 import { createRunQueue, createRunWorker, RunJobData } from '../queue/index.js';
@@ -28,11 +28,13 @@ describe('Fastify Runs API Endpoints & Auth', () => {
   }
 
   beforeAll(async () => {
+    process.env.USE_REAL_LLM = 'false';
     process.env.MAX_CONCURRENT_RUNS = '10';
     process.env.MAX_RUNS_PER_DAY = '100';
     process.env.MAX_RUNS_PER_IP_PER_DAY = '100';
 
     dbCtx = createDatabase();
+    await dbCtx.db.delete(runs);
     const cpCtx = createPostgresCheckpointer(dbCtx.pool);
     await cpCtx.setup();
     eventBus = new RunEventBus(dbCtx);
