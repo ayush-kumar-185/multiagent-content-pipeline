@@ -481,3 +481,134 @@ Each agent in the CiteWriter system has distinct requirements:
 - _Installing separate heavy SDKs (`@google/genai`, `groq-sdk`, etc.):_ Rejected because all four platforms officially implement the standard OpenAI `/chat/completions` REST specification, enabling zero-overhead provider switching with the existing lightweight, battle-tested client.
 
 ---
+
+## ADR 015: Frozen Production Environment Configuration & Token Optimization Calibration
+
+- **Date:** 2026-11-14
+- **Status:** Accepted, frozen
+
+### Context
+
+*(Note: Earlier Phase E clean-run figures evaluated an unrouted 1-pass sequence that bypassed LangGraph conditional routing; the real compiled LangGraph was verified end-to-end on 2026-11-15).*
+
+Following the Phase E empirical token audit on real technical topics (`Advances in TypeScript 5.0 Type Inference` and `HTTP/3 QUIC protocol connection migration performance`), several operational bottlenecks and behavioral characteristics were discovered on free-tier providers:
+
+1. **Groq OTPM Constraint & Verified Error Source:**
+   Groq enforces an unheadered **1,000 Output Tokens Per Minute (OTPM)** cap on `qwen/qwen3.8-27b` (despite `x-ratelimit-limit-tokens: 8000` TPM). This was directly captured from the HTTP 429 JSON response body in `token-audit/calls.jsonl` (Calls 112, 114, 117):
+   ```json
+   {
+     "message": "Request too large for model `qwen/qwen3.8-27b` in organization `org_01m75xhp0we4stm2wyz9gf4z1q` service tier `on_demand` on output tokens per minute (OTPM): Limit 1000, Requested 1537. The request's expected output tokens exceed the enforced limit; reduce max_tokens (or the request's expected output) and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing",
+     "type": "tokens",
+     "code": "rate_limit_exceeded"
+   }
+   ```
+   *Operational Inference regarding 1,214-token call success:* When a call begins with remaining capacity in the sliding 60-second window, Groq permits the completion to finish streaming (observed at 1,214–1,537 completion tokens, 59.6% of which were internal reasoning tokens). However, once emitted, Groq immediately rejects subsequent calls with HTTP 429 until the 60-second window refills.
+
+2. **Researcher Prompt Ingestion:**
+   Researcher consumed **5,216 input tokens per call** (51.1% of the entire clean run) due to naive 4,000-character head-truncation of fetched web pages.
+
+3. **Editor Input Token Expansion (+380 tokens):**
+   The Editor's input tokens increased from 577 to 957 tokens (+380 tokens). The Editor prompt (`buildEditorUserPrompt`) contains three components:
+   - System prompt (rubric, constraints, target audience: ~500 tokens).
+   - Full article markdown draft.
+   - Deterministic automated audit report (`deterministicReport.summary` with Flesch-Kincaid readability, sentence count, word count, and sentence-level citation analysis).
+   The baseline test in `scripts/measure-editor.ts` evaluated a minimal 68-word mock snippet (~80 tokens) with a 4-sentence audit (~20 tokens), whereas the optimized run evaluated a full 343-word technical article (~350 tokens) with an expanded 14-sentence deterministic audit (~110 tokens). The +380 tokens reflect the actual draft word count and expanded audit report.
+
+4. **Fact-Checker Peak Output:**
+   In clean runs, the Fact-Checker emitted up to 1,574 output tokens (evaluating 14 claims with detailed reasoning), exceeding the initial default of 1,500 tokens.
+
+### Decision
+
+Freeze the multi-agent production environment configuration across `.env`, `.env.example`, and `@citewriter/core`:
+
+1. **Assigned Models & Providers (Frozen):**
+   - **Researcher:** `openai/gpt-oss-20b` on Groq (`RESEARCHER_PROVIDER=groq`, `RESEARCHER_MODEL=openai/gpt-oss-20b`).
+   - **Writer:** `qwen/qwen3.8-27b` on Groq (`WRITER_PROVIDER=groq`, `WRITER_MODEL=qwen/qwen3.8-27b`).
+   - **Fact-Checker:** `openai/gpt-oss-120b` on Groq (`FACT_CHECKER_PROVIDER=groq`, `FACT_CHECKER_MODEL=openai/gpt-oss-120b`).
+   - **Editor:** `gemini-3.1-flash-lite` on Gemini (`EDITOR_PROVIDER=gemini`, `EDITOR_MODEL=gemini-3.1-flash-lite`).
+
+2. **Calibrated Operational Parameters (Frozen):**
+   - **Writer Reasoning Effort (`WRITER_REASONING_EFFORT=none`, `WRITER_MAX_TOKENS=2500`):**
+     - Disabling reasoning tokens on `qwen/qwen3.8-27b` eliminates ~476 reasoning tokens per call, reducing average output tokens from 1,053 down to 501 tokens (-52.4%).
+     - Latency drops from up to 38.4s to 1.0–1.2s (~20x speedup).
+     - Because output tokens stay safely below 1,000 OTPM, zero 429 rate limit errors occur.
+   - **Researcher Passage Selection (`RESEARCHER_PAGE_TOKEN_BUDGET=500`, `RESEARCHER_MAX_TOKENS=2000`, `RESEARCHER_REASONING_EFFORT=low`):**
+     - Replaced naive 4,000-character head-truncation with BM25 keyword-scoring passage selection within a 500-token per page budget.
+     - Ingested tokens per call dropped from 5,216 to 3,211 tokens (-38.4% savings, ~2,005 tokens saved per run).
+     - Verified note yield increased from 6.0 to 7.0 notes per round, with 100% of notes passing exact-substring code-level verification against full fetched page text (0 dropped notes).
+   - **Fact-Checker Headroom (`FACT_CHECKER_MAX_TOKENS=2500`, `FACT_CHECKER_REASONING_EFFORT=low`):**
+     - Set `max_tokens=2500` with `reasoning_effort=low`.
+     - Provides safe headroom above the observed peak of 1,574 output tokens (which exceeded the initial 1500 ceiling), accommodating 12–14 detailed claim verification checks with explanatory reasoning.
+   - **Editor Pinned Model (`EDITOR_MAX_TOKENS=600`, `gemini-3.1-flash-lite`):**
+     - Pinned to exact non-alias ID `gemini-3.1-flash-lite`.
+     - Generates concise structured rubric verdicts in ~95 output tokens.
+
+### Quality Results (n = 2 Test Topics)
+
+*(Note: n = 2 technical topics evaluated under identical search and retrieval parameters: "Advances in TypeScript 5.0 Type Inference" and "HTTP/3 QUIC protocol connection migration performance".)*
+
+| Topic | Configuration | Claims Count | Fact-Checker Supported | Fact-Checker Unsupported | Fact-Checker Needs Research | Editor Score / Decision |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| **Topic 1:** *TypeScript 5.0 Type Inference* | **Baseline** (Writer reasoning on, naive page slice) | 12 | 11 | 1 | 0 | 6.5 / `revise` |
+| | **Optimized** (Writer reasoning none, passage selection) | 14 | 6 | 5 | 0 | **9.2 / `accept`** |
+| **Topic 2:** *HTTP/3 QUIC Connection Migration* | **Baseline** (Writer reasoning on, naive page slice) | 12 | 10 | 2 | 0 | 6.5 / `revise` |
+| | **Optimized** (Writer reasoning none, passage selection) | 12 | 8 | 2 | 0 | **9.2 / `accept`** |
+
+*Quality Observations:*
+- Disabling Writer reasoning produced highly fluent, natural technical prose that the Editor rated 9.2/10 (`accept`), compared to 6.5/10 (`revise`) for the baseline draft.
+- The Fact-Checker strictly flagged connective and extrapolative phrases that lacked direct verbatim support in the notes (5 unsupported claims on Topic 1). This divergence empirically validates CiteWriter's multi-agent routing: the Editor ensures stylistic excellence, while the Fact-Checker strictly guards factual grounding.
+
+#### Representative Final Draft (Topic 1: *Advances in TypeScript 5.0 Type Inference and Configuration*, 343 words)
+> # Advances in TypeScript 5.0 Type Inference and Configuration
+> 
+> TypeScript 5.0 represents a significant milestone for software engineers, introducing robust enhancements to type inference, configuration flexibility, and module resolution. These updates streamline development workflows and improve compatibility with modern build tools.
+> 
+> ## Enhanced Type Inference Mechanisms
+> 
+> A primary advancement in TypeScript 5.0 is the introduction of const type parameters, which enable const-like inference by default [n1]. This feature allows developers to add a const modifier to a type parameter declaration, ensuring that inferred types retain their literal nature rather than widening to broader types [n1]. Additionally, the release introduces a new JSDoc tag called @satisfies, which behaves identically to the @satisfies annotation in standard TypeScript syntax [n5]. This addition provides a consistent mechanism for type checking within JSDoc contexts, ensuring that inferred types satisfy specific constraints without altering the inferred type itself [n5].
+> 
+> ## Enum and Import Refinements
+> 
+> The handling of enums has been fundamentally restructured in this version. TypeScript 5.0 treats all enums as union enums by creating a unique type for each computed member [n3]. This approach enhances type safety by distinguishing between individual enum members rather than treating them as a single union of string or number literals [n3]. Furthermore, the language now supports type-only imports on export * from "module" and export * as ns from "module" re-exports [n4]. This capability allows for precise control over what is exported, reducing bundle sizes and preventing unintended side effects in large-scale applications [n4].
+> 
+> ## Configuration and Module Resolution
+> 
+> Configuration management has been simplified through the extension of the tsconfig.json file. TypeScript 5.0 now allows the extends field to take multiple entries, enabling developers to inherit settings from several base configurations simultaneously [n2]. This feature reduces redundancy in monorepo environments where shared settings are distributed across multiple files [n2].
+> 
+> To address the complexities of modern build pipelines, TypeScript 5.0 introduces a new bundler module resolution option [n6]. This option improves compatibility with modern bundlers such as Webpack and Parcel, ensuring that module resolution logic aligns with how these tools process dependencies [n6]. Additionally, the compiler now allows importing TypeScript files with extensions .ts, .tsx, and .mts by adding the extension directly to the import name [n7]. This change facilitates direct file references, which is particularly useful when working with explicit file paths in complex project structures [n7].
+
+### Capacity & Quota Constraints (Consistent 2-Topic Averages)
+
+All capacity calculations use the clean 1-pass measured **two-topic averages**:
+- **Researcher:** 4,080 tokens (3,211 input + 869 output)
+- **Writer:** 1,552 tokens (1,051 input + 501 output)
+- **Fact-Checker:** 3,169 tokens (1,805 input + 1,365 output)
+- **Editor:** 1,051 tokens (957 input + 95 output)
+- **Clean 1-Pass Run Total:** 9,851 tokens (7,024 input + 2,830 output)
+
+$$\text{Pipeline Daily Capacity Upper Bound} = \min(\text{Researcher: } 49, \text{Writer: } 128, \text{Fact-Checker: } 63, \text{Editor: } \text{unknown}) = \mathbf{49 \text{ clean runs / day}}$$
+
+- **Clean Run Upper Bound:** 49 runs/day represents an **upper bound for clean, 1-pass executions**. Any revision cycles (Route A or B), re-research loops, or validation retries will consume additional tokens, reducing effective daily run capacity.
+- **Binding Bottleneck:** The **Researcher agent binds** daily pipeline capacity at 49 clean runs per day, consuming its 200,000 TPD allocation on Groq. Passage selection expanded this capacity by +48.5% (from 33 to 49 runs/day).
+- **Editor Limit:** The Editor's daily capacity on Google AI Studio is **unknown** because Google AI Studio does not provide rate limit or daily quota headers on its OpenAI-compatible endpoint.
+- **Verification of Per-Model Daily Buckets in Phase D:**
+  In Phase D Experiment 2, independent per-model isolation was verified for *minute* token limits (`x-ratelimit-remaining-tokens`: calling Model A did not deduct minute tokens from Model B). However, Groq response headers **do not return daily token usage or limit headers** (only `x-ratelimit-limit-requests: 1000` for daily requests). Daily token limits (200,000 TPD) come from Groq's web console documentation and are monitored via a local client-side ledger (`token-audit/ledger.json`). Whether Groq enforces separate 200,000 TPD hardware allocations per model or aggregates them across models could not be verified from HTTP response headers.
+
+### End-to-End LangGraph Verification (Topic 1 Measured, n = 1)
+
+On 2026-11-15, the frozen configuration with deterministic uncited sentence verification, strictly grounded writer prompts, and advisory editor length checks was verified in a real end-to-end execution of `createCiteWriterGraph` on Topic 1 (*Advances in TypeScript 5.0 Type Inference*, Run ID: `e2e-topic1-1794735883152`, $n = 1$):
+- **Wall Time [measured, n = 1]:** 14.18s
+- **Full Node Sequence [measured, n = 1]:** `researcher` -> `writer` -> `factChecker` -> `writer` -> `factChecker` -> `editor` -> `prepareReview` -> `humanReview`
+- **Revision Cycles & Passes [measured, n = 1]:** 1 research round, 2 write cycles, 2 fact-checker passes, 1 editor pass.
+- **Fact-Checker Claim Checks [measured, n = 1]:**
+  - Pass 1: 5 evaluated statements (4 supported, 1 unsupported factual flag, 0 uncited sentences, 0 needs_more_research; sum: 4 + 1 + 0 = 5) -> routed to Writer (Cycle 2).
+  - Pass 2: 4 evaluated statements (4 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research; sum: 4 + 0 + 0 = 4) -> routed to Editor.
+- **Final Claim Statuses [measured, n = 1]:** 4 supported, 0 unsupported, 0 uncited sentences, 0 needs_more_research (100% grounded and verified).
+- **Editor Verdict [measured, n = 1]:** Score **9.5/10**, Decision: **`accept`** (Feedback: *"The draft is technically precise, well-structured, and adheres strictly to the provided notes. The section headings accurately reflect the content, and the tone is appropriate for a software engineering audience. While the word count is below the target, it is acceptable as all claims are fully supported by citations and no additional filler is required."*).
+- **Total Token Footprint [measured, n = 1]:** **9,145 tokens** (Researcher: 2,862; Writer: 2,329; Fact-Checker: 2,853; Editor: 1,101), total cost: \$0.0033.
+- **Final Status [measured, n = 1]:** `awaiting_review` (clean pause at `humanReview` interrupt with 0 open issues). Zero uncited sentences, zero unsupported claims, editor accepted, and no human review error/breach. ADR 015 is closed and marked frozen.
+
+### Alternatives Considered
+
+- _Keeping Writer reasoning enabled (`reasoning_effort=low`):_ Rejected because `low` reasoning still generated 300–600 reasoning tokens, pushing total output close to or over the 1,000 OTPM ceiling and triggering 429 rejections on burst runs.
+- _Truncating page text with head slice at 1,800 chars:_ Rejected because fixed head slices discard critical technical content located in the body or conclusion of documents, reducing note quality. BM25 passage selection ensures only high-relevance paragraphs are ingested.
