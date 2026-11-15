@@ -6,7 +6,8 @@ import { SearchProvider } from '../../tools/search/types.js';
 import { createSearchProvider } from '../../tools/search/factory.js';
 import { fetchPage, FetchPageOptions } from '../../tools/fetch/fetchPage.js';
 import { filterVerifiedNotes } from './quoteVerifier.js';
-import { createLLMClient, getAgentModel } from '../../llm/client.js';
+import { PassageSelectorOptions } from './passageSelector.js';
+import { createLLMClient, getAgentModel, getAgentMaxTokens, getAgentReasoningEffort } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
 import { resolveBudgetLimits, assertWithinBudget } from '../../llm/budget.js';
 import { Tracer } from '../../observability/types.js';
@@ -27,10 +28,14 @@ export type ResearcherOutput = z.infer<typeof ResearcherOutputSchema>;
 export interface ResearcherAgentOptions {
   client?: OpenAI;
   model?: string;
+  maxTokens?: number;
+  reasoningEffort?: string;
   searchProvider?: SearchProvider;
   fetchOptions?: FetchPageOptions;
   maxFetchesPerRound?: number;
   tracer?: Tracer;
+  pageTokenBudget?: number;
+  passageOptions?: PassageSelectorOptions;
 }
 
 export async function runResearcherAgent(
@@ -180,11 +185,15 @@ export async function runResearcherAgent(
   }
 
   // 4. Prompt LLM to extract notes
+  const passageOptions: PassageSelectorOptions = {
+    tokenBudget: options.pageTokenBudget,
+    ...options.passageOptions,
+  };
   const systemPrompt = buildResearcherSystemPrompt();
   const userPrompt =
     isReResearch && claimsNeedingResearch.length > 0
-      ? buildResearcherReResearchPrompt(claimsNeedingResearch, fetchedPages)
-      : buildResearcherInitialPrompt(state.topic, fetchedPages);
+      ? buildResearcherReResearchPrompt(claimsNeedingResearch, fetchedPages, passageOptions)
+      : buildResearcherInitialPrompt(state.topic, fetchedPages, passageOptions);
 
   const budgetLimits = resolveBudgetLimits(state.config);
   const result = await generateStructuredOutput({
@@ -198,7 +207,8 @@ export async function runResearcherAgent(
     budgetLimits,
     runId: state.runId,
     agentRole: 'researcher',
-    maxTokens: 3500,
+    maxTokens: options.maxTokens ?? getAgentMaxTokens('researcher'),
+    reasoningEffort: options.reasoningEffort ?? getAgentReasoningEffort('researcher'),
     tracer,
   });
 
