@@ -126,3 +126,4 @@ Here are ready-to-use resume bullet points emphasizing software engineering rigo
 
 3. **How do you handle production reliability and rate limits?**  
    *"We built a multi-layered guardrail: token-aware pacing computes dynamic wait times before external LLM calls to smooth out TPM spikes; an atomic daily token ledger blocks execution when daily headroom is low; and durable PostgreSQL checkpointers allow any crashed worker to resume immediately from its last state snapshot."*
+
