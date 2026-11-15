@@ -4,7 +4,6 @@ import { GraphState, HumanActionSchema, type HumanAction } from '../schemas/stat
 import {
   FakeAgentOptions,
   defaultFakeNotes,
-  defaultFakeDraft,
   defaultFakeClaims,
   defaultFakeClaimChecks,
   defaultFakeEditorVerdict,

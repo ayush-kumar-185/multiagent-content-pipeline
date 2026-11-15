@@ -1,10 +1,13 @@
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
+import path from 'node:path';
+import dotenv from 'dotenv';
 import * as schema from './schema.js';
 
-import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
-import pg from 'pg';
-import * as schema from './schema.js';
+// Ensure environment variables are loaded
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config();
 
 export class DatabaseGuardError extends Error {
   constructor(message: string) {
@@ -20,7 +23,7 @@ export function extractDatabaseName(connectionString: string): string {
     return pathname.split('?')[0] || '';
   } catch {
     const match = connectionString.match(/\/([^/?]+)(?:\?|$)/);
-    return match ? match[1] : '';
+    return match && match[1] ? match[1] : '';
   }
 }
 
@@ -91,7 +94,5 @@ export function createDatabase(connectionString?: string): DatabaseContext {
     },
   };
 }
-
-export * from './schema.js';
 
 export * from './schema.js';

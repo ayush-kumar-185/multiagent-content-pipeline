@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import Fastify, { FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
 import { timingSafeEqualString, createAuthMiddleware } from '../auth/index.js';
 import { registerRunRoutes } from './runs.js';
 import { validateStartupEnvironment, MissingApiKeyError } from '../config/mode.js';
-import { users, runs } from '../db/index.js';
 import { recordDailyTokens, resetDailyLedgerWarnings } from '@citewriter/core';
 
 describe('Task 1 & Task 3: Public Demo Protection, Caps, and Explicit Mode', () => {
@@ -142,8 +141,8 @@ describe('Task 1 & Task 3: Public Demo Protection, Caps, and Explicit Mode', () 
 
       const mockDb = {
         select: () => ({
-          from: (table: any) => ({
-            where: (cond: any) => {
+          from: (_table: any) => ({
+            where: (_cond: any) => {
               // Return simulated counts
               if (options.activeCount !== undefined) {
                 return Promise.resolve([{ count: options.activeCount }]);

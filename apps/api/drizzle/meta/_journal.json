@@ -15,6 +15,13 @@
       "when": 1793701922626,
       "tag": "0001_icy_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794749007182,
+      "tag": "0002_parallel_night_nurse",
+      "breakpoints": true
     }
   ]
 }

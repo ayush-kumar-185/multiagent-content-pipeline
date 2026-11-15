@@ -10,7 +10,7 @@ export function getAccessCode(): string {
   return process.env.NEXT_PUBLIC_ACCESS_CODE || 'citewriter_demo_2026';
 }
 
-function getAuthHeaders(userId?: string): HeadersInit {
+function getAuthHeaders(_userId?: string): HeadersInit {
   return {
     'Content-Type': 'application/json',
     'X-Access-Code': getAccessCode(),

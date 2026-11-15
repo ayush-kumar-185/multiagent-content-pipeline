@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 import { Queue } from 'bullmq';
 import http from 'node:http';
+import crypto from 'node:crypto';
 import { buildServer } from '../server.js';
 import { createDatabase, DatabaseContext, users, runs } from '../db/index.js';
 import { RunEventBus } from '../events/eventBus.js';
@@ -16,7 +17,8 @@ describe('SSE Stream Disconnect and Reconnection with Last-Event-ID', () => {
   let queue: Queue<RunJobData>;
   let serverUrl: string;
 
-  const testUserId = `sse-test-user-${Date.now()}`;
+  const testBearerToken = `sse-token-${Date.now()}`;
+  const testUserId = `user_${crypto.createHash('sha256').update(testBearerToken).digest('hex').slice(0, 16)}`;
   const testRunId = `sse-test-run-${Date.now()}`;
 
   beforeAll(async () => {
@@ -122,7 +124,7 @@ describe('SSE Stream Disconnect and Reconnection with Last-Event-ID', () => {
         `${serverUrl}/runs/${testRunId}/events`,
         {
           headers: {
-            'x-user-id': testUserId,
+            authorization: `Bearer ${testBearerToken}`,
             'x-access-code': 'citewriter_demo_2026',
           },
         },
@@ -192,7 +194,7 @@ describe('SSE Stream Disconnect and Reconnection with Last-Event-ID', () => {
         `${serverUrl}/runs/${testRunId}/events`,
         {
           headers: {
-            'x-user-id': testUserId,
+            authorization: `Bearer ${testBearerToken}`,
             'x-access-code': 'citewriter_demo_2026',
             'last-event-id': '2',
           },

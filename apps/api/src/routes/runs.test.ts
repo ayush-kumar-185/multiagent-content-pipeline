@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 import { Queue, QueueEvents, Worker } from 'bullmq';
+import crypto from 'node:crypto';
 import { buildServer } from '../server.js';
 import { createDatabase, DatabaseContext, users } from '../db/index.js';
 import { createPostgresCheckpointer } from '../checkpointer/index.js';
@@ -17,9 +18,20 @@ describe('Fastify Runs API Endpoints & Auth', () => {
   let worker: Worker<RunJobData>;
   let eventBus: RunEventBus;
 
-  const testUserId = `api-test-user-${Date.now()}`;
+  const testBearerToken = `runs-token-${Date.now()}`;
+  const testUserId = `user_${crypto.createHash('sha256').update(testBearerToken).digest('hex').slice(0, 16)}`;
+  function authHeaders(token = testBearerToken) {
+    return {
+      authorization: `Bearer ${token}`,
+      'x-access-code': 'citewriter_demo_2026',
+    };
+  }
 
   beforeAll(async () => {
+    process.env.MAX_CONCURRENT_RUNS = '10';
+    process.env.MAX_RUNS_PER_DAY = '100';
+    process.env.MAX_RUNS_PER_IP_PER_DAY = '100';
+
     dbCtx = createDatabase();
     const cpCtx = createPostgresCheckpointer(dbCtx.pool);
     await cpCtx.setup();
@@ -81,10 +93,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: {
-        'x-user-id': testUserId,
-        'x-access-code': 'citewriter_demo_2026',
-      },
+      headers: authHeaders(),
       payload: {
         topic: 'Modern TypeScript Compilers and Build Tools',
         config: {
@@ -107,7 +116,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       const getRes = await app.inject({
         method: 'GET',
         url: `/runs/${body.id}`,
-        headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+        headers: authHeaders(),
       });
       currentStatus = getRes.json().status;
       retries--;
@@ -117,17 +126,13 @@ describe('Fastify Runs API Endpoints & Auth', () => {
   });
 
   it('enforces per-user concurrent run limit and returns 429', async () => {
-    const secondUserId = `limit-user-${Date.now()}`;
-    await dbCtx.db.insert(users).values({
-      id: secondUserId,
-      email: `${secondUserId}@test.local`,
-    });
+    const secondBearerToken = `limit-token-${Date.now()}`;
 
     // Create run 1
     const res1 = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': secondUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(secondBearerToken),
       payload: { topic: 'Run 1' },
     });
     expect(res1.statusCode).toBe(201);
@@ -136,7 +141,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const res2 = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': secondUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(secondBearerToken),
       payload: { topic: 'Run 2' },
     });
     expect(res2.statusCode).toBe(201);
@@ -145,7 +150,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const res3 = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': secondUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(secondBearerToken),
       payload: { topic: 'Run 3' },
     });
     expect(res3.statusCode).toBe(429);
@@ -153,11 +158,12 @@ describe('Fastify Runs API Endpoints & Auth', () => {
   });
 
   it('resumes an awaiting_review run via POST /runs/:id/resume', async () => {
+    const resumeBearerToken = `resume-token-${Date.now()}`;
     // 1. Create a run
     const createRes = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(resumeBearerToken),
       payload: { topic: 'Testing API Resumption' },
     });
     const runId = createRes.json().id;
@@ -170,7 +176,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       const getRes = await app.inject({
         method: 'GET',
         url: `/runs/${runId}`,
-        headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+        headers: authHeaders(resumeBearerToken),
       });
       status = getRes.json().status;
       retries--;
@@ -181,7 +187,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const resumeRes = await app.inject({
       method: 'POST',
       url: `/runs/${runId}/resume`,
-      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(resumeBearerToken),
       payload: {
         action: 'approve',
       },
@@ -196,7 +202,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       const getRes = await app.inject({
         method: 'GET',
         url: `/runs/${runId}`,
-        headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+        headers: authHeaders(resumeBearerToken),
       });
       status = getRes.json().status;
       retries--;
@@ -205,10 +211,11 @@ describe('Fastify Runs API Endpoints & Auth', () => {
   });
 
   it('cancels a run via POST /runs/:id/cancel', async () => {
+    const cancelBearerToken = `cancel-token-${Date.now()}`;
     const createRes = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(cancelBearerToken),
       payload: { topic: 'Testing Cancellation' },
     });
     const runId = createRes.json().id;
@@ -216,7 +223,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const cancelRes = await app.inject({
       method: 'POST',
       url: `/runs/${runId}/cancel`,
-      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(cancelBearerToken),
     });
 
     expect(cancelRes.statusCode).toBe(200);
@@ -225,7 +232,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const getRes = await app.inject({
       method: 'GET',
       url: `/runs/${runId}`,
-      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
+      headers: authHeaders(cancelBearerToken),
     });
     expect(getRes.json().status).toBe('rejected');
   });
