@@ -8,7 +8,6 @@ import {
   GraphBuilderOptions,
   BaseCheckpointSaver,
   getTracer,
-  hasConfiguredLLM,
 } from '@citewriter/core';
 import { DatabaseContext, runs, draftVersions } from '../db/index.js';
 import { RunEventBus } from '../events/eventBus.js';
@@ -75,9 +74,10 @@ export function createRunWorker(deps: WorkerDependencies): Worker<RunJobData> {
         userId: runRecord.userId,
       });
 
-      const hasLLMKey = hasConfiguredLLM();
+      // Determine real vs mock mode explicitly from runRecord mode or USE_REAL_LLM
       const isTestEnv = process.env.NODE_ENV === 'test';
-      const defaultUseReal = hasLLMKey && !isTestEnv;
+      const isReal = !isTestEnv && (runRecord.mode === 'real' || process.env.USE_REAL_LLM === 'true');
+      const defaultUseReal = isReal;
 
       const app = createCiteWriterGraph({
         useRealResearcher: graphOptions.useRealResearcher ?? defaultUseReal,

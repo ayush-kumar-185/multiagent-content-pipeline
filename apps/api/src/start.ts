@@ -6,7 +6,7 @@ dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
-import { hasConfiguredLLM } from '@citewriter/core';
+import { validateStartupEnvironment } from './config/mode.js';
 import { createDatabase } from './db/index.js';
 import { createPostgresCheckpointer } from './checkpointer/index.js';
 import { RunEventBus } from './events/eventBus.js';
@@ -14,6 +14,10 @@ import { createRedisConnection, createRunQueue, createRunWorker } from './queue/
 import { buildServer } from './server.js';
 
 async function startServer(): Promise<void> {
+  // Validate explicit real vs mock mode at startup
+  const envStatus = validateStartupEnvironment();
+  console.log(`[CiteWriter API] Execution Mode: ${envStatus.mode.toUpperCase()}`);
+
   const dbCtx = createDatabase();
   const cpCtx = createPostgresCheckpointer(dbCtx.pool);
   const eventBus = new RunEventBus(dbCtx);
@@ -23,19 +27,19 @@ async function startServer(): Promise<void> {
   // Initialize Postgres checkpointer tables
   await cpCtx.setup();
 
-  const hasLLMKey = hasConfiguredLLM();
+  const isReal = envStatus.mode === 'real';
 
-  // Initialize background worker with real agents when LLM credentials are present
+  // Initialize background worker with real agents only when USE_REAL_LLM=true
   const worker = createRunWorker({
     dbCtx,
     checkpointer: cpCtx.checkpointer,
     eventBus,
     redis,
     graphOptions: {
-      useRealResearcher: hasLLMKey,
-      useRealWriter: hasLLMKey,
-      useRealFactChecker: hasLLMKey,
-      useRealEditor: hasLLMKey,
+      useRealResearcher: isReal,
+      useRealWriter: isReal,
+      useRealFactChecker: isReal,
+      useRealEditor: isReal,
     },
   });
 
