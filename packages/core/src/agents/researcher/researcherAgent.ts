@@ -6,6 +6,7 @@ import { SearchProvider } from '../../tools/search/types.js';
 import { createSearchProvider } from '../../tools/search/factory.js';
 import { fetchPage, FetchPageOptions } from '../../tools/fetch/fetchPage.js';
 import { filterVerifiedNotes } from './quoteVerifier.js';
+import { deduplicateNotes } from './noteDeduplication.js';
 import { PassageSelectorOptions } from './passageSelector.js';
 import { createLLMClient, getAgentModel, getAgentMaxTokens, getAgentReasoningEffort } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
@@ -15,7 +16,9 @@ import {
   buildResearcherSystemPrompt,
   buildResearcherInitialPrompt,
   buildResearcherReResearchPrompt,
+  buildResearcherCoverageReResearchPrompt,
 } from './prompt.js';
+import { evaluateCoverageGate } from '../../graph/coverageGate.js';
 
 export const MAX_FETCHES_PER_ROUND = 8;
 
@@ -60,6 +63,7 @@ export async function runResearcherAgent(
 
   const isReResearch = state.researchRounds > 0;
   const claimsNeedingResearch = state.claimChecks.filter((c) => c.status === 'needs_more_research');
+  const coverage = evaluateCoverageGate(state.topic, state.notes, state.draft);
 
   // 1. Gather Search Queries
   const queries: string[] = [];
@@ -67,6 +71,13 @@ export async function runResearcherAgent(
     for (const c of claimsNeedingResearch) {
       queries.push(`${state.topic} ${c.claim.slice(0, 80)}`);
     }
+  } else if (isReResearch && coverage.isThin) {
+    if (coverage.missingKeyTerms.length > 0) {
+      for (const term of coverage.missingKeyTerms) {
+        queries.push(`${state.topic} ${term}`);
+      }
+    }
+    queries.push(`${state.topic} documentation guide`);
   } else {
     queries.push(state.topic);
     queries.push(`${state.topic} architecture documentation`);
@@ -190,10 +201,25 @@ export async function runResearcherAgent(
     ...options.passageOptions,
   };
   const systemPrompt = buildResearcherSystemPrompt();
-  const userPrompt =
-    isReResearch && claimsNeedingResearch.length > 0
-      ? buildResearcherReResearchPrompt(claimsNeedingResearch, fetchedPages, passageOptions)
-      : buildResearcherInitialPrompt(state.topic, fetchedPages, passageOptions);
+  let userPrompt: string;
+  if (isReResearch && claimsNeedingResearch.length > 0) {
+    userPrompt = buildResearcherReResearchPrompt(
+      claimsNeedingResearch,
+      fetchedPages,
+      passageOptions,
+    );
+  } else if (isReResearch && coverage.isThin) {
+    userPrompt = buildResearcherCoverageReResearchPrompt(
+      state.topic,
+      coverage.instruction || 'Gather additional verified notes covering distinct subtopics.',
+      coverage.missingKeyTerms,
+      state.notes,
+      fetchedPages,
+      passageOptions,
+    );
+  } else {
+    userPrompt = buildResearcherInitialPrompt(state.topic, fetchedPages, passageOptions);
+  }
 
   const budgetLimits = resolveBudgetLimits(state.config);
   const result = await generateStructuredOutput({
@@ -216,25 +242,13 @@ export async function runResearcherAgent(
   const verification = filterVerifiedNotes(result.data.notes, rawTextsByUrl);
 
   // 6. Merge & Deduplicate Verified Notes
-  const existingNotesMap = new Map<string, Note>();
-  for (const n of state.notes) {
-    existingNotesMap.set(n.id, n);
-  }
-
-  let noteIdCounter = state.notes.length + 1;
-  for (const newNote of verification.verifiedNotes) {
-    const assignedId = `n${noteIdCounter++}`;
-    existingNotesMap.set(assignedId, {
-      ...newNote,
-      id: assignedId,
-    });
-  }
+  const { mergedNotes } = deduplicateNotes(state.notes, verification.verifiedNotes);
 
   const tokensDelta = result.tokens.totalTokens;
   const costDelta = result.costUsd;
 
   return {
-    notes: Array.from(existingNotesMap.values()),
+    notes: mergedNotes,
     researchRounds: state.researchRounds + 1,
     tokensUsed: state.tokensUsed + tokensDelta,
     costUsd: Number((state.costUsd + costDelta).toFixed(4)),

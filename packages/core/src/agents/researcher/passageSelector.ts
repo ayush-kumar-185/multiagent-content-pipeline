@@ -124,7 +124,7 @@ export function getResearcherPageTokenBudget(): number {
   if (envVal && !isNaN(Number(envVal)) && Number(envVal) > 0) {
     return Number(envVal);
   }
-  return 500; // Default budget: 500 tokens per page (approx 2,000 characters)
+  return 900; // Default budget: 900 tokens per page (approx 3,600 characters)
 }
 
 /**
