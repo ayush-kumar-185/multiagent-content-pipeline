@@ -2,23 +2,35 @@ import { RunRecord, RunConfig } from '@/lib/types';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-function getAuthHeaders(userId?: string): HeadersInit {
-  let uid = userId;
-  if (!uid && typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('citewriter_user');
-      if (stored) {
-        uid = JSON.parse(stored).id;
-      }
-    } catch {
-      // Ignore
-    }
+export function getAccessCode(): string {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('citewriter_access_code');
+    if (stored) return stored;
   }
+  return process.env.NEXT_PUBLIC_ACCESS_CODE || 'citewriter_demo_2026';
+}
 
+function getAuthHeaders(userId?: string): HeadersInit {
   return {
     'Content-Type': 'application/json',
-    'x-user-id': uid || 'demo-user-1',
+    'X-Access-Code': getAccessCode(),
   };
+}
+
+export interface SystemHealth {
+  status: string;
+  service: string;
+  mode: 'real' | 'mock';
+  coreVersion: string;
+  timestamp: string;
+}
+
+export async function getSystemHealth(): Promise<SystemHealth> {
+  const res = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch health status: HTTP ${res.status}`);
+  }
+  return res.json();
 }
 
 export interface CreateRunInput {

@@ -33,7 +33,7 @@ describe('Web API Client', () => {
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
-          'x-user-id': 'user_123',
+          'X-Access-Code': 'citewriter_demo_2026',
         }),
       }),
     );

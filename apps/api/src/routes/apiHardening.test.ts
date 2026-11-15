@@ -27,6 +27,7 @@ describe('Phase 9 API Hardening: Request Size Limits, Validation, and Structured
       eventBus,
       queue,
       redis,
+      accessCode: 'citewriter_demo_2026',
     });
     await app.ready();
 
@@ -56,7 +57,7 @@ describe('Phase 9 API Hardening: Request Size Limits, Validation, and Structured
         method: 'POST',
         url: '/runs',
         headers: {
-          'x-user-id': testUserId,
+          'x-access-code': 'citewriter_demo_2026',
           'content-type': 'application/json',
         },
         payload: oversizedPayload,
@@ -74,7 +75,7 @@ describe('Phase 9 API Hardening: Request Size Limits, Validation, and Structured
       const res = await app.inject({
         method: 'POST',
         url: '/runs',
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-access-code': 'citewriter_demo_2026' },
         payload: { topic: 'ab' },
       });
 
@@ -88,7 +89,7 @@ describe('Phase 9 API Hardening: Request Size Limits, Validation, and Structured
       const res = await app.inject({
         method: 'POST',
         url: '/runs',
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-access-code': 'citewriter_demo_2026' },
         payload: { topic: 'X'.repeat(1005) },
       });
 
@@ -101,7 +102,7 @@ describe('Phase 9 API Hardening: Request Size Limits, Validation, and Structured
       const res = await app.inject({
         method: 'POST',
         url: '/runs',
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-access-code': 'citewriter_demo_2026' },
         payload: {
           topic: 'Secure Enclaves',
           sourceUrl: 'ftp://ftp.example.com/exploit',
@@ -117,7 +118,7 @@ describe('Phase 9 API Hardening: Request Size Limits, Validation, and Structured
       const res = await app.inject({
         method: 'POST',
         url: '/runs',
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-access-code': 'citewriter_demo_2026' },
         payload: {
           topic: 'Secure Enclaves',
           config: {
@@ -136,7 +137,7 @@ describe('Phase 9 API Hardening: Request Size Limits, Validation, and Structured
       const res = await app.inject({
         method: 'POST',
         url: '/runs/run_dummy_123/resume',
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-access-code': 'citewriter_demo_2026' },
         payload: {
           action: 'invalid_action',
         },

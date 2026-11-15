@@ -16,6 +16,7 @@ export interface ServerOptions {
   queue?: Queue<RunJobData>;
   redis?: Redis;
   maxConcurrentRunsPerUser?: number;
+  accessCode?: string;
 }
 
 export function buildServer(options: ServerOptions = {}): FastifyInstance {
@@ -87,9 +88,11 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
 
   // Health check (liveness probe)
   app.get('/health', async () => {
+    const mode = process.env.USE_REAL_LLM === 'true' ? 'real' : 'mock';
     return {
       status: 'ok',
       service: 'citewriter-api',
+      mode,
       coreVersion: CITEWRITER_CORE_VERSION,
       timestamp: new Date().toISOString(),
     };
@@ -127,8 +130,8 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
     });
   });
 
-  // Auth middleware hook for /runs routes
-  const requireAuth = createAuthMiddleware(dbCtx);
+  // Auth middleware hook for /runs routes (verifies X-Access-Code)
+  const requireAuth = createAuthMiddleware(dbCtx, { accessCode: options.accessCode });
   app.addHook('preHandler', async (req, reply) => {
     if (req.url.startsWith('/runs')) {
       await requireAuth(req, reply);

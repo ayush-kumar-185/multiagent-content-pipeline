@@ -32,6 +32,7 @@ describe('SSE Stream Disconnect and Reconnection with Last-Event-ID', () => {
       eventBus,
       queue,
       redis,
+      accessCode: 'citewriter_demo_2026',
     });
 
     const address = await app.listen({ port: 0, host: '127.0.0.1' });
@@ -122,6 +123,7 @@ describe('SSE Stream Disconnect and Reconnection with Last-Event-ID', () => {
         {
           headers: {
             'x-user-id': testUserId,
+            'x-access-code': 'citewriter_demo_2026',
           },
         },
         (res) => {
@@ -191,6 +193,7 @@ describe('SSE Stream Disconnect and Reconnection with Last-Event-ID', () => {
         {
           headers: {
             'x-user-id': testUserId,
+            'x-access-code': 'citewriter_demo_2026',
             'last-event-id': '2',
           },
         },

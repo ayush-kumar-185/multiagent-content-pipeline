@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import crypto from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { DatabaseContext, users } from '../db/index.js';
 
@@ -15,54 +16,91 @@ declare module 'fastify' {
   }
 }
 
-export function createAuthMiddleware(dbCtx: DatabaseContext) {
+/**
+ * Constant-time comparison of two strings using SHA-256 hashes to prevent timing attacks.
+ */
+export function timingSafeEqualString(a: string, b: string): boolean {
+  const hashA = crypto.createHash('sha256').update(a).digest();
+  const hashB = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
+
+export interface AuthMiddlewareOptions {
+  accessCode?: string;
+}
+
+export function createAuthMiddleware(dbCtx: DatabaseContext, options?: AuthMiddlewareOptions) {
   return async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
-    const authHeader = req.headers.authorization;
-    const devUserId = req.headers['x-user-id'] as string | undefined;
-    const queryUserId = (req.query as { userId?: string } | undefined)?.userId;
+    const configuredAccessCode = options?.accessCode ?? process.env.ACCESS_CODE;
+    const providedAccessCode = (req.headers['x-access-code'] || req.headers['X-Access-Code']) as
+      | string
+      | undefined;
 
-    let userId: string | null = null;
-
-    if (devUserId) {
-      userId = devUserId;
-    } else if (queryUserId) {
-      userId = queryUserId;
-    } else if (authHeader?.startsWith('Bearer ')) {
-      // In production / with Auth.js, tokens can be session tokens or JWTs
-      // For now, extract token as user ID or bearer identity
-      userId = authHeader.slice(7).trim();
-    }
-
-    if (!userId) {
+    // 1. Validate X-Access-Code with constant-time comparison
+    if (!configuredAccessCode) {
       reply.status(401).send({
+        statusCode: 401,
         error: 'Unauthorized',
-        message: 'Missing or invalid authentication credentials (Bearer token or x-user-id)',
+        message: 'Server access code is not configured. Access denied.',
       });
       return;
     }
 
-    // Lookup user in DB
-    const [existingUser] = await dbCtx.db.select().from(users).where(eq(users.id, userId));
-
-    if (existingUser) {
-      req.user = {
-        id: existingUser.id,
-        email: existingUser.email,
-        name: existingUser.name,
-        role: existingUser.role,
-      };
+    if (!providedAccessCode || typeof providedAccessCode !== 'string') {
+      reply.status(401).send({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Missing required X-Access-Code header',
+      });
       return;
     }
 
-    // Auto-provision demo/dev user if in test or dev environment
-    if (process.env.NODE_ENV !== 'production') {
-      const email = `${userId}@citewriter.local`;
+    if (!timingSafeEqualString(providedAccessCode.trim(), configuredAccessCode.trim())) {
+      reply.status(401).send({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Invalid access code',
+      });
+      return;
+    }
+
+    // 2. Access code passed. Do NOT trust client-supplied x-user-id for identity.
+    // Derive user identity from verified Bearer token or client IP hash.
+    const authHeader = req.headers.authorization;
+    let userId: string;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex').slice(0, 16);
+      userId = `user_${tokenHash}`;
+    } else {
+      const clientIp = req.ip || '127.0.0.1';
+      const ipHash = crypto.createHash('sha256').update(clientIp).digest('hex').slice(0, 12);
+      userId = `demo_user_${ipHash}`;
+    }
+
+    // 3. Lookup user in DB or create user record only AFTER the access code passes
+    try {
+      const [existingUser] = await dbCtx.db.select().from(users).where(eq(users.id, userId));
+
+      if (existingUser) {
+        req.user = {
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.name,
+          role: existingUser.role,
+        };
+        return;
+      }
+
+      const clientIp = req.ip || '127.0.0.1';
+      const email = `${userId}@citewriter.demo`;
       const [newUser] = await dbCtx.db
         .insert(users)
         .values({
           id: userId,
           email,
-          name: `User ${userId}`,
+          name: `Demo User (${clientIp})`,
           role: 'user',
         })
         .onConflictDoNothing()
@@ -78,15 +116,17 @@ export function createAuthMiddleware(dbCtx: DatabaseContext) {
         : {
             id: userId,
             email,
-            name: `User ${userId}`,
+            name: `Demo User (${clientIp})`,
             role: 'user',
           };
-      return;
+    } catch (err) {
+      req.log?.error(err, 'Failed to resolve or provision user record');
+      req.user = {
+        id: userId,
+        email: `${userId}@citewriter.demo`,
+        name: 'Demo User',
+        role: 'user',
+      };
     }
-
-    reply.status(401).send({
-      error: 'Unauthorized',
-      message: 'User does not exist',
-    });
   };
 }

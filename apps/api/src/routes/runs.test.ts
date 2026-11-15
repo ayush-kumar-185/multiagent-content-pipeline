@@ -48,6 +48,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       queue,
       redis,
       maxConcurrentRunsPerUser: 2, // Low cap for testing 429
+      accessCode: 'citewriter_demo_2026',
     });
     await app.ready();
 
@@ -82,6 +83,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       url: '/runs',
       headers: {
         'x-user-id': testUserId,
+        'x-access-code': 'citewriter_demo_2026',
       },
       payload: {
         topic: 'Modern TypeScript Compilers and Build Tools',
@@ -105,7 +107,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       const getRes = await app.inject({
         method: 'GET',
         url: `/runs/${body.id}`,
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
       });
       currentStatus = getRes.json().status;
       retries--;
@@ -125,7 +127,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const res1 = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': secondUserId },
+      headers: { 'x-user-id': secondUserId, 'x-access-code': 'citewriter_demo_2026' },
       payload: { topic: 'Run 1' },
     });
     expect(res1.statusCode).toBe(201);
@@ -134,7 +136,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const res2 = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': secondUserId },
+      headers: { 'x-user-id': secondUserId, 'x-access-code': 'citewriter_demo_2026' },
       payload: { topic: 'Run 2' },
     });
     expect(res2.statusCode).toBe(201);
@@ -143,7 +145,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const res3 = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': secondUserId },
+      headers: { 'x-user-id': secondUserId, 'x-access-code': 'citewriter_demo_2026' },
       payload: { topic: 'Run 3' },
     });
     expect(res3.statusCode).toBe(429);
@@ -155,7 +157,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': testUserId },
+      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
       payload: { topic: 'Testing API Resumption' },
     });
     const runId = createRes.json().id;
@@ -168,7 +170,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       const getRes = await app.inject({
         method: 'GET',
         url: `/runs/${runId}`,
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
       });
       status = getRes.json().status;
       retries--;
@@ -179,7 +181,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const resumeRes = await app.inject({
       method: 'POST',
       url: `/runs/${runId}/resume`,
-      headers: { 'x-user-id': testUserId },
+      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
       payload: {
         action: 'approve',
       },
@@ -194,7 +196,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
       const getRes = await app.inject({
         method: 'GET',
         url: `/runs/${runId}`,
-        headers: { 'x-user-id': testUserId },
+        headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
       });
       status = getRes.json().status;
       retries--;
@@ -206,7 +208,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const createRes = await app.inject({
       method: 'POST',
       url: '/runs',
-      headers: { 'x-user-id': testUserId },
+      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
       payload: { topic: 'Testing Cancellation' },
     });
     const runId = createRes.json().id;
@@ -214,7 +216,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const cancelRes = await app.inject({
       method: 'POST',
       url: `/runs/${runId}/cancel`,
-      headers: { 'x-user-id': testUserId },
+      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
     });
 
     expect(cancelRes.statusCode).toBe(200);
@@ -223,7 +225,7 @@ describe('Fastify Runs API Endpoints & Auth', () => {
     const getRes = await app.inject({
       method: 'GET',
       url: `/runs/${runId}`,
-      headers: { 'x-user-id': testUserId },
+      headers: { 'x-user-id': testUserId, 'x-access-code': 'citewriter_demo_2026' },
     });
     expect(getRes.json().status).toBe('rejected');
   });

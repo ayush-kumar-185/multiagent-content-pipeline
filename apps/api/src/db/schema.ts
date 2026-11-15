@@ -37,6 +37,8 @@ export const runs = pgTable(
     sourceUrl: text('source_url'),
     config: jsonb('config').$type<RunConfig>().notNull(),
     status: varchar('status', { length: 50 }).notNull().default('pending'),
+    mode: varchar('mode', { length: 16 }).notNull().default('mock'),
+    ip: varchar('ip', { length: 64 }),
     draft: text('draft').notNull().default(''),
     claims: jsonb('claims').$type<Claim[]>().notNull().default([]),
     claimChecks: jsonb('claim_checks').$type<ClaimCheck[]>().notNull().default([]),

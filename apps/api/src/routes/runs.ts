@@ -1,8 +1,14 @@
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import crypto from 'node:crypto';
-import { eq, and, desc, sql, inArray } from 'drizzle-orm';
-import { RunConfig } from '@citewriter/core';
+import { eq, and, desc, sql, inArray, gte } from 'drizzle-orm';
+import {
+  RunConfig,
+  getAgentModel,
+  getDailyModelTokens,
+  getModelDailyLimit,
+  AgentRole,
+} from '@citewriter/core';
 import { DatabaseContext, runs } from '../db/index.js';
 import { RunEventBus } from '../events/eventBus.js';
 import { RunJobData } from '../queue/index.js';
@@ -69,8 +75,67 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
     }
 
     const { topic, sourceUrl, config } = parseResult.data;
+    const clientIp = req.ip || '127.0.0.1';
+    const isRealMode = process.env.USE_REAL_LLM === 'true';
 
-    // Check user active run limits
+    // 1. Check Global Concurrent Runs Cap (MAX_CONCURRENT_RUNS, default 1)
+    const maxGlobalConcurrent = Number(process.env.MAX_CONCURRENT_RUNS || 1);
+    const [globalActiveRes] = await dbCtx.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(runs)
+      .where(inArray(runs.status, ['pending', 'running']));
+
+    if ((globalActiveRes?.count ?? 0) >= maxGlobalConcurrent) {
+      reply.status(429).send({
+        statusCode: 429,
+        error: 'Too Many Requests',
+        code: 'GLOBAL_CONCURRENCY_EXCEEDED',
+        message: `Global concurrent run limit reached (${maxGlobalConcurrent} active run allowed). Please wait for the current run to complete.`,
+        retryHint: 'Wait for the active run to complete before starting a new run.',
+      });
+      return;
+    }
+
+    // 2. Check Global Daily Cap (MAX_RUNS_PER_DAY, UTC day, default 10)
+    const startOfUtcDay = new Date();
+    startOfUtcDay.setUTCHours(0, 0, 0, 0);
+
+    const maxGlobalRunsPerDay = Number(process.env.MAX_RUNS_PER_DAY || 10);
+    const [globalDailyRes] = await dbCtx.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(runs)
+      .where(gte(runs.createdAt, startOfUtcDay));
+
+    if ((globalDailyRes?.count ?? 0) >= maxGlobalRunsPerDay) {
+      reply.status(429).send({
+        statusCode: 429,
+        error: 'Too Many Requests',
+        code: 'GLOBAL_DAILY_CAP_EXCEEDED',
+        message: `Global daily run limit reached (${maxGlobalRunsPerDay} runs per day).`,
+        retryHint: 'Global run quota resets tomorrow at 00:00 UTC. Please try again tomorrow.',
+      });
+      return;
+    }
+
+    // 3. Check Per-IP Daily Cap (MAX_RUNS_PER_IP_PER_DAY, UTC day, default 5)
+    const maxRunsPerIp = Number(process.env.MAX_RUNS_PER_IP_PER_DAY || 5);
+    const [ipDailyRes] = await dbCtx.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(runs)
+      .where(and(eq(runs.ip, clientIp), gte(runs.createdAt, startOfUtcDay)));
+
+    if ((ipDailyRes?.count ?? 0) >= maxRunsPerIp) {
+      reply.status(429).send({
+        statusCode: 429,
+        error: 'Too Many Requests',
+        code: 'IP_DAILY_CAP_EXCEEDED',
+        message: `Daily run limit for IP ${clientIp} reached (${maxRunsPerIp} runs per day).`,
+        retryHint: 'Your daily IP quota resets tomorrow at 00:00 UTC. Please try again tomorrow.',
+      });
+      return;
+    }
+
+    // 4. Check user active run limits
     const [activeCountRes] = await dbCtx.db
       .select({
         count: sql<number>`count(*)::int`,
@@ -80,10 +145,42 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
 
     if ((activeCountRes?.count ?? 0) >= maxConcurrentRunsPerUser) {
       reply.status(429).send({
+        statusCode: 429,
         error: 'Too Many Requests',
-        message: `Maximum active runs limit reached (${maxConcurrentRunsPerUser} concurrent runs allowed)`,
+        code: 'USER_CONCURRENT_LIMIT_EXCEEDED',
+        message: `Maximum active runs limit reached (${maxConcurrentRunsPerUser} concurrent runs allowed for this user)`,
+        retryHint: 'Wait for your active run to finish before starting another.',
       });
       return;
+    }
+
+    // 5. Check Token Ledger Headroom in Real Mode
+    if (isRealMode) {
+      const headroom = Number(
+        process.env.LEDGER_HEADROOM_TOKENS || process.env.MAX_RUN_TOKENS || 25000,
+      );
+      const agentRoles: AgentRole[] = ['researcher', 'writer', 'factChecker', 'editor'];
+
+      for (const role of agentRoles) {
+        const model = getAgentModel(role);
+        const dailyLimit = getModelDailyLimit(model);
+
+        if (dailyLimit && dailyLimit > 0) {
+          const currentTokens = getDailyModelTokens(model)?.totalTokens ?? 0;
+          const remaining = dailyLimit - currentTokens;
+
+          if (remaining < headroom) {
+            reply.status(429).send({
+              statusCode: 429,
+              error: 'Too Many Requests',
+              code: 'QUOTA_EXHAUSTED',
+              message: 'quota exhausted, try later',
+              retryHint: `Daily token quota for model "${model}" has only ${remaining} tokens remaining, which is below the required headroom (${headroom} tokens). Daily quota resets at 00:00 UTC.`,
+            });
+            return;
+          }
+        }
+      }
     }
 
     const runId = `run_${crypto.randomUUID()}`;
@@ -100,6 +197,8 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
       maxCostUsd: config?.maxCostUsd,
     };
 
+    const runMode = isRealMode ? 'real' : 'mock';
+
     const [newRun] = await dbCtx.db
       .insert(runs)
       .values({
@@ -109,6 +208,8 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
         sourceUrl: sourceUrl ?? null,
         config: runConfig,
         status: 'pending',
+        mode: runMode,
+        ip: clientIp,
       })
       .returning();
 
