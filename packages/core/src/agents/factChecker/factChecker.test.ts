@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import OpenAI from 'openai';
-import { runDeterministicFactPreChecks } from './deterministicPreChecks.js';
+import { runDeterministicFactPreChecks, findUncitedSentencesInDraft } from './deterministicPreChecks.js';
 import { runFactCheckerAgent } from './factCheckerAgent.js';
+import { parseCitationsFromDraft } from '../writer/citationParser.js';
 import { Note } from '../../schemas/note.js';
 import { GraphStateSchema } from '../../schemas/state.js';
 
@@ -74,6 +75,22 @@ describe('Fact-Checker: Deterministic Pre-Checks & Seeded Error Detection', () =
       const result = runDeterministicFactPreChecks(threadClaim, notes);
       expect(result.passed).toBe(true);
       expect(result.claimCheck).toBeUndefined();
+    });
+
+    it('SEEDED ERROR: flags uncited extrapolations containing numbers as unsupported in deterministic pre-check', () => {
+      // Note n1 quote: "TypeScript 5.0 introduces const type parameters for improved inference. Package size dropped by 37%."
+      // Extrapolated claim introduces 50% benefit not in the source note:
+      const extrapolatedClaim = {
+        id: 'c-extrapolated',
+        claim: 'Const type parameters improve compiler speed by 50% in complex monorepos.',
+        noteIds: ['n1'],
+      };
+      const result = runDeterministicFactPreChecks(extrapolatedClaim, notes);
+      expect(result.passed).toBe(false);
+      expect(result.claimCheck?.status).toBe('unsupported');
+      expect(result.claimCheck?.reason).toContain(
+        'Number "50%" in claim does not appear in cited note quote(s)',
+      );
     });
   });
 
@@ -246,6 +263,151 @@ describe('Fact-Checker: Deterministic Pre-Checks & Seeded Error Detection', () =
 
       expect(mockClient.chat.completions.create).not.toHaveBeenCalled();
       expect(result.claimChecks[0]?.status).toBe('unsupported');
+    });
+  });
+
+  describe('Deterministic Uncited Sentence Detection (Fixture)', () => {
+    const topic1Notes: Note[] = [
+      {
+        id: 'n1',
+        claim:
+          'TypeScript 5.0 introduces const type parameters that enable const-like inference by default.',
+        sourceUrl:
+          'https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-0.html',
+        quote:
+          'In TypeScript 5.0, you can now add a const modifier to a type parameter declaration to cause const-like inference to be the default:',
+        retrievedAt: new Date().toISOString(),
+      },
+      {
+        id: 'n2',
+        claim:
+          'TypeScript 5.0 allows the extends field in tsconfig.json to accept multiple entries.',
+        sourceUrl:
+          'https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-0.html',
+        quote:
+          'To give some more flexibility here, Typescript 5.0 now allows the extends field to take multiple entries.',
+        retrievedAt: new Date().toISOString(),
+      },
+      {
+        id: 'n3',
+        claim:
+          'All enums are treated as union enums in TypeScript 5.0, even when some members are computed dynamically.',
+        sourceUrl:
+          'https://www.geeksforgeeks.org/typescript/typescript-5-0-updates-what-s-new',
+        quote:
+          'In TypeScript, enums were previously treated as sets of constants, where each member was its own type. TypeScript 5.0 improves this by treating all enums as union enums.',
+        retrievedAt: new Date().toISOString(),
+      },
+      {
+        id: 'n4',
+        claim:
+          'TypeScript 5.0 introduces a new bundler module resolution option that improves compatibility with modern bundlers like Webpack and Parcel.',
+        sourceUrl:
+          'https://www.geeksforgeeks.org/typescript/typescript-5-0-updates-what-s-new',
+        quote:
+          'TypeScript 5.0 introduces a new bundler module resolution option that improves compatibility with modern bundlers like Webpack and Parcel.',
+        retrievedAt: new Date().toISOString(),
+      },
+      {
+        id: 'n5',
+        claim:
+          'TypeScript 5.0 adds support for export * from "module" and export * as namespace from "module" re-exports.',
+        sourceUrl:
+          'https://blog.logrocket.com/exploring-typescript-5-features-smaller-simpler-faster',
+        quote:
+          'Although these flags can still be used in TypeScript 5.0, they will generate a warning from the compiler.',
+        retrievedAt: new Date().toISOString(),
+      },
+    ];
+
+    const lastAcceptedTopic1DraftFixture = `# Advances in TypeScript 5.0 Type Inference
+
+TypeScript 5.0 introduces several significant updates to the language's type system and configuration capabilities. This article outlines the specific changes regarding type inference, enum handling, and module resolution as documented in the release notes.
+
+## Const Type Parameters
+
+TypeScript 5.0 introduces const type parameters that enable const-like inference by default [n1]. Developers can now add a const modifier to a type parameter declaration to cause const-like inference to be the default [n1]. This mechanism allows the compiler to infer literal types rather than widening them to their base types, providing a more precise type representation for generic functions and classes that rely on specific constant values.
+
+## Enum Handling
+
+In TypeScript, enums were previously treated as sets of constants, where each member was its own type [n3]. TypeScript 5.0 improves this by treating all enums as union enums [n3]. This change standardizes the type behavior of enums, ensuring that the type of an enum member is a union of its constituent literal types rather than a distinct nominal type for each member. This alignment simplifies type checking and reduces the need for explicit type assertions when working with enum values in generic contexts.
+
+## Configuration and Module Resolution
+
+To give more flexibility, TypeScript 5.0 now allows the extends field in tsconfig.json to take multiple entries [n2]. This capability enables developers to compose configuration files from multiple sources, such as a base organizational config and a project-specific override, without requiring manual merging of JSON structures. Additionally, TypeScript 5.0 introduces a new bundler module resolution option that improves compatibility with modern bundlers like Webpack and Parcel [n4]. This option adjusts how the compiler resolves module specifiers to match the behavior of these tools, ensuring that type checking aligns with the actual runtime resolution strategy used during the build process.
+
+## Re-exports
+
+Although these flags can still be used in TypeScript 5.0, they will generate a warning from the compiler [n5]. This warning serves as a signal to developers that certain legacy configuration options are deprecated or no longer recommended for new projects, encouraging the adoption of the updated module resolution and type inference features introduced in this release.`;
+
+    it('flags all uncited why/how sentences in the last accepted Topic 1 draft fixture as unsupported', () => {
+      const uncitedChecks = findUncitedSentencesInDraft(
+        lastAcceptedTopic1DraftFixture,
+        topic1Notes,
+      );
+      expect(uncitedChecks).toHaveLength(8);
+      for (const check of uncitedChecks) {
+        expect(check.status).toBe('unsupported');
+        expect(check.reason).toContain('Deterministic check failed');
+      }
+
+      const claimsFlagged = uncitedChecks.map((c) => c.claim);
+      expect(claimsFlagged).toContain(
+        "TypeScript 5.0 introduces several significant updates to the language's type system and configuration capabilities.",
+      );
+      expect(claimsFlagged).toContain(
+        'This mechanism allows the compiler to infer literal types rather than widening them to their base types, providing a more precise type representation for generic functions and classes that rely on specific constant values.',
+      );
+      expect(claimsFlagged).toContain(
+        'This change standardizes the type behavior of enums, ensuring that the type of an enum member is a union of its constituent literal types rather than a distinct nominal type for each member.',
+      );
+      expect(claimsFlagged).toContain(
+        'This alignment simplifies type checking and reduces the need for explicit type assertions when working with enum values in generic contexts.',
+      );
+    });
+
+    it('integrates with runFactCheckerAgent so that uncited sentences in draft are returned as unsupported claimChecks even without LLM call', async () => {
+      const citedClaims = parseCitationsFromDraft(lastAcceptedTopic1DraftFixture);
+
+      const mockCompletion = {
+        usage: { prompt_tokens: 300, completion_tokens: 150 },
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                checks: citedClaims.map((c) => ({
+                  claim: c.claim,
+                  noteIds: c.noteIds,
+                  status: 'supported',
+                  reason: 'Verified against source quote.',
+                })),
+              }),
+            },
+          },
+        ],
+      };
+
+      const mockClient = {
+        chat: { completions: { create: vi.fn().mockResolvedValue(mockCompletion) } },
+      } as unknown as OpenAI;
+      const state = GraphStateSchema.parse({
+        runId: 'fixture-test',
+        topic: 'Advances in TypeScript 5.0 Type Inference',
+        draft: lastAcceptedTopic1DraftFixture,
+        notes: topic1Notes,
+        claims: citedClaims,
+      });
+
+      const result = await runFactCheckerAgent(state, {
+        client: mockClient,
+      });
+
+      const unsupportedChecks = result.claimChecks.filter((c) => c.status === 'unsupported');
+      expect(unsupportedChecks.length).toBeGreaterThanOrEqual(8);
+      const uncitedReasons = unsupportedChecks.filter((c) =>
+        c.reason.includes('Sentence has no citation marker'),
+      );
+      expect(uncitedReasons).toHaveLength(8);
     });
   });
 });

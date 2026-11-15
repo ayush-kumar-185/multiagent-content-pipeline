@@ -84,3 +84,132 @@ export function runDeterministicFactPreChecks(claim: Claim, notes: Note[]): PreC
 
   return { passed: true };
 }
+
+export interface SentenceCitationCheck {
+  sentence: string;
+  hasCitation: boolean;
+  endsCitation: boolean;
+  noteIds: string[];
+  validNoteIds: string[];
+  invalidNoteIds: string[];
+  isValid: boolean;
+  reason?: string;
+}
+
+/**
+ * Checks whether a single body sentence ends with at least one valid citation marker
+ * referencing an existing note ID.
+ */
+export function checkSentenceCitation(
+  sentence: string,
+  existingNoteIds: Set<string>,
+): SentenceCitationCheck {
+  const trimmed = sentence.trim();
+  if (!trimmed) {
+    return {
+      sentence: trimmed,
+      hasCitation: false,
+      endsCitation: false,
+      noteIds: [],
+      validNoteIds: [],
+      invalidNoteIds: [],
+      isValid: true,
+    };
+  }
+
+  // Regex to check if sentence ends with one or more citation blocks [n1], [n1][n2], [n1, n2],
+  // optionally preceded or followed by terminal punctuation (. ! ?)
+  const endCitationRegex = /(?:[.!?]?\s*\[n\d+(?:\s*,\s*n\d+)*\]\s*)+[.!?]?$/;
+
+  if (!endCitationRegex.test(trimmed)) {
+    const hasAnyCitation = /\[n\d+(?:\s*,\s*n\d+)*\]/.test(trimmed);
+    return {
+      sentence: trimmed,
+      hasCitation: hasAnyCitation,
+      endsCitation: false,
+      noteIds: [],
+      validNoteIds: [],
+      invalidNoteIds: [],
+      isValid: false,
+      reason: hasAnyCitation
+        ? 'Sentence does not end with a citation marker (citation must be placed at the end of the sentence).'
+        : 'Sentence has no citation marker (every factual sentence must end with a citation to a note).',
+    };
+  }
+
+  // Extract all note IDs from the ending citation block
+  const endingBlockMatch = trimmed.match(endCitationRegex);
+  const endingBlock = endingBlockMatch ? endingBlockMatch[0] : '';
+  const idMatches = Array.from(endingBlock.matchAll(/n\d+/g)).map((m) => m[0]);
+
+  const validNoteIds: string[] = [];
+  const invalidNoteIds: string[] = [];
+
+  for (const id of idMatches) {
+    if (existingNoteIds.has(id)) {
+      validNoteIds.push(id);
+    } else {
+      invalidNoteIds.push(id);
+    }
+  }
+
+  if (invalidNoteIds.length > 0) {
+    return {
+      sentence: trimmed,
+      hasCitation: true,
+      endsCitation: true,
+      noteIds: idMatches,
+      validNoteIds,
+      invalidNoteIds,
+      isValid: false,
+      reason: `Citation references non-existent note ID(s): ${invalidNoteIds.map((id) => `[${id}]`).join(', ')}.`,
+    };
+  }
+
+  return {
+    sentence: trimmed,
+    hasCitation: true,
+    endsCitation: true,
+    noteIds: validNoteIds,
+    validNoteIds,
+    invalidNoteIds: [],
+    isValid: true,
+  };
+}
+
+/**
+ * Deterministic check scanning all body sentences in a draft (excluding headings and dividers).
+ * Any body sentence that does not end with a valid citation marker to an existing note is flagged as unsupported.
+ */
+export function findUncitedSentencesInDraft(draft: string, notes: Note[]): ClaimCheck[] {
+  const existingNoteIds = new Set(notes.map((n) => n.id));
+  const checks: ClaimCheck[] = [];
+
+  const lines = draft.split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    // Headings, titles, dividers, empty lines are exempt
+    if (!line || line.startsWith('#') || line.startsWith('---') || line.startsWith('===')) {
+      continue;
+    }
+
+    const sentences = line
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    for (const sentence of sentences) {
+      const check = checkSentenceCitation(sentence, existingNoteIds);
+      if (!check.isValid) {
+        checks.push({
+          claim: sentence,
+          noteIds: check.validNoteIds,
+          status: 'unsupported',
+          reason: `Deterministic check failed: ${check.reason}`,
+        });
+      }
+    }
+  }
+
+  return checks;
+}

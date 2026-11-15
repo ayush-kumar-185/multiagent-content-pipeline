@@ -2,11 +2,11 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { GraphState, RunAgentMetrics } from '../../schemas/state.js';
 import { Claim, ClaimCheck, ClaimCheckSchema } from '../../schemas/claim.js';
-import { createLLMClient, getAgentModel } from '../../llm/client.js';
+import { createLLMClient, getAgentModel, getAgentMaxTokens, getAgentReasoningEffort } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
 import { resolveBudgetLimits } from '../../llm/budget.js';
 import { Tracer } from '../../observability/types.js';
-import { runDeterministicFactPreChecks } from './deterministicPreChecks.js';
+import { runDeterministicFactPreChecks, findUncitedSentencesInDraft } from './deterministicPreChecks.js';
 import { buildFactCheckerSystemPrompt, buildFactCheckerUserPrompt } from './prompt.js';
 import { fetchPage, FetchPageOptions } from '../../tools/fetch/fetchPage.js';
 
@@ -19,6 +19,8 @@ export type FactCheckerOutput = z.infer<typeof FactCheckerOutputSchema>;
 export interface FactCheckerAgentOptions {
   client?: OpenAI;
   model?: string;
+  maxTokens?: number;
+  reasoningEffort?: string;
   fetchOptions?: FetchPageOptions;
   allowSourceFetch?: boolean;
   tracer?: Tracer;
@@ -37,7 +39,10 @@ export async function runFactCheckerAgent(
   const model = options.model ?? getAgentModel('factChecker');
   const tracer = options.tracer;
 
-  if (!state.claims || state.claims.length === 0) {
+  // 1. Run deterministic sentence citation check across the draft
+  const uncitedSentenceChecks = findUncitedSentencesInDraft(state.draft || '', state.notes);
+
+  if ((!state.claims || state.claims.length === 0) && uncitedSentenceChecks.length === 0) {
     return {
       claimChecks: [],
       tokensUsed: state.tokensUsed,
@@ -55,8 +60,8 @@ export async function runFactCheckerAgent(
   const deterministicResults = new Map<string, ClaimCheck>();
   const claimsForLLM: Claim[] = [];
 
-  // 1. Run Deterministic Pre-checks (Note existence & numbers matching)
-  for (const claim of state.claims) {
+  // 2. Run Deterministic Pre-checks on parsed claims (Note existence & numbers matching)
+  for (const claim of state.claims || []) {
     const preCheck = runDeterministicFactPreChecks(claim, state.notes);
     if (!preCheck.passed && preCheck.claimCheck) {
       deterministicResults.set(claim.claim, preCheck.claimCheck);
@@ -133,7 +138,8 @@ export async function runFactCheckerAgent(
       budgetLimits,
       runId: state.runId,
       agentRole: 'factChecker',
-      maxTokens: 1200,
+      maxTokens: options.maxTokens ?? getAgentMaxTokens('factChecker'),
+      reasoningEffort: options.reasoningEffort ?? getAgentReasoningEffort('factChecker'),
       tracer,
     });
 
@@ -146,7 +152,7 @@ export async function runFactCheckerAgent(
   }
 
   // 3. Assemble results in original claim order
-  const finalChecks: ClaimCheck[] = state.claims.map((claim) => {
+  const finalChecks: ClaimCheck[] = (state.claims || []).map((claim) => {
     // Check deterministic pre-check first
     const detCheck = deterministicResults.get(claim.claim);
     if (detCheck) return detCheck;
@@ -163,6 +169,16 @@ export async function runFactCheckerAgent(
       reason: 'Claim was not evaluated by the model; flagged for further research.',
     };
   });
+
+  // 4. Append uncited body sentences from the draft that are not already covered
+  for (const uncitedCheck of uncitedSentenceChecks) {
+    const alreadyPresent = finalChecks.some(
+      (c) => c.claim === uncitedCheck.claim || uncitedCheck.claim.includes(c.claim),
+    );
+    if (!alreadyPresent) {
+      finalChecks.push(uncitedCheck);
+    }
+  }
 
   const tokensDelta = totalTokensUsed - state.tokensUsed;
   const costDelta = Number((totalCostUsd - state.costUsd).toFixed(4));

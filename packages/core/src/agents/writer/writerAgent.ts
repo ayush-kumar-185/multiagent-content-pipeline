@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { GraphState, RunAgentMetrics } from '../../schemas/state.js';
 import { Claim } from '../../schemas/claim.js';
-import { createLLMClient, getAgentModel } from '../../llm/client.js';
+import { createLLMClient, getAgentModel, getAgentMaxTokens, getAgentReasoningEffort } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
 import { resolveBudgetLimits } from '../../llm/budget.js';
 import { Tracer } from '../../observability/types.js';
@@ -22,6 +22,8 @@ export type WriterOutput = z.infer<typeof WriterOutputSchema>;
 export interface WriterAgentOptions {
   client?: OpenAI;
   model?: string;
+  maxTokens?: number;
+  reasoningEffort?: string;
   tracer?: Tracer;
 }
 
@@ -52,8 +54,6 @@ export async function runWriterAgent(
     : buildWriterInitialPrompt(state.topic, state.notes);
 
   const budgetLimits = resolveBudgetLimits(state.config);
-  const isSocial = state.config?.format === 'linkedin_post' || state.config?.format === 'twitter_thread';
-  const defaultWriterTokens = isSocial ? 1000 : 1500;
 
   const result = await generateStructuredOutput({
     client,
@@ -66,7 +66,8 @@ export async function runWriterAgent(
     budgetLimits,
     runId: state.runId,
     agentRole: 'writer',
-    maxTokens: defaultWriterTokens,
+    maxTokens: options.maxTokens ?? getAgentMaxTokens('writer'),
+    reasoningEffort: options.reasoningEffort ?? getAgentReasoningEffort('writer'),
     tracer,
   });
 

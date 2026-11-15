@@ -28,9 +28,12 @@ FORMAT SPECIFICATION: X / TWITTER THREAD (~5-8 tweets)
     formatInstructions = `
 FORMAT SPECIFICATION: TECHNICAL ARTICLE (~${config.targetWords} words)
 - Write a structured, authoritative technical article in Markdown.
-- Use clear Markdown headings (H1, H2, H3) and structured explanatory paragraphs.
-- Provide clear context, architecture/mechanism explanations, and real-world implications.
-- Citations: EVERY factual sentence MUST carry its source note identifier, e.g. [n1] or [n2][n3].`;
+- Use clear Markdown headings (H1, H2, H3) and structured paragraphs.
+- Every body sentence MUST be directly stated in its cited note and MUST end with a valid citation marker (e.g. [n1] or [n1, n2]).
+- Strictly NO uncited body sentences: if a note does not support a sentence, omit the sentence entirely.
+- Strictly FORBID explanatory, motivational, benefit, or transition sentences (e.g. claims that a feature "reduces bundle size", "enhances type safety", or "improves developer velocity") unless that exact statement is explicitly present in the cited note.
+- Strictly FORBID any numbers, statistics, percentages, or dates not present in the cited notes.
+- Choose section headings (H2, H3) that accurately describe the specific notes assigned to them. Never place notes under misleading, mismatched, or unrelated headings (e.g., do not place deprecated flags notes under a "Re-exports" heading; name the heading "Compiler Flags and Warnings" or similar).`;
   }
 
   return `You are CiteWriter's Writer Agent.
@@ -39,12 +42,14 @@ Your job is to produce a publication-ready piece of technical content based STRI
 CONTENT FORMAT: ${format.toUpperCase().replace('_', ' ')}
 ${formatInstructions}
 
-CORE CITATION RULES:
-1. You may state ONLY facts directly supported by the provided notes. Do NOT extrapolate, hallucinate, or invent unverified facts.
-2. EVERY factual sentence MUST end with its source note identifier in brackets, such as [n1], [n2][n3], or [n1, n2].
-3. If a sentence contains non-factual transitional language, greetings, formatting hooks, or calls to action (e.g. "Bookmark this thread", "What are your thoughts?"), do NOT attach a citation to it. Any claim of fact, number, date, or feature MUST carry a citation.
-4. Target Audience: ${config.audience}
-5. Target Tone: ${config.tone}
+CORE CITATION & FACTUAL GROUNDING RULES:
+1. You may state ONLY facts directly stated in the provided notes. Every factual sentence MUST be directly stated in its cited note.
+2. NO UNCITED SENTENCES: Absolutely every body sentence (excluding markdown headings) MUST end with at least one citation marker [n...] referring to a valid note ID. If a note does not support a sentence, OMIT the sentence entirely. Do not write ungrounded introductory, concluding, or transitional filler sentences.
+3. ACCURATE HEADINGS: Choose section headings that accurately describe the notes assigned to them. Every note grouped under a heading must match the topic of that heading.
+4. Strictly FORBID explanatory, motivational, or benefit sentences (e.g. "enhances developer velocity", "reduces bundle sizes", "improves maintainability") and any numbers or metrics not present in the notes.
+5. Do NOT extrapolate, hallucinate, speculate, or invent unverified facts, benefits, or implications.
+6. Target Audience: ${config.audience}
+7. Target Tone: ${config.tone}
 
 You must return a JSON object with:
 {
@@ -62,7 +67,10 @@ export function buildWriterInitialPrompt(topic: string, notes: Note[]): string {
 Available Notes:
 ${notesFormatted}
 
-Write the content now. Ensure every factual claim is cited with [n...] matching the notes above.`;
+Write the content now. Follow these mandatory rules:
+1. Every body sentence MUST end with a citation marker [n...] matching the notes above. Absolutely no uncited body sentences.
+2. If a note does not directly support a sentence, omit the sentence entirely. Do not add ungrounded benefits, explanations, or numbers not present in the notes.
+3. Choose section headings that accurately describe the notes assigned to them (e.g. do not label deprecated flags as "Re-exports").`;
 }
 
 export function buildWriterRevisionPrompt(
@@ -87,8 +95,10 @@ ${issuesFormatted || 'None.'}
 ${editorFeedback}
 
 Instructions for Revision:
-- Fix or remove any unsupported or unverified claims.
-- Address the editor's stylistic and structural feedback.
+- Fix or REMOVE any unsupported or unverified claims. If a note does not support a sentence, OMIT the sentence.
+- NO UNCITED SENTENCES: Ensure every single body sentence ends with at least one valid citation marker [n...].
+- Ensure section headings accurately describe the notes placed under them.
+- Address the editor's feedback without adding ungrounded explanations or extrapolations.
 - Retain all citations for verified facts [n...].
 - Output the complete revised text in the JSON "draft" field.`;
 }
