@@ -17,7 +17,22 @@ CiteWriter supports multi-platform AI APIs, allowing you to route each agent to 
 # Database & Cache (Pre-configured for local Docker)
 # ==============================================================================
 DATABASE_URL=postgresql://citewriter:citewriter_dev_password@localhost:5433/citewriter
+DATABASE_URL_TEST=postgresql://citewriter:citewriter_dev_password@localhost:5433/citewriter_test
 REDIS_URL=redis://localhost:6379
+
+# ==============================================================================
+# Public Demo Protection & Rate Limits
+# ==============================================================================
+ACCESS_CODE=citewriter_demo_2026
+MAX_RUNS_PER_DAY=10
+MAX_CONCURRENT_RUNS=1
+MAX_RUNS_PER_IP_PER_DAY=5
+LEDGER_HEADROOM_TOKENS=25000
+
+# ==============================================================================
+# Execution Mode (Explicit Real vs Mock)
+# ==============================================================================
+USE_REAL_LLM=false
 
 # ==============================================================================
 # Service Ports & URLs
@@ -91,10 +106,24 @@ NEXTAUTH_URL=http://localhost:3000
 
 ### A. Database & Redis Cache
 
-| Variable       | Required? | Default Value                                                               | Description                                                                                                  |
-| :------------- | :-------- | :-------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL` | **Yes**   | `postgresql://citewriter:citewriter_dev_password@localhost:5433/citewriter` | Connection string for PostgreSQL. Works out of the box with the Docker container mapped to port `5433`.      |
-| `REDIS_URL`    | **Yes**   | `redis://localhost:6379`                                                    | Redis connection URL for BullMQ job queue and live SSE event streams. Works with Docker container on `6379`. |
+| Variable | Required? | Default Value | Description |
+| :--- | :--- | :--- | :--- |
+| `DATABASE_URL` | **Yes** (Prod/Dev) | `postgresql://citewriter:citewriter_dev_password@localhost:5433/citewriter` | Connection string for PostgreSQL in dev/production environments. |
+| `DATABASE_URL_TEST` | **Yes** (in test) | `postgresql://citewriter:citewriter_dev_password@localhost:5433/citewriter_test` | Dedicated test database connection. Required when `NODE_ENV=test` or `VITEST=true`; database name must end with `_test`. |
+| `REDIS_URL` | **Yes** | `redis://localhost:6379` | Redis connection URL for BullMQ job queue and live SSE event streams. Works with Docker container on `6379`. |
+
+---
+
+### A.1 Public Demo Protection & Rate Limits
+
+| Variable | Required? | Default Value | Description |
+| :--- | :--- | :--- | :--- |
+| `ACCESS_CODE` | **Yes** | `citewriter_demo_2026` | Required demo access code sent in `X-Access-Code` header on all `/runs` endpoints. Compared in constant time. |
+| `MAX_RUNS_PER_DAY` | Optional | `10` | Global limit of run creations across all users per UTC day. Returns 429 when exceeded. |
+| `MAX_CONCURRENT_RUNS` | Optional | `1` | Global maximum active runs in `pending` or `running` state. Returns 429 when exceeded. |
+| `MAX_RUNS_PER_IP_PER_DAY` | Optional | `5` | Maximum runs created from a single IP address per UTC day. Returns 429 when exceeded. |
+| `LEDGER_HEADROOM_TOKENS` | Optional | `25000` | Minimum token quota headroom required in real mode before enqueuing a run. Returns 429 if model quota is depleted. |
+| `USE_REAL_LLM` | **Yes** | `false` | Explicit execution mode flag (`true` or `false`). When `true`, verifies provider keys at startup and fails fast if missing. |
 
 ---
 
