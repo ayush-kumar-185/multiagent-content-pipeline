@@ -47,6 +47,8 @@ export async function runWriterAgent(
   const isRevision = state.writeCycles > 0;
   const userPrompt = isRevision
     ? buildWriterRevisionPrompt(
+        state.topic,
+        state.notes,
         state.draft,
         state.claimChecks.filter((c) => c.status !== 'supported'),
         state.editorVerdict,

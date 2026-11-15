@@ -37,7 +37,7 @@ export async function runEditorAgent(
   );
 
   const systemPrompt = buildEditorSystemPrompt(state.config);
-  const userPrompt = buildEditorUserPrompt(state.draft, deterministicReport);
+  const userPrompt = buildEditorUserPrompt(state.draft, deterministicReport, state.topic);
 
   const budgetLimits = resolveBudgetLimits(state.config);
   const result = await generateStructuredOutput({
