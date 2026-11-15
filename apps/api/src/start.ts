@@ -1,10 +1,10 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 
-// Ensure root monorepo .env is loaded
-dotenv.config();
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
-dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+// Ensure canonical root monorepo .env is loaded first
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env'), override: true });
+dotenv.config({ path: path.resolve(process.cwd(), '../.env'), override: true });
+dotenv.config({ override: true });
 
 import { validateStartupEnvironment } from './config/mode.js';
 import { createDatabase } from './db/index.js';
@@ -28,6 +28,13 @@ async function startServer(): Promise<void> {
   await cpCtx.setup();
 
   const isReal = envStatus.mode === 'real';
+  if (isReal) {
+    const { getAgentModel, resolveProvider } = await import('@citewriter/core');
+    console.log(`[CiteWriter API] Researcher:   ${resolveProvider({ role: 'researcher' })} / ${getAgentModel('researcher')}`);
+    console.log(`[CiteWriter API] Writer:       ${resolveProvider({ role: 'writer' })} / ${getAgentModel('writer')}`);
+    console.log(`[CiteWriter API] Fact-Checker: ${resolveProvider({ role: 'factChecker' })} / ${getAgentModel('factChecker')}`);
+    console.log(`[CiteWriter API] Editor:       ${resolveProvider({ role: 'editor' })} / ${getAgentModel('editor')}`);
+  }
 
   // Initialize background worker with real agents only when USE_REAL_LLM=true
   const worker = createRunWorker({
