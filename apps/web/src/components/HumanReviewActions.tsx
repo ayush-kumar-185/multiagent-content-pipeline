@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EditorVerdict } from '@/lib/types';
 import { resumeRun } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { stripCitations } from '@/lib/formatExport';
 import {
   CheckCircle,
   Edit3,
@@ -31,7 +32,11 @@ export function HumanReviewActions({
 }: HumanReviewActionsProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [editedDraft, setEditedDraft] = useState(initialDraft);
+  const [editedDraft, setEditedDraft] = useState(() => stripCitations(initialDraft));
+
+  useEffect(() => {
+    setEditedDraft(stripCitations(initialDraft));
+  }, [initialDraft]);
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

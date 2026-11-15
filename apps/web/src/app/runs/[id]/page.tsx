@@ -21,7 +21,7 @@ import {
   Sparkles,
   FileText,
 } from 'lucide-react';
-import { cleanForSocialMedia } from '@/lib/formatExport';
+import { cleanForSocialMedia, stripCitations } from '@/lib/formatExport';
 
 export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -63,7 +63,8 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
 
   const handleCopyRaw = () => {
     if (run?.draft) {
-      navigator.clipboard.writeText(run.draft);
+      const cleanMarkdown = stripCitations(run.draft);
+      navigator.clipboard.writeText(cleanMarkdown);
       setCopiedRaw(true);
       setTimeout(() => setCopiedRaw(false), 2000);
     }
@@ -168,14 +169,14 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
               <button
                 onClick={handleCopyRaw}
                 className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300 transition"
-                title="Copies raw Markdown draft with [n1] citations"
+                title="Copies clean Markdown text without [n1] citation markers"
               >
                 {copiedRaw ? (
                   <Check className="w-3.5 h-3.5 text-emerald-600" />
                 ) : (
                   <FileText className="w-3.5 h-3.5" />
                 )}
-                <span>{copiedRaw ? 'Copied Raw!' : 'Copy Markdown'}</span>
+                <span>{copiedRaw ? 'Copied Markdown!' : 'Copy Clean Markdown'}</span>
               </button>
             </div>
           )}

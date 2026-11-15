@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Claim, ClaimCheck, Note } from '@/lib/types';
+import { stripCitations } from '@/lib/formatExport';
 import {
   ShieldCheck,
   AlertOctagon,
@@ -43,6 +44,7 @@ export function ClaimHighlightArticle({
   notes,
 }: ClaimHighlightArticleProps) {
   const [selectedClaimIndex, setSelectedClaimIndex] = useState<number | null>(null);
+  const [showCitationBadges, setShowCitationBadges] = useState<boolean>(false);
 
   // Map notes by ID for instant O(1) lookup
   const notesMap = new Map<string, Note>();
@@ -72,7 +74,7 @@ export function ClaimHighlightArticle({
     if (!claims || claims.length === 0) {
       return (
         <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-serif leading-relaxed text-neutral-800 dark:text-neutral-200">
-          {draft}
+          {stripCitations(draft)}
         </div>
       );
     }
@@ -86,7 +88,7 @@ export function ClaimHighlightArticle({
           // If heading
           if (p.startsWith('#')) {
             const level = p.match(/^#+/)?.[0].length ?? 1;
-            const text = p.replace(/^#+\s*/, '');
+            const text = stripCitations(p.replace(/^#+\s*/, ''));
             if (level === 1) {
               return (
                 <h1
@@ -125,7 +127,7 @@ export function ClaimHighlightArticle({
       .filter((c) => paragraphText.includes(c.claim.trim()));
 
     if (matchingClaims.length === 0) {
-      return renderFormattedText(paragraphText);
+      return renderFormattedText(stripCitations(paragraphText));
     }
 
     // Replace claim occurrences with interactive highlighted spans
@@ -145,12 +147,13 @@ export function ClaimHighlightArticle({
       }
 
       if (!earliestMatch) {
-        parts.push(renderFormattedText(remaining));
+        parts.push(renderFormattedText(stripCitations(remaining)));
         break;
       }
 
       if (earliestMatch.pos > 0) {
-        parts.push(renderFormattedText(remaining.slice(0, earliestMatch.pos)));
+        const textBefore = remaining.slice(0, earliestMatch.pos);
+        parts.push(renderFormattedText(stripCitations(textBefore)));
       }
 
       const cl = earliestMatch.claim;
@@ -179,36 +182,42 @@ export function ClaimHighlightArticle({
           }`}
           title="Click to inspect citation and factual verification"
         >
-          {renderFormattedText(cl.claim)}
-          <span className="inline-flex items-center space-x-1 ml-1.5 align-baseline select-none">
-            {cl.noteIds.map((id) => {
-              const note = notesMap.get(id);
-              return (
-                <a
-                  key={id}
-                  href={note?.sourceUrl || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  title={
-                    note
-                      ? `Verified Source: ${note.sourceUrl}\n"${note.quote}"`
-                      : `Citation Note [${id}]`
-                  }
-                  className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/90 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-sans font-bold text-[10px] border border-blue-200 dark:border-blue-800 transition hover:underline"
-                >
-                  <span>[{id}]</span>
-                  <ExternalLink className="w-2.5 h-2.5 opacity-75" />
-                </a>
-              );
-            })}
-          </span>
+          {renderFormattedText(stripCitations(cl.claim))}
+          {showCitationBadges && (
+            <span className="inline-flex items-center space-x-1 ml-1.5 align-baseline select-none">
+              {cl.noteIds.map((id) => {
+                const note = notesMap.get(id);
+                return (
+                  <a
+                    key={id}
+                    href={note?.sourceUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    title={
+                      note
+                        ? `Verified Source: ${note.sourceUrl}\n"${note.quote}"`
+                        : `Citation Note [${id}]`
+                    }
+                    className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/90 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-sans font-bold text-[10px] border border-blue-200 dark:border-blue-800 transition hover:underline"
+                  >
+                    <span>[{id}]</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-75" />
+                  </a>
+                );
+              })}
+            </span>
+          )}
         </mark>,
       );
 
-      remaining = remaining.slice(earliestMatch.pos + cl.claim.trim().length);
+      // Advance remaining past the claim AND any trailing citation markers [n1], [n1][n2], etc.
+      const afterClaim = remaining.slice(earliestMatch.pos + cl.claim.trim().length);
+      const citationMatch = afterClaim.match(/^(\s*\[\s*n\d+(?:\s*,\s*n\d+)*\s*\])+/i);
+      const skipLength = citationMatch ? citationMatch[0].length : 0;
+      remaining = afterClaim.slice(skipLength);
     }
 
     return parts;
@@ -218,13 +227,21 @@ export function ClaimHighlightArticle({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       {/* Article Text Column */}
       <div className="lg:col-span-7 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-sm">
-        <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 dark:border-neutral-800 pb-4 mb-6">
           <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">
             <FileText className="w-4 h-4 text-blue-600" />
             <span>Interactive Article Draft</span>
           </div>
 
           <div className="flex items-center space-x-3 text-xs">
+            <button
+              type="button"
+              onClick={() => setShowCitationBadges(!showCitationBadges)}
+              className="text-[11px] font-medium px-2 py-0.5 rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 transition"
+              title="Toggle inline citation badges"
+            >
+              {showCitationBadges ? 'Hide [n1] Badges' : 'Show [n1] Badges'}
+            </button>
             <span className="flex items-center space-x-1">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span>Supported</span>

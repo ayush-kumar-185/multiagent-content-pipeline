@@ -35,6 +35,26 @@ export interface SocialExportOptions {
 }
 
 /**
+ * Strips all citation brackets ([n1], [n2], [n1][n2], [n1, n2], etc.) and normalizes
+ * punctuation and spacing so the resulting markdown or prose is completely clean.
+ */
+export function stripCitations(text: string): string {
+  if (!text) return '';
+
+  return text
+    // 1. Remove all citation markers case-insensitively with flexible whitespace
+    .replace(/\[\s*n\d+(?:\s*,\s*n\d+)*\s*\]/gi, '')
+    // 2. Clean up any trailing whitespace before punctuation (e.g. "acquired ." -> "acquired.")
+    .replace(/\s+([.,!?:;])/g, '$1')
+    // 3. Clean up multiple horizontal spaces/tabs
+    .replace(/[ \t]{2,}/g, ' ')
+    // 4. Clean up spaces at end and beginning of lines after citation removal
+    .replace(/[ \t]+$/gm, '')
+    .replace(/^[ \t]+/gm, '')
+    .trim();
+}
+
+/**
  * Prepares content for social media publication (LinkedIn / Twitter / Social feeds):
  * 1. Strips all citation brackets: [n1], [n2], [n1][n2], [n1, n2] so the copied text is pure and publication-ready.
  * 2. Formats bold text: converts **bold** into real Unicode bold for LinkedIn/Twitter or strips asterisks.
@@ -46,21 +66,15 @@ export function cleanForSocialMedia(
 ): string {
   if (!draft) return '';
 
-  // 1. Remove all citation markers like [n1], [n1, n2], [n1][n2]
-  let cleaned = draft.replace(/\[n\d+(?:\s*,\s*n\d+)*\]/g, '');
+  // 1. Remove all citation markers and fix punctuation spacing
+  let cleaned = stripCitations(draft);
 
-  // 2. Clean up any trailing spaces before punctuation (e.g. "worlds ." -> "worlds.")
-  cleaned = cleaned.replace(/\s+([.,!?:;])/g, '$1');
-
-  // 3. Convert or strip markdown bold **text**
+  // 2. Convert or strip markdown bold **text**
   if (options.unicodeBold !== false) {
     cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, (_, match) => toUnicodeBold(match));
   } else {
     cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1');
   }
-
-  // 4. Clean up any multiple spaces
-  cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
 
   return cleaned.trim();
 }

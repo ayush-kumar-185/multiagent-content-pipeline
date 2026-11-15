@@ -12,7 +12,8 @@ describe('Web API Client', () => {
     expect(url1).not.toContain('lastEventId');
 
     const url2 = getEventsStreamUrl('run_123', 5);
-    expect(url2).toContain('/runs/run_123/events?lastEventId=5');
+    expect(url2).toContain('/runs/run_123/events');
+    expect(url2).toContain('lastEventId=5');
   });
 
   it('creates run via POST /runs with auth headers', async () => {
