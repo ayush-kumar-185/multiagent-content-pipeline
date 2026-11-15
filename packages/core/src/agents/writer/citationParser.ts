@@ -61,7 +61,7 @@ export function parseCitationsFromDraft(draft: string): Claim[] {
           // Strip leading structural thread numbers (e.g. "1/", "1/8", "1/8:"), list numbers (e.g. "1.", "1)"),
           // bullet markers (e.g. "•", "-", "*"), or prefixes like "Fact 1:", "Tip 1:"
           cleanClaim = cleanClaim
-            .replace(/^(?:(?:Fact|Tip|Step|Item|Point)\s+)?\d+[\/\.)\]:]\s*/i, '')
+            .replace(/^(?:(?:Fact|Tip|Step|Item|Point)\s+)?\d+[/.)\]:]\s*/i, '')
             .replace(/^\(\d+\)\s*/, '')
             .replace(/^[-*•]\s+/, '')
             .trim();

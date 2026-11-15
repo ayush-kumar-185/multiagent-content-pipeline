@@ -37,7 +37,7 @@ const DEFAULT_STOP_WORDS = new Set([
 export function tokenizeKeywords(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9_\-\.\/]/g, ' ')
+    .replace(/[^a-z0-9_\-./]/g, ' ')
     .split(/\s+/)
     .map((w) => w.trim())
     .filter((w) => w.length > 1 && !DEFAULT_STOP_WORDS.has(w));

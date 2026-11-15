@@ -19,13 +19,13 @@ export function extractDraftSections(draft: string): DraftSection[] {
   if (!draft || !draft.trim()) return [];
 
   // Check if thread with numbered tweets like "1/", "1/8", or "1."
-  const tweetRegex = /(?:^|\n)(?:\d+[\/\.)]\s*)/g;
+  const tweetRegex = /(?:^|\n)(?:\d+[/.)]\s*)/g;
   const isThread = (draft.match(tweetRegex) || []).length >= 3;
 
   if (isThread) {
-    const rawChunks = draft.split(/(?:^|\n)(?=\d+[\/\.)]\s*)/).filter((c) => c.trim().length > 0);
+    const rawChunks = draft.split(/(?:^|\n)(?=\d+[/.)]\s*)/).filter((c) => c.trim().length > 0);
     return rawChunks.map((chunk, idx) => {
-      const matchNum = chunk.match(/^\s*(\d+)[\/\.)]/);
+      const matchNum = chunk.match(/^\s*(\d+)[/.)]/);
       const id = matchNum ? `Tweet ${matchNum[1]}` : `Tweet ${idx + 1}`;
       return { id, index: idx + 1, text: chunk.trim() };
     });
@@ -51,7 +51,16 @@ export function extractStatistics(text: string): string[] {
     /(?:\$\d+(?:\.\d+)?(?:\s*(?:billion|million|trillion|k|b|m))?|\b\d+(?:\.\d+)?%|\b\d+(?:,\d+)?\s*(?:percent|percentage|steps|feet|hours|minutes|seconds)\b)/gi,
   );
   if (!matches) return [];
-  return Array.from(new Set(matches.map((m) => m.toLowerCase().trim())));
+  return Array.from(
+    new Set(
+      matches.map((m) =>
+        m
+          .toLowerCase()
+          .replace(/\s*(?:percent|percentage)\b/, '%')
+          .trim(),
+      ),
+    ),
+  );
 }
 
 /**

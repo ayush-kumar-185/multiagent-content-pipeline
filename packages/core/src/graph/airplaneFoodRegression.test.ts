@@ -225,4 +225,59 @@ describe('Regression Test: Airplane Food Taste at 35,000 Feet (improvement.md Pa
     const decision = resolveEditorDecision(weightedScore, hardGates, 'accept');
     expect(decision).toBe('accept');
   });
+
+  it('detects repeated statistics in flawed draft, triggers hard gate revision, and verifies clean resolution', async () => {
+    // 1. A flawed draft that unnecessarily repeats "30%" across multiple tweets
+    const flawedDraft = `1/ Ever wondered why airplane food tastes so bland at 35,000 feet? Cabin humidity drops by 30% [n1].
+
+2/ Low atmospheric pressure inside the cabin further dulls your senses, reducing sweet and salty taste perception by approximately 30 percent [n2].
+
+3/ In fact, dry cabin air reduces your overall taste perception by another 30% [n1].
+
+4/ Airlines add tomato juice to compensate for taste loss [n4].`;
+
+    // 2. Semantic repetition detector MUST detect the repeated 30% stat across Tweet 1, Tweet 2, Tweet 3
+    const findings = detectSemanticRepetition(flawedDraft);
+    expect(findings.length).toBeGreaterThan(0);
+    const statFinding = findings.find((f) => f.repeatedIdea.includes('30%'));
+    expect(statFinding).toBeDefined();
+    expect(statFinding!.sectionIds.length).toBeGreaterThanOrEqual(2);
+    expect(statFinding!.severity).toBe('high');
+
+    // 3. Editor hard gates MUST fail because of high severity repetition
+    const flawedScores: QualityScores = {
+      factualReliability: 8.0,
+      relevance: 8.0,
+      depth: 6.0,
+      logicalFlow: 5.0,
+      originality: 6.0,
+      engagement: 6.0,
+      repetitionControl: 4.0, // Failed
+      readability: 8.0,
+      conclusionQuality: 6.0,
+    };
+
+    const hardGates = evaluateHardGates(flawedScores, {
+      repetitionFindings: findings,
+      formatPassed: true,
+    });
+    expect(hardGates.passed).toBe(false);
+    expect(hardGates.failedGates.some((g) => g.toLowerCase().includes('repetition'))).toBe(true);
+
+    const decision = resolveEditorDecision(calculateWeightedScore(flawedScores), hardGates);
+    expect(decision).toBe('revise');
+
+    // 4. Revision prompt receives actionable directives and produces non-repetitive revised draft
+    const cleanDraft = `1/ Ever wondered why airplane food tastes so bland at 35,000 feet? Cabin humidity drops below 12 percent, drying olfactory membranes required to perceive flavor [n1].
+
+2/ Low atmospheric pressure inside the cabin further dulls your senses, reducing sweet and salty taste perception by approximately 30 percent [n2].
+
+3/ Meanwhile, continuous 85 dB background engine noise dampens sweetness while paradoxically enhancing savory umami receptors [n3].
+
+4/ This is why airlines formulate menus with glutamate-dense foods like tomato juice and mushrooms, which retain full flavor at cruising altitude [n4].`;
+
+    const cleanFindings = detectSemanticRepetition(cleanDraft);
+    expect(cleanFindings).toEqual([]);
+    expect((cleanDraft.match(/30\s*percent|30%/gi) || []).length).toBe(1);
+  });
 });

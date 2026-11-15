@@ -40,7 +40,7 @@ export function expandQuoteInText(
     return { success: false, reason: 'Page text or quote is empty.' };
   }
 
-  let idx = pageText.indexOf(quote);
+  const idx = pageText.indexOf(quote);
   if (idx === -1) {
     const normPage = normalizeWhitespace(pageText);
     const normQuote = normalizeWhitespace(quote);
