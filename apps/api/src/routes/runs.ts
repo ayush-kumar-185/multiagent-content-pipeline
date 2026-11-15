@@ -80,10 +80,12 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
 
     // 1. Check Global Concurrent Runs Cap (MAX_CONCURRENT_RUNS, default 1)
     const maxGlobalConcurrent = Number(process.env.MAX_CONCURRENT_RUNS || 1);
+    // Ignore stale runs older than 2 hours that might have stalled or crashed
+    const staleThreshold = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const [globalActiveRes] = await dbCtx.db
       .select({ count: sql<number>`count(*)::int` })
       .from(runs)
-      .where(inArray(runs.status, ['pending', 'running']));
+      .where(and(inArray(runs.status, ['pending', 'running']), gte(runs.updatedAt, staleThreshold)));
 
     if ((globalActiveRes?.count ?? 0) >= maxGlobalConcurrent) {
       reply.status(429).send({
@@ -141,7 +143,7 @@ export function registerRunRoutes(app: FastifyInstance, options: RunRoutesOption
         count: sql<number>`count(*)::int`,
       })
       .from(runs)
-      .where(and(eq(runs.userId, user.id), inArray(runs.status, ['pending', 'running'])));
+      .where(and(eq(runs.userId, user.id), inArray(runs.status, ['pending', 'running']), gte(runs.updatedAt, staleThreshold)));
 
     if ((activeCountRes?.count ?? 0) >= maxConcurrentRunsPerUser) {
       reply.status(429).send({
