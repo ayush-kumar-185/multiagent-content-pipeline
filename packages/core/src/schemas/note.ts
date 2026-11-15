@@ -10,6 +10,15 @@ export const SourceTypeSchema = z.enum([
 
 export type SourceType = z.infer<typeof SourceTypeSchema>;
 
+export const EvidenceTypeSchema = z.enum([
+  'measured_result',
+  'explanatory_hypothesis',
+  'industry_practice',
+  'general_observation',
+]);
+
+export type EvidenceType = z.infer<typeof EvidenceTypeSchema>;
+
 export const NoteSchema = z.object({
   id: z.string().min(1, 'Note ID must not be empty'),
   claim: z.string().min(1, 'Claim must not be empty'),
@@ -21,6 +30,10 @@ export const NoteSchema = z.object({
   publishedAt: z.string().optional(),
   sourceType: SourceTypeSchema.optional(),
   researchCategory: z.string().optional(),
+  studyContext: z.string().optional(),
+  evidenceType: EvidenceTypeSchema.optional(),
+  limitations: z.string().optional(),
+  qualifications: z.array(z.string()).optional(),
 });
 
 export type Note = z.infer<typeof NoteSchema>;

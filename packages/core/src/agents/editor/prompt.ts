@@ -29,6 +29,14 @@ EVALUATION RUBRIC ACROSS 9 WEIGHTED DIMENSIONS (Score each 0.0 to 10.0):
 8. Readability & Polish (5%): Fluent sentence cadence, clean formatting, zero boilerplate fluff.
 9. Conclusion Quality (5%): Satisfying synthesis or practical takeaway, not a generic repetitive sign-off.
 
+EXPLICIT FACTUAL PRECISION & NARRATIVE DIMENSIONS (Enforced by Hard Gates):
+- Evidence-to-Claim Precision: Does the text state exactly what is supported without overstatement or exaggeration?
+- Causal Reasoning: Are causal mechanisms ("X causes Y", "drying membranes leads to taste loss") established by evidence or unverified inferences?
+- Numerical Claim Traceability: Do statistics (e.g. 30%, 85 dB) communicate their experimental context (simulated cabin pressure at 8,000 ft, sweet/salty specificity)?
+- Industry & Behavioral Claim Grounding: Are claims about airline menu formulation or business decisions supported by actual industry evidence rather than inferred from sensory biology?
+- Narrative Continuity: Does the text smoothly bridge science to real-world applications with logical transitions?
+- Redundant Explanations: Are the separate mechanisms (humidity/olfaction vs pressure/taste thresholds vs acoustics) properly distinguished rather than repeating vague "dulling" claims?
+
 FORMAT-SPECIFIC CRITERIA:
 ${
   format === 'linkedin_post'
@@ -39,7 +47,9 @@ ${
 }
 
 HARD QUALITY GATES:
-- If factual reliability < 7.0 or any claim is contradicted -> MUST REVISE.
+- If factual reliability < 7.0, evidence precision < 7.0, or any claim is contradicted/unsupported -> MUST REVISE.
+- If unverified causal leaps or unsubstantiated corporate/airline practices are asserted -> MUST REVISE.
+- If numerical claims lack necessary experimental qualifications -> MUST REVISE.
 - If severe repetition exists (same stat in 2+ sections or high idea overlap) -> MUST REVISE.
 - If main topic is missing or title drifted -> MUST REVISE.
 
@@ -53,6 +63,20 @@ You must return valid JSON matching this schema:
   "scores": {
     "factualReliability": <0-10>,
     "relevance": <0-10>,
+    "depth": <0-10>,
+    "logicalFlow": <0-10>,
+    "originality": <0-10>,
+    "engagement": <0-10>,
+    "repetitionControl": <0-10>,
+    "readability": <0-10>,
+    "conclusionQuality": <0-10>,
+    "evidenceToClaimPrecision": <0-10>,
+    "causalReasoning": <0-10>,
+    "numericalTraceability": <0-10>,
+    "industryClaimGroundedness": <0-10>,
+    "narrativeContinuity": <0-10>,
+    "redundantExplanations": <0-10>
+  },
     "depth": <0-10>,
     "logicalFlow": <0-10>,
     "originality": <0-10>,

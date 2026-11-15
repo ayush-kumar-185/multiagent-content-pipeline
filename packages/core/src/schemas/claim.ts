@@ -18,11 +18,34 @@ export const ClaimCheckStatusSchema = z.enum([
 
 export type ClaimCheckStatus = z.infer<typeof ClaimCheckStatusSchema>;
 
+export const ClaimSupportClassificationSchema = z.enum([
+  'direct',
+  'partial',
+  'unsupported',
+]);
+
+export type ClaimSupportClassification = z.infer<typeof ClaimSupportClassificationSchema>;
+
+export const EvidenceAuditRecordSchema = z.object({
+  claim: z.string(),
+  noteIds: z.array(z.string()),
+  sourceUrl: z.string().optional(),
+  exactPassage: z.string().optional(),
+  supportClassification: ClaimSupportClassificationSchema,
+  qualifications: z.array(z.string()).optional(),
+  makesCausalInference: z.boolean().optional(),
+  causalSupported: z.boolean().optional(),
+  reason: z.string(),
+});
+
+export type EvidenceAuditRecord = z.infer<typeof EvidenceAuditRecordSchema>;
+
 export const ClaimCheckSchema = z.object({
   claim: z.string().min(1, 'Claim must not be empty'),
   noteIds: z.array(z.string().min(1)),
   status: ClaimCheckStatusSchema,
   reason: z.string(),
+  auditRecord: EvidenceAuditRecordSchema.optional(),
 });
 
 export type ClaimCheck = z.infer<typeof ClaimCheckSchema>;

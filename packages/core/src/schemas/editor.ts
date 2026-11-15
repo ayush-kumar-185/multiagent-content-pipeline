@@ -13,6 +13,13 @@ export const QualityScoresSchema = z.object({
   readability: z.number().min(0).max(10),
   repetitionControl: z.number().min(0).max(10),
   conclusionQuality: z.number().min(0).max(10),
+  // Explicit precision dimensions:
+  evidenceToClaimPrecision: z.number().min(0).max(10).optional(),
+  causalReasoning: z.number().min(0).max(10).optional(),
+  numericalTraceability: z.number().min(0).max(10).optional(),
+  industryClaimGroundedness: z.number().min(0).max(10).optional(),
+  narrativeContinuity: z.number().min(0).max(10).optional(),
+  redundantExplanations: z.number().min(0).max(10).optional(),
 });
 
 export type QualityScores = z.infer<typeof QualityScoresSchema>;

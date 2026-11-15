@@ -54,20 +54,24 @@ export function evaluateHardGates(
 ): QualityGateResult {
   const failedGates: string[] = [];
 
-  // Gate 1: Unsupported material factual claim
+  // Gate 1: Unsupported material factual claim or causal leap
   const hasUnsupportedClaim =
     options.claimChecks &&
     options.claimChecks.some(
-      (c) => c.status === 'unsupported' || c.status === 'contradicted',
+      (c) =>
+        c.status === 'unsupported' ||
+        c.status === 'contradicted' ||
+        c.auditRecord?.supportClassification === 'unsupported' ||
+        (c.auditRecord?.makesCausalInference && c.auditRecord?.causalSupported === false),
     );
   if (hasUnsupportedClaim || scores.factualReliability < 7.0) {
-    failedGates.push('Material factual claims are unsupported, contradicted, or factual reliability is below threshold (< 7.0)');
+    failedGates.push('Material factual claims are unsupported, contradicted, contain unverified causal leaps, or factual reliability is below threshold (< 7.0)');
   }
 
-  // Gate 2: Severe semantic repetition
+  // Gate 2: Severe semantic repetition or redundant explanations
   const hasHighRepetition = options.repetitionFindings?.some((r) => r.severity === 'high');
-  if (hasHighRepetition || scores.repetitionControl < 6.0) {
-    failedGates.push('Severe semantic repetition detected across multiple sections/tweets (< 6.0)');
+  if (hasHighRepetition || scores.repetitionControl < 6.0 || (scores.redundantExplanations !== undefined && scores.redundantExplanations < 6.0)) {
+    failedGates.push('Severe semantic repetition or redundant explanations detected across multiple sections/tweets (< 6.0)');
   }
 
   // Gate 3: Missing central answer or core relevance
@@ -75,7 +79,24 @@ export function evaluateHardGates(
     failedGates.push('Draft failed to directly answer the central question or topic (< 6.0)');
   }
 
-  // Gate 4: Major format violation
+  // Gate 4: Evidence-to-claim precision and causal reasoning
+  if (scores.evidenceToClaimPrecision !== undefined && scores.evidenceToClaimPrecision < 7.0) {
+    failedGates.push('Evidence-to-claim precision is below acceptable threshold (< 7.0)');
+  }
+  if (scores.causalReasoning !== undefined && scores.causalReasoning < 6.0) {
+    failedGates.push('Unsupported causal reasoning or unverified physiological mechanisms detected (< 6.0)');
+  }
+  if (scores.numericalTraceability !== undefined && scores.numericalTraceability < 6.0) {
+    failedGates.push('Numerical statistics presented without experimental context or study conditions (< 6.0)');
+  }
+  if (scores.industryClaimGroundedness !== undefined && scores.industryClaimGroundedness < 6.0) {
+    failedGates.push('Industry or corporate practices claimed without independent documentary evidence (< 6.0)');
+  }
+  if (scores.narrativeContinuity !== undefined && scores.narrativeContinuity < 6.0) {
+    failedGates.push('Disjointed narrative flow or missing logical transitions between disparate domains (< 6.0)');
+  }
+
+  // Gate 5: Major format violation
   if (options.formatPassed === false) {
     failedGates.push('Major format requirement violated (e.g. word count, thread structure)');
   }

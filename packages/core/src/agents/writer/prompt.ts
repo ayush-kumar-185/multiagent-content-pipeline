@@ -47,15 +47,23 @@ ${formatInstructions}
 CORE CITATION & FACTUAL GROUNDING RULES:
 1. You may state ONLY facts directly stated in the provided notes. Every factual sentence MUST be directly stated in its cited note.
 2. NO UNCITED SENTENCES: Absolutely every body sentence (excluding markdown headings) MUST end with at least one citation marker [n...] referring to a valid note ID. If a note does not support a sentence, OMIT the sentence entirely. Do not write ungrounded introductory, concluding, or transitional filler sentences.
-3. NOTE COVERAGE & PRIORITIZATION: Cover every distinct note at least once where the note is relevant to the topic. Prioritize notes that match the topic's key terms. Quality over note-cramming: select the best notes that serve the content plan rather than forcing irrelevant notes. When new notes are added after re-research, actively use them in the next draft instead of only fixing flagged claims.
-4. DO NOT LOOSEN CITATION RULES: Never loosen or bypass citation rules for flow or length.
-5. REPETITION ERADICATION: Never repeat the same statistic, figure, percentage, or core finding in multiple sections or tweets. State it once with maximum impact, and use subsequent sections to explore mechanisms and implications.
-6. FOLLOW CONTENT PLAN: If a ContentPlan is provided, follow its centralAngle, narrativeFlow, and heed its redundantInformation and avoid guidance.
-7. ACCURATE HEADINGS: Choose section headings that accurately describe the notes assigned to them. Every note grouped under a heading must match the topic of that heading.
-8. Strictly FORBID explanatory, motivational, or benefit sentences (e.g. "enhances developer velocity", "reduces bundle sizes", "improves maintainability") and any numbers or metrics not present in the notes.
-9. Do NOT extrapolate, hallucinate, speculate, or invent unverified facts, benefits, or implications.
-10. Target Audience: ${config.audience}
-11. Target Tone: ${config.tone}
+3. PRESERVE EXPERIMENTAL CONTEXT & QUALIFICATIONS:
+   - When citing precise metrics (e.g. 30%, 85 dB), communicate the study context (e.g. "In simulated 8,000-ft cabin pressure tests", "acoustic engine noise at 85 dB").
+   - Retain specific modalities: if a study measured sweet and salty taste thresholds, do not overgeneralize to "all senses" or "all flavors".
+   - Distinguish measured results from explanatory hypotheses; avoid converting hypotheses into definitive physiological dogmas.
+4. COHERENT NARRATIVE TRANSITIONS & DISTINCT INSIGHTS:
+   - Ensure each tweet or section provides a distinct insight. Clearly distinguish separate environmental mechanisms (humidity affecting olfaction vs pressure affecting taste thresholds vs engine acoustics modulating pathways).
+   - Make transitions explain why the next point follows from the previous one.
+   - Do NOT introduce airline business practices or menu motives unless those practices are independently documented in the notes.
+5. NOTE COVERAGE & PRIORITIZATION: Cover every distinct note at least once where the note is relevant to the topic. Prioritize notes that match the topic's key terms. Quality over note-cramming: select the best notes that serve the content plan rather than forcing irrelevant notes. When new notes are added after re-research, actively use them in the next draft instead of only fixing flagged claims.
+6. DO NOT LOOSEN CITATION RULES: Never loosen or bypass citation rules for flow or length.
+7. REPETITION ERADICATION: Never repeat the same statistic, figure, percentage, or core finding in multiple sections or tweets. State it once with maximum impact, and use subsequent sections to explore mechanisms and implications.
+8. FOLLOW CONTENT PLAN: If a ContentPlan is provided, follow its centralAngle, narrativeFlow, and heed its redundantInformation and avoid guidance.
+9. ACCURATE HEADINGS: Choose section headings that accurately describe the notes assigned to them. Every note grouped under a heading must match the topic of that heading.
+10. Strictly FORBID explanatory, motivational, or benefit sentences (e.g. "enhances developer velocity", "reduces bundle sizes", "improves maintainability") and any numbers or metrics not present in the notes.
+11. Do NOT extrapolate, hallucinate, speculate, or invent unverified facts, benefits, or implications.
+12. Target Audience: ${config.audience}
+13. Target Tone: ${config.tone}
 
 You must return a JSON object with:
 {

@@ -7,6 +7,7 @@ import { generateStructuredOutput } from '../../llm/structuredOutput.js';
 import { resolveBudgetLimits } from '../../llm/budget.js';
 import { Tracer } from '../../observability/types.js';
 import { runDeterministicFactPreChecks, findUncitedSentencesInDraft } from './deterministicPreChecks.js';
+import { auditClaimEvidence } from './evidenceAuditor.js';
 import { buildFactCheckerSystemPrompt, buildFactCheckerUserPrompt } from './prompt.js';
 import { fetchPage, FetchPageOptions } from '../../tools/fetch/fetchPage.js';
 
@@ -151,23 +152,44 @@ export async function runFactCheckerAgent(
     }
   }
 
-  // 3. Assemble results in original claim order
+  // 3. Assemble results in original claim order and attach evidence audit records
   const finalChecks: ClaimCheck[] = (state.claims || []).map((claim) => {
+    let check: ClaimCheck;
+
     // Check deterministic pre-check first
     const detCheck = deterministicResults.get(claim.claim);
-    if (detCheck) return detCheck;
+    if (detCheck) {
+      check = { ...detCheck };
+    } else {
+      // Check LLM result
+      const llmCheck = llmResults.get(claim.claim);
+      if (llmCheck) {
+        check = { ...llmCheck };
+      } else {
+        // Fallback if missing from LLM response
+        check = {
+          claim: claim.claim,
+          noteIds: claim.noteIds,
+          status: 'needs_more_research' as const,
+          reason: 'Claim was not evaluated by the model; flagged for further research.',
+        };
+      }
+    }
 
-    // Check LLM result
-    const llmCheck = llmResults.get(claim.claim);
-    if (llmCheck) return llmCheck;
+    // Attach sentence-level evidence audit record
+    const auditEval = auditClaimEvidence(claim, state.notes);
+    check.auditRecord = auditEval.auditRecord;
 
-    // Fallback if missing from LLM response
-    return {
-      claim: claim.claim,
-      noteIds: claim.noteIds,
-      status: 'needs_more_research' as const,
-      reason: 'Claim was not evaluated by the model; flagged for further research.',
-    };
+    // Strict safety gate: Overrule lenient LLM classification if evidence audit catches unsupported or partial leaps
+    if (auditEval.auditRecord.supportClassification === 'unsupported' && check.status === 'supported') {
+      check.status = 'unsupported';
+      check.reason = check.reason ? `${check.reason} (Evidence Audit: ${auditEval.auditRecord.reason})` : auditEval.auditRecord.reason;
+    } else if (auditEval.auditRecord.supportClassification === 'partial' && check.status === 'supported') {
+      check.status = 'partially_supported';
+      check.reason = check.reason ? `${check.reason} (Evidence Audit: ${auditEval.auditRecord.reason})` : auditEval.auditRecord.reason;
+    }
+
+    return check;
   });
 
   // 4. Append uncited body sentences from the draft that are not already covered

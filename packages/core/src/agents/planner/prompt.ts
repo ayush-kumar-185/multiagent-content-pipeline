@@ -20,14 +20,22 @@ Target Word Count: ~${config.targetWords} words
 
 CORE PLANNING RULES:
 1. DIRECT ANSWER FIRST: Section 1 (or Tweet 1) must immediately answer the core question or prompt. Never open with vague throat-clearing.
-2. PROGRESSIVE DISCLOSURE: Each section must build on the previous one. Follow a logical chain: Mechanism -> Impact -> Industry Solution -> Practical Takeaway.
-3. REPETITION ERADICATION:
+2. COHERENT NARRATIVE PROGRESSION:
+   - Each section/tweet must build logically on the previous one. Explain why the next point follows from the previous one.
+   - For environmental & sensory science: clearly distinguish separate mechanisms (e.g. humidity drying nasal mucus vs. cabin pressure shifting sweet/salty thresholds vs. acoustic noise altering taste pathways). Do not repeat sensory-dulling points under different guises.
+3. PRESERVE UNCERTAINTY & EXPERIMENTAL CONTEXT:
+   - Preserve study context and measurement conditions (e.g. simulated 8,000-ft altitude, laboratory decibel tests).
+   - Avoid turning plausible biological hypotheses into dogmatic definitive statements.
+4. INDEPENDENT GROUNDING FOR INDUSTRY PRACTICES:
+   - Do NOT force every research note into the plan.
+   - Do NOT introduce airline business practices or menu decisions unless those practices are independently documented in notes. Never extrapolate corporate motives from sensory lab studies.
+5. REPETITION ERADICATION:
    - Identify redundant facts or numbers that appear across multiple notes (e.g. if multiple notes mention "30%", assign it to exactly ONE section).
    - List them explicitly in redundantInformation and avoid.
-4. FORMAT BLUEPRINT:
+6. FORMAT BLUEPRINT:
    ${
      format === 'twitter_thread'
-       ? '- For Twitter Thread: Create 5-8 sequential tweets (Tweet 1: Hook & Core Answer, Tweet 2: Physiological mechanism, Tweet 3: Environmental factor, Tweet 4: Psychological/acoustic factor, Tweet 5: Culinary adjustments, Tweet 6: Actionable takeaway). Never repeat the same stat.'
+       ? '- For Twitter Thread: Create 5-8 sequential tweets (Tweet 1: Hook & Core Answer, Tweet 2: Humidity & Olfactory mechanism, Tweet 3: Cabin pressure & Taste thresholds, Tweet 4: Engine acoustics & Umami, Tweet 5: Aviation culinary adaptation, Tweet 6: Actionable takeaway). Never repeat the same stat.'
        : format === 'linkedin_post'
          ? '- For LinkedIn Post: Create 4-5 focused sections with clear takeaway bullets and industry perspective.'
          : '- For Technical Article: Create 4-6 detailed sections with clear, informative headings and word allocations.'
