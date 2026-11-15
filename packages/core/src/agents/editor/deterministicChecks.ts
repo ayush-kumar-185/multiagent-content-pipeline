@@ -1,4 +1,4 @@
-import { Claim } from '../../schemas/claim.js';
+import { Claim, ClaimCheck } from '../../schemas/claim.js';
 import { RunConfig } from '../../schemas/config.js';
 
 export interface DeterministicEditorReport {
@@ -92,17 +92,38 @@ export function runDeterministicEditorChecks(
   draft: string,
   claims: Claim[],
   config: Partial<RunConfig> = {},
+  claimChecks: ClaimCheck[] = [],
 ): DeterministicEditorReport {
   const words = countWords(draft);
-  const target = config.targetWords ?? 800;
+  const target = config.targetWords ?? 500;
   // Tolerance: 60% to 140% of target word count
   const minWords = Math.floor(target * 0.6);
   const maxWords = Math.ceil(target * 1.4);
-  const lengthPassed = words >= minWords && words <= maxWords;
 
-  const lengthMessage = lengthPassed
-    ? `Length check PASSED (${words} words; target ${target} ± 40%).`
-    : `Length check FLAGGED (${words} words; acceptable target range is ${minWords} - ${maxWords} words).`;
+  // Check if all claims are supported and no uncited/unsupported sentences
+  const hasChecks = claimChecks.length > 0;
+  const allClaimsSupported = hasChecks
+    ? claimChecks.every((c) => c.status === 'supported')
+    : claims.length > 0;
+
+  const isBelowTarget = words < minWords;
+  const isAboveTarget = words > maxWords;
+
+  // Treat word count below target as advisory when all sentences are cited and claims are supported
+  const lengthPassed = isAboveTarget ? false : isBelowTarget ? allClaimsSupported : true;
+
+  let lengthMessage = '';
+  if (isAboveTarget) {
+    lengthMessage = `Length check FLAGGED (${words} words; exceeds maximum acceptable range of ${maxWords} words).`;
+  } else if (isBelowTarget) {
+    if (allClaimsSupported) {
+      lengthMessage = `Length check ADVISORY (${words} words; below target range of ${minWords} - ${maxWords} words, but treated as advisory because all claims are cited and supported from research notes. Do NOT request expansion beyond notes).`;
+    } else {
+      lengthMessage = `Length check FLAGGED (${words} words; acceptable target range is ${minWords} - ${maxWords} words).`;
+    }
+  } else {
+    lengthMessage = `Length check PASSED (${words} words; target ${target} ± 40%).`;
+  }
 
   const readability = calculateReadability(draft);
 

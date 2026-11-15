@@ -67,4 +67,74 @@ This greatly improved type safety across enterprise projects [n3].
     expect(report.citationPassed).toBe(true);
     expect(report.citationCoverageRatio).toBeGreaterThan(0.5);
   });
+
+  it('treats word count below target as advisory (lengthPassed = true) when all claims are supported', () => {
+    const shortGroundedDraft = `
+TypeScript 5.0 introduced const type parameters [n1].
+Decorators were also stabilized in this release [n2].
+`;
+    const claims = [
+      { id: 'c1', claim: 'TypeScript 5.0 introduced const type parameters', noteIds: ['n1'] },
+      { id: 'c2', claim: 'Decorators were also stabilized in this release', noteIds: ['n2'] },
+    ];
+    const claimChecks = [
+      {
+        claim: 'TypeScript 5.0 introduced const type parameters',
+        noteIds: ['n1'],
+        status: 'supported' as const,
+        reason: 'Verbatim in note quote.',
+      },
+      {
+        claim: 'Decorators were also stabilized in this release',
+        noteIds: ['n2'],
+        status: 'supported' as const,
+        reason: 'Verbatim in note quote.',
+      },
+    ];
+
+    const report = runDeterministicEditorChecks(
+      shortGroundedDraft,
+      claims,
+      { targetWords: 500 },
+      claimChecks,
+    );
+
+    expect(report.lengthPassed).toBe(true);
+    expect(report.lengthMessage).toContain('Length check ADVISORY');
+    expect(report.lengthMessage).toContain('Do NOT request expansion beyond notes');
+  });
+
+  it('flags word count below target (lengthPassed = false) when claims are unsupported', () => {
+    const shortUngroundedDraft = `
+TypeScript 5.0 is the fastest language on earth [n1].
+`;
+    const claims = [
+      { id: 'c1', claim: 'TypeScript 5.0 is the fastest language on earth', noteIds: ['n1'] },
+    ];
+    const claimChecks = [
+      {
+        claim: 'TypeScript 5.0 is the fastest language on earth',
+        noteIds: ['n1'],
+        status: 'unsupported' as const,
+        reason: 'Overstated claim.',
+      },
+    ];
+
+    const report = runDeterministicEditorChecks(
+      shortUngroundedDraft,
+      claims,
+      { targetWords: 500 },
+      claimChecks,
+    );
+
+    expect(report.lengthPassed).toBe(false);
+    expect(report.lengthMessage).toContain('Length check FLAGGED');
+  });
+
+  it('flags word count when draft exceeds maximum range (> 140% of target)', () => {
+    const words = Array(800).fill('word').join(' ');
+    const report = runDeterministicEditorChecks(words, [], { targetWords: 500 });
+    expect(report.lengthPassed).toBe(false);
+    expect(report.lengthMessage).toContain('exceeds maximum acceptable range');
+  });
 });

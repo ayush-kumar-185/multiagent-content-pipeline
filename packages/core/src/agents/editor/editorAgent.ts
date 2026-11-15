@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { GraphState, RunAgentMetrics } from '../../schemas/state.js';
 import { EditorVerdict, EditorVerdictSchema } from '../../schemas/editor.js';
-import { createLLMClient, getAgentModel } from '../../llm/client.js';
+import { createLLMClient, getAgentModel, getAgentMaxTokens, getAgentReasoningEffort } from '../../llm/client.js';
 import { generateStructuredOutput } from '../../llm/structuredOutput.js';
 import { resolveBudgetLimits } from '../../llm/budget.js';
 import { Tracer } from '../../observability/types.js';
@@ -11,6 +11,8 @@ import { buildEditorSystemPrompt, buildEditorUserPrompt } from './prompt.js';
 export interface EditorAgentOptions {
   client?: OpenAI;
   model?: string;
+  maxTokens?: number;
+  reasoningEffort?: string;
   tracer?: Tracer;
 }
 
@@ -27,7 +29,12 @@ export async function runEditorAgent(
   const model = options.model ?? getAgentModel('editor');
   const tracer = options.tracer;
 
-  const deterministicReport = runDeterministicEditorChecks(state.draft, state.claims, state.config);
+  const deterministicReport = runDeterministicEditorChecks(
+    state.draft,
+    state.claims,
+    state.config,
+    state.claimChecks,
+  );
 
   const systemPrompt = buildEditorSystemPrompt(state.config);
   const userPrompt = buildEditorUserPrompt(state.draft, deterministicReport);
@@ -44,7 +51,8 @@ export async function runEditorAgent(
     budgetLimits,
     runId: state.runId,
     agentRole: 'editor',
-    maxTokens: 800,
+    maxTokens: options.maxTokens ?? getAgentMaxTokens('editor'),
+    reasoningEffort: options.reasoningEffort ?? getAgentReasoningEffort('editor'),
     tracer,
   });
 
