@@ -23,6 +23,8 @@ RUN pnpm install --frozen-lockfile
 COPY packages/core/ ./packages/core/
 COPY apps/web/ ./apps/web/
 
+RUN mkdir -p /app/apps/web/public
+
 # Build core and web
 RUN pnpm --filter @citewriter/core run build
 
@@ -51,6 +53,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./.next/static
 
 USER nextjs
 
