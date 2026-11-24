@@ -8,6 +8,7 @@ dotenv.config({ override: true });
 
 import { validateStartupEnvironment } from './config/mode.js';
 import { createDatabase } from './db/index.js';
+import { runDatabaseMigrations } from './db/migrate.js';
 import { createPostgresCheckpointer } from './checkpointer/index.js';
 import { RunEventBus } from './events/eventBus.js';
 import { createRedisConnection, createRunQueue, createRunWorker } from './queue/index.js';
@@ -26,6 +27,13 @@ async function startServer(): Promise<void> {
 
   // Initialize Postgres checkpointer tables
   await cpCtx.setup();
+
+  // Automatically apply Drizzle database schema migrations on startup
+  try {
+    await runDatabaseMigrations(dbCtx.db as any);
+  } catch (err) {
+    console.error('[CiteWriter API] Failed to run database migrations on startup:', err);
+  }
 
   const isReal = envStatus.mode === 'real';
   if (isReal) {

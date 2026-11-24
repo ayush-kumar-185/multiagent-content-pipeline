@@ -26,7 +26,8 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   });
 
   // Global structured error handler
-  app.setErrorHandler((error: FastifyError, _request, reply) => {
+  app.setErrorHandler((error: FastifyError, request, reply) => {
+    console.error(`[CiteWriter API Error] ${request.method} ${request.url}:`, error);
     const statusCode = error.statusCode ?? 500;
     let code = error.code ?? 'INTERNAL_SERVER_ERROR';
 
